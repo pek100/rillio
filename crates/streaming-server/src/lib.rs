@@ -10,6 +10,7 @@
 mod routes;
 
 pub mod config;
+pub mod engine;
 pub mod types;
 
 pub use config::Config;

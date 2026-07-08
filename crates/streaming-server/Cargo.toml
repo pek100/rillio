@@ -1,3 +1,7 @@
+# Standalone workspace: native-only, isolated from the wasm crates' lockfile.
+# Build/test from this directory (or with -p from root using --manifest-path).
+[workspace]
+
 [package]
 name = "stremio-streaming-server"
 version = "0.1.0"
@@ -18,13 +22,26 @@ path = "src/bin/serve.rs"
 
 [dependencies]
 axum = "0.8"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "io-util", "signal"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = { version = "2.4", features = ["serde"] }
 tracing = "0.1"
+
+# Torrent engine (M1). Pinned exact; 9.0.0-rc is a pre-release we avoid.
+# default-features off drops librqbit's own http-api-client/webui. We use
+# `default-tls` (reqwest default-tls = schannel on Windows / OpenSSL on Linux)
+# rather than `rust-tls`: the rustls path pulls aws-lc-sys, whose Windows build
+# needs the NASM assembler. Revisit the backend when packaging the Linux image.
+librqbit = { version = "=8.1.1", default-features = false, features = ["default-tls"] }
+hex = "0.4"                                        # /create blob is hex
+mime_guess = "2"                                   # Content-Type via mime.lookup parity
+tokio-util = { version = "0.7", features = ["io"] } # ReaderStream: FileStream -> axum body
+bytes = "1"
+anyhow = "1"
+regex = "1"                                        # fileMustInclude (linear-time, ReDoS-immune)
 
 [dependencies.tracing-subscriber]
 version = "0.3"
