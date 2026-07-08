@@ -9,7 +9,6 @@ and the repos were restructured.
 ```
 apps/
   web/                  React + TypeScript client (was Stremio/stremio-web)
-  shell/                Qt5 desktop shell (was Stremio/stremio-shell) — see caveats
 packages/
   video/                Player abstraction layer (was Stremio/stremio-video)
   translations/         Locale strings (was Stremio/stremio-translations)
@@ -44,8 +43,10 @@ Other deltas from upstream:
   (the `sh` script could not run on Windows).
 - Cargo workspace re-rooted; path deps rewritten (`../derive`, `../core`).
 - Per-repo `.github/` CI configs dropped — a fork writes its own.
-- `apps/shell` vendors **source only**. Upstream committed 374 MB of prebuilt
-  binaries and Smart Code's code-signing certificates; neither belongs here.
+- The Qt5 desktop shell (`stremio-shell`) was **dropped entirely**. It was
+  v4.4.183 against a v5 web client, and upstream carried 374 MB of prebuilt
+  binaries plus Smart Code's code-signing certificates alongside it.
+  `packages/video/src/ShellVideo` remains but is unreachable without a shell.
 
 ## Prerequisites
 
@@ -68,17 +69,23 @@ pnpm start           # dev server
 
 ## Caveats
 
-- **`apps/shell` is stale.** It is v4.4.183 (March 2026, Qt5) while `apps/web` is
-  on the v5 beta line. The v5 desktop app uses a different shell entirely. Do not
-  assume this tree builds a working v5 desktop app.
+- **There is no desktop shell.** Playback runs in the browser via
+  `packages/video/src/HTMLVideo`, so media decoding is the browser's, not a
+  bundled mpv/FFmpeg. Reintroducing a shell means reintroducing a host decoder.
 - **`server.js` is a closed-source blob**, fetched from
   `https://dl.strem.io/server/v4.20.16/desktop/server.js`. It cannot be audited.
   This is the primary motivation for `docker/streaming-server`.
 
 ## Security model
 
-The container in `docker/streaming-server` isolates the untrusted **parser**:
-`server.js` (hostile bencode, HTTP surface) and addon fetches. Media **decode**
-still happens on the host for GPU acceleration — an accepted tradeoff. Downloaded
-torrent payloads are inert data and were never the threat; the parser and the
-decoder are.
+> Status: not yet implemented. `docker/streaming-server/` is a placeholder.
+
+The container will isolate the untrusted **parser**: `server.js` (hostile
+bencode, HTTP surface) and addon fetches. Media **decode** happens outside it.
+Downloaded torrent payloads are inert data and were never the threat; the parser
+and the decoder are.
+
+With the Qt shell removed, the decoder is the **browser's**, which is patched by
+the browser vendor. The only FFmpeg this project ships is the one inside the
+container image, used by `server.js` for transcoding — keep its base image
+current. There is no host FFmpeg to maintain.
