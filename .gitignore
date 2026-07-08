@@ -26,3 +26,6 @@ node_modules/
 Thumbs.db
 .idea/
 .vscode/
+
+# Scratch space for the server.js reverse-engineering effort (blob + notes)
+/.research/
