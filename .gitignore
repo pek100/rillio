@@ -1,0 +1,27 @@
+# Rust
+/target/
+**/target/
+
+# wasm-pack output + generated bridge artifacts (crates/core-web)
+/crates/core-web/wasm_build/
+/crates/core-web/stremio_core_web_bg.wasm
+/crates/core-web/stremio_core_web.js
+/crates/core-web/bridge.js
+/crates/core-web/worker.js
+
+# Node
+node_modules/
+/apps/web/dist/
+
+# Streaming server binary, fetched at build time — never commit
+/docker/streaming-server/server.js
+
+# Original upstream clones, kept as a reference until the fork is verified.
+# Safe to delete once `pnpm build` passes — reclaims ~5.2 GB of .git history.
+/source/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

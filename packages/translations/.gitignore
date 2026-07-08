@@ -1,0 +1,15 @@
+# dependencies and build output
+node_modules/
+build/
+
+# IDE and environment related directories
+.gradle/
+.idea/
+local.properties
+
+# generated source files
+android/src/androidMain/res
+android/src/commonMain/**/translations
+project.inlang/settings.json
+project.inlang/project_id
+project.inlang/.gitignore

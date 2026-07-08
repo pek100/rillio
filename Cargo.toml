@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/core-web",
+    "crates/derive",
+    "crates/watched-bitfield",
+]
+
+[profile.release]
+lto = true
+opt-level = 's'

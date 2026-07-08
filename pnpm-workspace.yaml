@@ -1,0 +1,13 @@
+packages:
+  - 'apps/web'
+  - 'packages/*'
+  - 'crates/core-web'
+
+# Inherited from upstream stremio-web: @stremio/* packages are first-party and
+# exempt from the release-age quarantine. In this fork they are workspace links,
+# so the exemption only matters for any @stremio/* still pulled from the registry
+# (stremio-colors, stremio-icons).
+minimumReleaseAgeExclude:
+  - '@stremio/*'
+
+blockExoticSubdeps: false
