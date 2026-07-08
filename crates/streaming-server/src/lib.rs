@@ -8,6 +8,7 @@
 //! `checklists/streaming-server-rust.md`. This is **M0** — the control plane.
 
 mod routes;
+mod stats;
 mod stream;
 mod torrent;
 
@@ -69,6 +70,10 @@ pub fn router(config: Config, engine: Engine) -> Router {
         )
         .route("/removeAll", get(torrent::remove_all))
         .route("/{info_hash}/remove", get(torrent::remove))
+        // M2 stats family (static segments; win over the {idx} stream param).
+        .route("/stats.json", get(stats::stats_aggregate))
+        .route("/{info_hash}/stats.json", get(stats::stats_torrent))
+        .route("/{info_hash}/{idx}/stats.json", get(stats::stats_file))
         // The media stream. GET+HEAD are handled explicitly (HEAD must not open
         // the FileStream), so we register both methods on one handler rather
         // than let axum synthesize HEAD from GET.

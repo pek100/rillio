@@ -223,7 +223,7 @@ fn build_magnet(info_hash: &str, peer_search: Option<&PeerSearchBody>) -> String
     magnet
 }
 
-fn default_peer_search(handle: &crate::engine::Handle) -> PeerSearch {
+pub(crate) fn default_peer_search(handle: &crate::engine::Handle) -> PeerSearch {
     PeerSearch {
         min: 40,
         max: 200,
@@ -231,7 +231,7 @@ fn default_peer_search(handle: &crate::engine::Handle) -> PeerSearch {
     }
 }
 
-fn cache_path(handle: &crate::engine::Handle) -> String {
+pub(crate) fn cache_path(handle: &crate::engine::Handle) -> String {
     // The blob echoes the per-torrent cache path in opts.path. librqbit lays
     // files under the session root; report the infohash subpath as a stand-in.
     Engine::info_hash_hex(handle)

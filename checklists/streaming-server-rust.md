@@ -70,14 +70,16 @@ Wraps librqbit's filesystem storage via `SessionOptions.default_storage_factory`
   real BBB streaming still works through the wrapper with files confined under cache root. 27 tests pass.
 - **Deferred:** Tier 2 (virtual-disk image), Tier 3 (process sandbox).
 
-## M2 — Stats fidelity shim  ·  ~1 week  ·  ☐
+## M2 — Stats fidelity shim  ·  ~1 week  ·  ☑ DONE
 
-- ☐ `/:infoHash/:idx/stats.json` (per-file — the one core uses)
-- ☐ `/:infoHash/stats.json` (torrent-level — **video-only**; omitting it silently breaks filename/OpenSubtitles resolution)
-- ☐ `/stats.json` (aggregate; **no `?sys`** host-info leak)
-- ☐ Real: `files[]`, `streamName`, `guessedFileIdx`, `streamProgress`, speeds, peers
-- ☐ Stub 0/[]: `unchoked`, `unique`, `connectionTries`, `wires[]`, `sources[]`, `peerSearchRunning`
-- **Ship:** video's `fetchVideoParams` resolves filename + OpenSubtitles; stats overlay renders without NaN
+- ☑ `/:infoHash/:idx/stats.json` (per-file — the one core uses)
+- ☑ `/:infoHash/stats.json` (torrent-level — **video-only**)
+- ☑ `/stats.json` (aggregate; **no `?sys`** host-info leak) — `{}` when empty, keyed by infohash otherwise
+- ☑ `null` when the engine is absent (no auto-create) — matches container
+- ☑ Real: `files[]`, `streamName`, `streamLen`, `streamProgress` (piece-math), `peers`, `queued`, speeds, downloaded/uploaded
+- ☑ Stub 0/[]: `unchoked`, `unique`, `connectionTries`, `wires[]`, `sources[]`, `peerSearchRunning`, `swarm*`
+- **Ship: MET.** Live BBB: `streamProgress=0.734` (= 202/276 MB downloaded), `peers=43`, `downloadSpeed=1.6 MB/s`,
+  no NaN. Torrent-level resolves name/files for video's `fetchVideoParams`. 29 tests pass.
 
 ## M3a — `/proxy` subsystem (critical path)  ·  ~2-3 weeks  ·  ☐
 

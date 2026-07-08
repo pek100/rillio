@@ -103,6 +103,21 @@ impl Engine {
         format!("{:?}", handle.info_hash()).to_lowercase()
     }
 
+    /// Look up an already-managed torrent by infohash WITHOUT creating one.
+    /// Stats routes use this: an unknown infohash yields `null`, not an add.
+    pub fn get(&self, info_hash: &str) -> Option<Handle> {
+        self.session.with_torrents(|it| {
+            it.filter(|(_, h)| Self::info_hash_hex(h) == info_hash)
+                .map(|(_, h)| h.clone())
+                .next()
+        })
+    }
+
+    /// Handles of all managed torrents (for the aggregate `/stats.json`).
+    pub fn all(&self) -> Vec<Handle> {
+        self.session.with_torrents(|it| it.map(|(_, h)| h.clone()).collect())
+    }
+
     // delete_files: removing a torrent also deletes its cached files.
     //
     // The spec suggested keep-files (delete_files=false) to mirror the blob's
@@ -177,17 +192,20 @@ impl Engine {
     ) -> types::Statistics {
         let files = Self::files(handle);
         let stats = handle.stats();
-        let (download_speed, upload_speed) = stats
+        // Live metrics: speeds (Speed.mbps is megabits/s; blob reports bytes/s,
+        // ×125_000) and peer counts. `peers` = connected; `queued` = queued.
+        let (download_speed, upload_speed, peers, queued) = stats
             .live
             .as_ref()
-            // Speed.mbps is megabits/s; the blob reports bytes/s (×125_000).
             .map(|l| {
                 (
                     l.download_speed.mbps * 125_000.0,
                     l.upload_speed.mbps * 125_000.0,
+                    l.snapshot.peer_stats.live as u64,
+                    l.snapshot.peer_stats.queued as u64,
                 )
             })
-            .unwrap_or((0.0, 0.0));
+            .unwrap_or((0.0, 0.0, 0, 0));
 
         let (stream_len, stream_name, stream_progress) = match idx {
             Some(i) => files
@@ -233,8 +251,8 @@ impl Engine {
             downloaded: stats.progress_bytes,
             uploaded: stats.uploaded_bytes,
             unchoked: 0,
-            peers: 0,
-            queued: 0,
+            peers,
+            queued,
             unique: 0,
             connection_tries: 0,
             peer_search_running: false,
