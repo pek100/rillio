@@ -14,6 +14,19 @@ const packageJson = require('./package.json');
 
 const COMMIT_HASH = execSync('git rev-parse HEAD').toString().trim();
 
+// Only ever run our own sources through the loaders.
+//
+// Upstream expressed this as `exclude: /node_modules/`, which worked because
+// every dependency was a real directory under node_modules. In this monorepo
+// @stremio/stremio-core-web and @stremio/stremio-video are workspace:* symlinks
+// into crates/ and packages/, so webpack resolves them to real paths that no
+// longer match that pattern -- babel/ts-loader would start reprocessing
+// already-built package output. An explicit `include` says what we mean.
+const SRC = path.resolve(__dirname, 'src');
+// Fonts and images are referenced from src/**/*.less and src/**/*.tsx but live
+// in a sibling directory, so asset rules must cover both.
+const ASSETS = path.resolve(__dirname, 'assets');
+
 const THREAD_LOADER = {
     loader: 'thread-loader',
     options: {
@@ -49,7 +62,7 @@ module.exports = (env, argv) => ({
         rules: [
             {
                 test: /\.js$/,
-                exclude: /node_modules/,
+                include: SRC,
                 use: [
                     THREAD_LOADER,
                     {
@@ -65,7 +78,7 @@ module.exports = (env, argv) => ({
             },
             {
                 test: /\.(ts|tsx)$/,
-                exclude: /node_modules/,
+                include: SRC,
                 use: [
                     THREAD_LOADER,
                     {
@@ -78,7 +91,7 @@ module.exports = (env, argv) => ({
             },
             {
                 test: /\.less$/,
-                exclude: /node_modules/,
+                include: SRC,
                 use: [
                     {
                         loader: MiniCssExtractPlugin.loader,
@@ -151,7 +164,7 @@ module.exports = (env, argv) => ({
             },
             {
                 test: /\.(ttf|woff2)$/,
-                exclude: /node_modules/,
+                include: [SRC, ASSETS],
                 type: 'asset/resource',
                 generator: {
                     filename: 'fonts/[name][ext][query]'
@@ -159,7 +172,7 @@ module.exports = (env, argv) => ({
             },
             {
                 test: /\.(png|jpe?g|svg)$/,
-                exclude: /node_modules/,
+                include: [SRC, ASSETS],
                 type: 'asset/resource',
                 generator: {
                     filename: 'images/[name][ext][query]'
@@ -176,6 +189,11 @@ module.exports = (env, argv) => ({
     },
     resolve: {
         extensions: ['.tsx', '.ts', '.js', '.json', '.less', '.wasm'],
+        // NOTE: `symlinks` must stay at its default (true). pnpm stores each
+        // package's own dependencies under .pnpm/<pkg>@<ver>/node_modules, and
+        // they are only reachable by resolving the package through its symlink
+        // to that real path. Setting symlinks:false strands every transitive
+        // dependency (qs, html-parse-stringify, ...).
         alias: {
             'stremio': path.resolve(__dirname, 'src'),
             'stremio-router': path.resolve(__dirname, 'src', 'router')

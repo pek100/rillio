@@ -11,6 +11,7 @@
 
 # Node
 node_modules/
+/apps/web/build/
 /apps/web/dist/
 
 # Streaming server binary, fetched at build time — never commit
