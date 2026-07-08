@@ -37,7 +37,7 @@ Every milestone's ship criterion is an **oracle diff** against `docker/streaming
 
   _Corrections the oracle forced vs the plan: `/device-info` is boolean `false`; `/casting/` 404s under our container config. Both folded in._
 
-## M1 — Torrent engine (librqbit)  ·  ~3-4 weeks  ·  ◐ CODE COMPLETE (streamed-bytes diff pending a peer-reachable network)
+## M1 — Torrent engine (librqbit)  ·  ~3-4 weeks  ·  ☑ DONE (streamed-bytes byte-diff PASSED)
 
 - ☑ Pin `librqbit = "=8.1.1"`, own workspace (url 2.5 conflict w/ wasm crates), `default-tls` (NASM avoidance)
 - ☑ Session bootstrap: leech-only (no listen port), DHT on, no persistence, `disable_dht_persistence`
@@ -49,10 +49,11 @@ Every milestone's ship criterion is an **oracle diff** against `docker/streaming
 - ☑ … Range: first-range-only, **no 416 (→200)**; `enginefs-prio`/prewarm are documented no-ops
 - ☑ … `?external`→307, `?download`→disposition, `?subtitles`→CaptionInfo; DLNA (byte-exact space bug) + `mime_guess`
 - ☑ GET `/:infoHash/remove`, `/removeAll` → `Session::delete` (delete_files=true — librqbit re-add constraint)
-- **Ship (partial):** metadata/create from real BBB `.torrent`, full Range contract via HEAD, file
-  selection, remove→re-add cycle — all verified. **Streamed torrent BYTES not yet diffed** — this
-  environment blocks P2P (DHT UDP + peer TCP); the container fails identically. Deferred to a network
-  with reachable peers. 17 automated tests pass.
+- **Ship: MET.** metadata/create from real BBB `.torrent`, full Range contract, file selection,
+  remove→re-add — all verified. **Streamed-bytes byte-diff PASSED**: a 64 KiB slice at 1 MiB offset
+  of the BBB `.mp4`, downloaded from live peers, is SHA-256-identical between the Rust server and the
+  container (`658f00f8…`). (The earlier P2P block was a client-side AdGuard VPN, since disabled.)
+  17 automated tests pass.
 
 ## M2 — Stats fidelity shim  ·  ~1 week  ·  ☐
 
