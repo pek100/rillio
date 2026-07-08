@@ -203,7 +203,12 @@ module.exports = (env, argv) => ({
         host: '0.0.0.0',
         static: false,
         hot: false,
-        server: 'https',
+        // https by default. `--env serverType=http` drops to plain http, which is
+        // needed by headless browsers that refuse the self-signed dev cert.
+        // Note this is only safe for local verification: the streaming server at
+        // http://127.0.0.1:11470 is a potentially-trustworthy origin either way,
+        // so serving over http does not change how the app reaches it.
+        server: env.serverType === 'http' ? 'http' : 'https',
         liveReload: false
     },
     optimization: {

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "stremio", "exec", "webpack", "serve", "--mode", "development", "--env", "serverType=http"],
+      "port": 8080
+    }
+  ]
+}
