@@ -66,6 +66,8 @@ pub fn router(config: Config, engine: Engine) -> Router {
             "/{info_hash}/create",
             post(torrent::create_magnet).get(torrent::create_magnet),
         )
+        .route("/removeAll", get(torrent::remove_all))
+        .route("/{info_hash}/remove", get(torrent::remove))
         // The media stream. GET+HEAD are handled explicitly (HEAD must not open
         // the FileStream), so we register both methods on one handler rather
         // than let axum synthesize HEAD from GET.

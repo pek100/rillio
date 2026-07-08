@@ -43,6 +43,10 @@ impl Engine {
         let opts = SessionOptions {
             // DHT on: with trackers off it is the only peer source for a magnet.
             disable_dht: false,
+            // No DHT routing-table cache file. A streaming server does not need a
+            // persisted peer cache, and the shared cache path otherwise serializes
+            // multiple Session instances (e.g. concurrent tests) onto one file.
+            disable_dht_persistence: true,
             // None => no inbound TCP listener is bound => leech-only.
             listen_port_range: None,
             enable_upnp_port_forwarding: false,
@@ -84,6 +88,42 @@ impl Engine {
     /// Lowercase hex infohash of a handle.
     pub fn info_hash_hex(handle: &Handle) -> String {
         format!("{:?}", handle.info_hash()).to_lowercase()
+    }
+
+    // delete_files: removing a torrent also deletes its cached files.
+    //
+    // The spec suggested keep-files (delete_files=false) to mirror the blob's
+    // `destroy`, but librqbit 8.1.1 cannot re-add a torrent whose files still
+    // exist in its output folder — the second add fails during init with
+    // "setting length for file ...: file is None". Since remove→re-add is a real
+    // flow, we delete files: a clean teardown that re-adds cleanly, and the
+    // natural meaning of "remove" (free the cache) for a streaming server.
+    const DELETE_FILES_ON_REMOVE: bool = true;
+
+    /// Stop and forget a torrent by infohash (`GET /:ih/remove`). No-op if not
+    /// managed. Returns whether one was found — the route responds `200 {}`
+    /// either way (blob parity).
+    pub async fn remove(&self, info_hash: &str) -> bool {
+        let target = self.session.with_torrents(|it| {
+            it.filter(|(_, h)| Self::info_hash_hex(h) == info_hash)
+                .map(|(id, _)| id)
+                .next()
+        });
+        if let Some(id) = target {
+            let _ = self.session.delete(id.into(), Self::DELETE_FILES_ON_REMOVE).await;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Stop and forget every torrent (`GET /removeAll`).
+    pub async fn remove_all(&self) {
+        let ids: Vec<librqbit::api::TorrentIdOrHash> =
+            self.session.with_torrents(|it| it.map(|(id, _)| id.into()).collect());
+        for id in ids {
+            let _ = self.session.delete(id, Self::DELETE_FILES_ON_REMOVE).await;
+        }
     }
 
     /// The torrent's files as the wire `File` shape. Empty if metadata is not

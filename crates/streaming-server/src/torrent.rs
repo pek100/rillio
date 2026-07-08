@@ -80,7 +80,10 @@ pub(crate) async fn create_blob(
     };
     let handle = match engine.add_blob(bytes).await {
         Ok(h) => h,
-        Err(_) => return err500(),
+        Err(e) => {
+            tracing::error!("add_blob failed: {e:#}");
+            return err500();
+        }
     };
     let stats = engine.statistics(&handle, cache_path(&handle), default_peer_search(&handle), None);
     Json(CreateResponse {
@@ -127,6 +130,20 @@ pub(crate) async fn create_magnet(
         guessed_file_idx: guessed,
     })
     .into_response()
+}
+
+/// `GET /:ih/remove` — stop and forget one torrent. Always `200 {}`.
+pub(crate) async fn remove(State(engine): State<Engine>, Path(info_hash): Path<String>) -> Response {
+    if is_valid_infohash(&info_hash) {
+        engine.remove(&info_hash.to_lowercase()).await;
+    }
+    Json(serde_json::json!({})).into_response()
+}
+
+/// `GET /removeAll` — stop and forget every torrent. Always `200 {}`.
+pub(crate) async fn remove_all(State(engine): State<Engine>) -> Response {
+    engine.remove_all().await;
+    Json(serde_json::json!({})).into_response()
 }
 
 /// Resolve `guessedFileIdx`: fileMustInclude selector wins, else guessFileIdx.
