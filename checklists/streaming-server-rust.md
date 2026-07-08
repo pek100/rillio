@@ -55,6 +55,21 @@ Every milestone's ship criterion is an **oracle diff** against `docker/streaming
   container (`658f00f8…`). (The earlier P2P block was a client-side AdGuard VPN, since disabled.)
   17 automated tests pass.
 
+## M1.5 — ConfinedStorage (defense-in-depth on the cache)  ·  ☑ DONE
+
+Tier 1 storage confinement. No Docker, pure-Rust, cross-platform, zero new prerequisites.
+Wraps librqbit's filesystem storage via `SessionOptions.default_storage_factory`.
+
+- ☑ Path guard — every file resolves under `cache_root`; rejects `..`, absolute, drive/root
+  components. (librqbit-core already blocks `..` at parse — this asserts the invariant + covers
+  absolute/drive and catches upstream regression.)
+- ☑ No-exec — cache files created 0o644 on Unix; documented best-effort no-op on Windows
+- ☑ Quota — total declared size capped at `Config.cache_size`; oversize torrents refused before any write
+- ☑ Cache dir dedicated + outside PATH (already true)
+- **Ship: MET.** 2 GB torrent refused under a 1 MB quota; 500 KB accepted; traversal path rejected;
+  real BBB streaming still works through the wrapper with files confined under cache root. 27 tests pass.
+- **Deferred:** Tier 2 (virtual-disk image), Tier 3 (process sandbox).
+
 ## M2 — Stats fidelity shim  ·  ~1 week  ·  ☐
 
 - ☐ `/:infoHash/:idx/stats.json` (per-file — the one core uses)

@@ -22,6 +22,27 @@ from `dl.strem.io`) with an auditable, memory-safe Rust crate built on
 exposes an `axum` router a native host can mount in-process — with a thin binary for
 standalone dev/testing.
 
+## Storage confinement (M1.5, implemented)
+
+A malicious `.torrent` can try to write outside the cache — e.g. a file path like
+`../../Startup/evil.exe` — which is the mechanism by which a download could
+contaminate the system without the user executing anything. `crates/streaming-server/src/storage.rs`
+(`ConfinedStorage`, wired at `Engine::new` via `SessionOptions.default_storage_factory`)
+closes this at Tier 1, in-app, no Docker:
+
+- **Path guard** — every file resolves under `cache_root`; `..`, absolute paths, and
+  drive/root components are rejected. librqbit-core already blocks `..` at parse
+  (`torrent_metainfo.rs:184`); we assert the invariant ourselves rather than hope for it,
+  and additionally cover absolute/drive-relative and any upstream regression.
+- **No-exec** — cache files are created `0o644` on Unix; best-effort no-op on Windows
+  (executability there is not a permission bit).
+- **Quota** — total declared size is capped at `Config.cache_size`; an oversize torrent
+  is refused before a byte is written.
+
+Verified: a 2 GB torrent is refused under a 1 MB quota, a traversal path is rejected, and
+normal streaming is unaffected with files confined under the cache root. Tiers 2
+(virtual-disk image) and 3 (process sandbox) are deferred.
+
 ## Why (the real threat model)
 
 - The torrent **parser** ingests hostile bencode from arbitrary peers. Today that is

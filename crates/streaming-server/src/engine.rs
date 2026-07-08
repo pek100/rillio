@@ -11,6 +11,7 @@ use std::time::Duration;
 use anyhow::Context;
 use librqbit::{AddTorrent, ManagedTorrent, Session, SessionOptions};
 
+use crate::storage::ConfinedStorageFactory;
 use crate::types;
 
 /// Handle to one managed torrent. librqbit defines this alias internally but
@@ -37,9 +38,19 @@ pub struct Engine {
 }
 
 impl Engine {
-    /// Bootstrap the session rooted at `cache_dir`. librqbit lays out per-torrent
-    /// subfolders beneath it.
+    /// Bootstrap the session rooted at `cache_dir`, unlimited cache. librqbit
+    /// lays out per-torrent subfolders beneath it.
     pub async fn new(cache_dir: PathBuf) -> anyhow::Result<Self> {
+        Self::with_quota(cache_dir, None).await
+    }
+
+    /// Bootstrap with an optional total-bytes cache quota (M1.5).
+    ///
+    /// All torrent storage goes through [`ConfinedStorageFactory`]: every file
+    /// is confined under `cache_dir`, created non-executable, and the total is
+    /// capped at `quota_bytes`.
+    pub async fn with_quota(cache_dir: PathBuf, quota_bytes: Option<u64>) -> anyhow::Result<Self> {
+        let confined = ConfinedStorageFactory::new(&cache_dir, quota_bytes)?.boxed();
         let opts = SessionOptions {
             // DHT on: with trackers off it is the only peer source for a magnet.
             disable_dht: false,
@@ -52,6 +63,8 @@ impl Engine {
             enable_upnp_port_forwarding: false,
             // Do not persist added-torrent state across restarts.
             persistence: None,
+            // Confine every torrent's writes to the cache (M1.5).
+            default_storage_factory: Some(confined),
             ..Default::default()
         };
         let session = Session::new_with_opts(cache_dir, opts).await?;
