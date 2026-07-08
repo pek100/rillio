@@ -1,0 +1,42 @@
+[package]
+name = "stremio-streaming-server"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+license = "gpl-2.0"
+description = "Auditable Rust replacement for the Stremio streaming server (server.js)"
+
+# Library-first: the eventual native host embeds `router()`. The bin is for
+# standalone dev/testing against the reference container.
+[lib]
+name = "stremio_streaming_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "stremio-streaming-server"
+path = "src/bin/serve.rs"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = { version = "2.4", features = ["serde"] }
+tracing = "0.1"
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["env-filter"]
+optional = true
+
+[features]
+# The bin needs a tracing subscriber; the embeddable lib does not pull one in.
+default = ["bin"]
+bin = ["dep:tracing-subscriber"]
+
+[dev-dependencies]
+# Oracle-diff harness: hit the running reference container and compare.
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }

@@ -5,6 +5,7 @@ members = [
     "crates/core-web",
     "crates/derive",
     "crates/watched-bitfield",
+    "crates/streaming-server",
 ]
 
 [profile.release]

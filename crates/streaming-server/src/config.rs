@@ -1,0 +1,46 @@
+use std::net::SocketAddr;
+use std::path::PathBuf;
+
+use url::Url;
+
+/// Runtime configuration for the streaming server.
+///
+/// `base_url` is what the server advertises to clients (it appears in
+/// `/settings.baseUrl` and the `remoteHttps` option list). It is distinct from
+/// `bind`, which is only where the socket listens — behind the container these
+/// differed (bind `0.0.0.0:11470`, advertised the bridge IP).
+#[derive(Clone, Debug)]
+pub struct Config {
+    pub bind: SocketAddr,
+    pub base_url: Url,
+    pub app_path: PathBuf,
+    pub cache_root: PathBuf,
+    /// Cache size in bytes. `None` = unlimited (the "∞" selection).
+    pub cache_size: Option<f64>,
+    pub server_version: String,
+}
+
+/// Default streaming-server port, matching `STREAMING_SERVER_URL` in
+/// `crates/core/src/constants.rs` (`http://127.0.0.1:11470`).
+pub const DEFAULT_PORT: u16 = 11470;
+
+/// Reported to clients as `serverVersion`. This identifies the Rust
+/// implementation; core only displays it and does not gate on a value.
+pub const SERVER_VERSION: &str = concat!("5.0.0-rust+", env!("CARGO_PKG_VERSION"));
+
+impl Config {
+    /// Loopback config on the default port, cache under `app_path`.
+    pub fn local(app_path: PathBuf) -> Self {
+        let bind = SocketAddr::from(([127, 0, 0, 1], DEFAULT_PORT));
+        let base_url = Url::parse(&format!("http://127.0.0.1:{DEFAULT_PORT}"))
+            .expect("hardcoded base url is valid");
+        Self {
+            bind,
+            base_url,
+            cache_root: app_path.clone(),
+            app_path,
+            cache_size: Some(2_147_483_648.0),
+            server_version: SERVER_VERSION.to_owned(),
+        }
+    }
+}

@@ -14,26 +14,28 @@ Status keys: ☐ todo · ◐ in progress · ☑ done · ✗ dropped · ⚠ block
 Estimates re-baselined after adversarial review. "one engineer familiar with Rust+tokio."
 Every milestone's ship criterion is an **oracle diff** against `docker/streaming-server`.
 
-## Open decisions (need user green-light before coding)
+## Decisions (resolved 2026-07-08)
 
-- ☐ **D1 — `/local-addon` in scope?** Discovery confirmed `crates/core` consumes it as an
-  addon transport (`addon_details.rs:82`). Under "full contract" the default is **keep**
-  (M4). Confirm, or explicitly drop local-file playback.
-- ☐ **D2 — `/hlsv2`: sidecar or native?** Plan of record = **sidecar-delegate** for v1
-  (full contract now; a closed component remains for transcode only). Native Rust
-  transcoder = separate ~2-month project. Confirm sidecar for v1.
+- ☑ **D1 — `/local-addon` in scope: KEEP (M4).** Core consumes it as an addon transport
+  (`addon_details.rs:82`); consistent with full-contract scope.
+- ☑ **D2 — `/hlsv2`: SIDECAR-DELEGATE for v1.** librqbit serves the media file; the
+  existing JS `/hlsv2` stack runs as a transcode-only sidecar consuming that URL. Native
+  Rust transcoder deferred as a separate ~2-month project. A closed component remains for
+  transcode only — it no longer parses hostile peer data, so the core threat is gone.
 
-## M0 — Control-plane scaffold  ·  ~1 week  ·  ☐
+## M0 — Control-plane scaffold  ·  ~1 week  ·  ☑ DONE
 
-- ☐ Crate skeleton `crates/streaming-server` (lib + `bin/serve.rs`), added to root Cargo workspace
-- ☐ Oracle-diff test harness (same request → container vs Rust, assert equal)
-- ☐ GET/POST `/settings` — **`remoteHttps=""` not null**
-- ☐ GET `/network-info` — non-internal IPv4 list
-- ☐ GET `/device-info` → `{availableHardwareAccelerations:[]}` (honest stub)
-- ☐ GET `/casting` → `[]`; POST `/casting/:dev/player` → safe no-op
-- ☐ GET `/get-https` (proxy strem.io cert API, or 501 when remote-https disabled)
-- ☐ GET `/heartbeat`, `/` (307 → web UI), `/favicon.ico` (404)
-- **Ship:** core boots against it, no "server down" cascade (`streaming_server.rs:293-315`); `/settings` diffs clean
+- ☑ Crate skeleton `crates/streaming-server` (lib + `bin/serve.rs`), added to root Cargo workspace
+- ☑ Oracle-diff test harness (`tests/oracle_diff.rs` — shape-diff vs container, volatile fields normalized)
+- ☑ GET/POST `/settings` — **`remoteHttps=""` not null**; deserializes into core's `SettingsResponse`
+- ☑ GET `/network-info` — `{availableInterfaces:[]}` (real enumeration deferred; empty is safe)
+- ☑ GET `/device-info` → `{availableHardwareAccelerations:false}` (**corrected**: container returns `false`, not `[]`)
+- ☑ GET `/casting` → `[]` (container 404s under CASTING_DISABLED; `[]` is the safe stub core accepts)
+- ☐ GET `/get-https` (deferred — only reachable when remote-https is enabled; not on the load path)
+- ☑ GET `/heartbeat`, `/` (307 → web UI), `/favicon.ico` (404)
+- **Ship: MET.** App reads `Server Version: 5.0.0-rust+0.1.0` and **Online** in Settings, in a real browser, against the Rust server on :11470. No "server down" cascade. Oracle tests pass.
+
+  _Corrections the oracle forced vs the plan: `/device-info` is boolean `false`; `/casting/` 404s under our container config. Both folded in._
 
 ## M1 — Torrent engine (librqbit)  ·  ~3-4 weeks  ·  ☐
 
