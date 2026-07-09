@@ -18,7 +18,7 @@
 //! mpv *behind* a transparent WebView (single-window UX) is the S3 part-4
 //! follow-up.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -36,12 +36,9 @@ const SHELL_VERSION: &str = "5.0.0-rust";
 #[derive(Default)]
 pub struct ShellState(Mutex<Option<Arc<Controller>>>);
 
-/// A live mpv instance plus the set of already-observed properties (so repeated
-/// `mpv-observe-prop` for the same name — the web client sends each once, but be
-/// defensive — don't stack duplicate subscriptions).
+/// A live mpv instance plus a cache of its latest property values.
 struct Controller {
     mpv: Arc<Mpv>,
-    observed: Mutex<HashSet<String>>,
     /// Latest value of every observed mpv property, for the "Stats for nerds"
     /// panel (`shell_mpv_stats`). Updated by the event loop on every change.
     props: Mutex<serde_json::Map<String, Value>>,
@@ -180,18 +177,12 @@ impl Controller {
         // Observe the extra stats properties ShellVideo doesn't, so the panel can
         // show codec/bitrate/hwdec/etc. (Their changes flow through the same
         // event loop and land in `props`.)
-        let mut observed = HashSet::new();
         for name in STATS_PROPS {
             if let Err(e) = mpv.observe_property(name) {
                 tracing::debug!("mpv: observe {name} failed: {e}");
             }
-            observed.insert(name.to_string());
         }
-        Ok(Self {
-            mpv: Arc::new(mpv),
-            observed: Mutex::new(observed),
-            props: Mutex::new(serde_json::Map::new()),
-        })
+        Ok(Self { mpv: Arc::new(mpv), props: Mutex::new(serde_json::Map::new()) })
     }
 }
 
@@ -425,11 +416,15 @@ pub fn shell_send(
         }
         "mpv-observe-prop" => {
             let name = arg0.as_str().ok_or("mpv-observe-prop: expected a name")?;
-            let mut observed = ctrl.observed.lock().unwrap();
-            if observed.insert(name.to_string()) {
-                ctrl.mpv.observe_property(name)?;
-            }
-            Ok(())
+            // ALWAYS observe — never de-dupe. The web client builds a fresh
+            // ShellVideo per playback and relies on mpv re-emitting each
+            // property's initial value; `mpv-version` in particular gates the
+            // `loadfile` (waitForMPVVersion). De-duping made the 2nd+ playback in
+            // a session never receive mpv-version → loadfile never fired → the
+            // title silently "wouldn't resume/play". (mpv fires an initial value
+            // per observe registration; duplicates are cheap and HF props are
+            // throttled downstream.)
+            ctrl.mpv.observe_property(name)
         }
         // GPU video processing (mpv shaders) — not wired yet; accept silently so
         // the web client's load sequence isn't interrupted.

@@ -1,149 +1,42 @@
-//! M1.5 — ConfinedStorage: defense-in-depth on the torrent cache.
+//! M1.5 — cache confinement (path-traversal guard).
 //!
-//! Wraps librqbit's default filesystem storage and enforces, at every torrent
-//! create, three invariants the engine must never violate:
+//! The threat this closes: a malicious `.torrent` writing files *outside* the
+//! cache (e.g. dropping into the Startup folder) — the way a download could
+//! contaminate the system without the user executing anything.
 //!
-//!   1. Path confinement — every file resolves to a path *under* `cache_root`.
-//!      Rejects `..`, absolute paths, and drive/root components. librqbit-core
-//!      already rejects `..` at parse (torrent_metainfo.rs:184), but a security
-//!      control is asserted here, not hoped for: this catches an upstream
-//!      regression and the cases core does not (absolute/drive-relative).
-//!   2. No-exec — cache files are created non-executable (Unix chmod 0o644;
-//!      best-effort no-op on Windows, where executability is not a perm bit).
-//!   3. Quota — total declared size is capped at `cache_size`; a torrent that
-//!      would exceed it is refused before a byte is written.
+//! We no longer wrap librqbit's storage factory. That wrapper blocked
+//! librqbit's fast-resume (its JSON persistence store requires the *exact*
+//! `FilesystemStorageFactory` type — a wrapper fails its `TypeId` check — so
+//! every restart re-hashed the whole file). Instead we keep the check as a
+//! pre-add assertion ([`assert_confined`]) and rely on librqbit-core, which
+//! already rejects `..` and path separators inside filename components at parse
+//! (`torrent_metainfo.rs`: "path traversal detected"). Defense in depth: core
+//! blocks it, and we re-assert it before streaming.
 //!
-//! This is Tier 1 (storage layer). It does NOT sandbox the process or use a
-//! virtual disk (Tiers 2/3, deferred). The threat it closes is a malicious
-//! `.torrent` writing outside the cache — the mechanism by which a download
-//! could contaminate the system without the user executing anything.
+//! No-exec (Unix chmod 0o644) went away with the wrapper; it was always a no-op
+//! on Windows (executability there is by extension/content, not a perm bit) and
+//! is a Unix-only follow-up if we target Unix.
 
 use std::path::{Component, Path, PathBuf};
 
-use anyhow::{bail, Context};
-use librqbit::storage::{
-    BoxStorageFactory, StorageFactory, StorageFactoryExt, TorrentStorage,
-};
-use librqbit::storage::filesystem::FilesystemStorageFactory;
-use librqbit::{ManagedTorrentShared, TorrentMetadata};
+use anyhow::bail;
 
-/// A storage factory that confines librqbit's filesystem storage to `cache_root`
-/// and enforces no-exec + a byte quota.
-pub struct ConfinedStorageFactory {
-    inner: BoxStorageFactory,
-    /// Absolute, lexically-normalized cache root. All writes must stay under it.
-    cache_root: PathBuf,
-}
-
-impl ConfinedStorageFactory {
-    pub fn new(cache_root: &Path) -> anyhow::Result<Self> {
-        Ok(Self {
-            inner: FilesystemStorageFactory::default().boxed(),
-            cache_root: absolutize(cache_root)?,
-        })
+/// Assert every `relative` path resolves *under* `cache_root`. Returns an error
+/// naming the first offender. Call before streaming a freshly-added torrent.
+pub fn assert_confined<'a, I>(cache_root: &Path, relatives: I) -> anyhow::Result<()>
+where
+    I: IntoIterator<Item = &'a Path>,
+{
+    let root = absolutize(cache_root)?;
+    for relative in relatives {
+        confined_path(&root, relative)?;
     }
-
-    pub fn boxed(self) -> BoxStorageFactory {
-        StorageFactoryExt::boxed(self)
-    }
-
-    /// Validate every file and return the confined, resolved paths (file_id order).
-    ///
-    /// The write base is `cache_root`: we set neither `AddTorrentOptions`
-    /// `output_folder` nor `sub_folder`, so librqbit's per-torrent output folder
-    /// is the session default (= `cache_root`) and its fs storage writes to
-    /// `output_folder.join(relative_filename)`. So the true path of file i is
-    /// `cache_root.join(relative_filename[i])`.
-    ///
-    /// NOTE: there is deliberately NO total-size cap. A streaming server plays a
-    /// window of a torrent; rejecting a torrent because its nominal size exceeds
-    /// the cache would break most movies (a 9 GB film under a 2 GB cache). Disk
-    /// use is bounded by what is actually streamed; a rolling-cache eviction
-    /// policy is a future refinement, not a per-torrent size gate.
-    fn validate(&self, metadata: &TorrentMetadata) -> anyhow::Result<Vec<PathBuf>> {
-        metadata
-            .file_infos
-            .iter()
-            .map(|fi| confined_path(&self.cache_root, &fi.relative_filename))
-            .collect()
-    }
-}
-
-impl StorageFactory for ConfinedStorageFactory {
-    type Storage = Box<dyn TorrentStorage>;
-
-    fn create(
-        &self,
-        shared: &ManagedTorrentShared,
-        metadata: &TorrentMetadata,
-    ) -> anyhow::Result<Self::Storage> {
-        // Path confinement is enforced HERE, before any file is opened. A
-        // rejection fails the torrent add.
-        let file_paths = self.validate(metadata)?;
-        let inner = self.inner.create(shared, metadata)?;
-        Ok(Box::new(ConfinedStorage { inner, file_paths }))
-    }
-
-    fn clone_box(&self) -> BoxStorageFactory {
-        Box::new(Self {
-            inner: self.inner.clone_box(),
-            cache_root: self.cache_root.clone(),
-        })
-    }
-}
-
-/// The per-torrent storage: delegates all I/O to the inner filesystem storage,
-/// applying no-exec as files are sized. Paths were already confined at create.
-struct ConfinedStorage {
-    inner: Box<dyn TorrentStorage>,
-    file_paths: Vec<PathBuf>,
-}
-
-impl TorrentStorage for ConfinedStorage {
-    fn init(
-        &mut self,
-        shared: &ManagedTorrentShared,
-        metadata: &TorrentMetadata,
-    ) -> anyhow::Result<()> {
-        self.inner.init(shared, metadata)
-    }
-
-    fn pread_exact(&self, file_id: usize, offset: u64, buf: &mut [u8]) -> anyhow::Result<()> {
-        self.inner.pread_exact(file_id, offset, buf)
-    }
-
-    fn pwrite_all(&self, file_id: usize, offset: u64, buf: &[u8]) -> anyhow::Result<()> {
-        self.inner.pwrite_all(file_id, offset, buf)
-    }
-
-    fn remove_file(&self, file_id: usize, filename: &Path) -> anyhow::Result<()> {
-        self.inner.remove_file(file_id, filename)
-    }
-
-    fn remove_directory_if_empty(&self, path: &Path) -> anyhow::Result<()> {
-        self.inner.remove_directory_if_empty(path)
-    }
-
-    fn ensure_file_length(&self, file_id: usize, length: u64) -> anyhow::Result<()> {
-        self.inner.ensure_file_length(file_id, length)?;
-        if let Some(path) = self.file_paths.get(file_id) {
-            set_non_executable(path);
-        }
-        Ok(())
-    }
-
-    fn take(&self) -> anyhow::Result<Box<dyn TorrentStorage>> {
-        // Re-wrap so confinement survives pause/resume.
-        Ok(Box::new(ConfinedStorage {
-            inner: self.inner.take()?,
-            file_paths: self.file_paths.clone(),
-        }))
-    }
+    Ok(())
 }
 
 /// Resolve `cache_root / relative` and assert it stays under `cache_root`.
 /// Rejects absolute paths and `..`/root/drive components outright.
-fn confined_path(cache_root: &Path, relative: &Path) -> anyhow::Result<PathBuf> {
+pub fn confined_path(cache_root: &Path, relative: &Path) -> anyhow::Result<PathBuf> {
     if relative.is_absolute() {
         bail!("absolute path in torrent file: {relative:?}");
     }
@@ -166,7 +59,8 @@ fn confined_path(cache_root: &Path, relative: &Path) -> anyhow::Result<PathBuf> 
 /// Make a path absolute (lexically; no fs access, no `\\?\` UNC prefix) and
 /// normalize `.`/`..`. `std::path::absolute` keeps a form comparable with the
 /// normalized targets, avoiding Windows canonicalize UNC-prefix mismatches.
-fn absolutize(p: &Path) -> anyhow::Result<PathBuf> {
+pub fn absolutize(p: &Path) -> anyhow::Result<PathBuf> {
+    use anyhow::Context;
     let abs = std::path::absolute(p).with_context(|| format!("absolutize {p:?}"))?;
     Ok(lexical_normalize(&abs))
 }
@@ -184,23 +78,6 @@ fn lexical_normalize(p: &Path) -> PathBuf {
         }
     }
     out
-}
-
-/// Best-effort: mark a cache file non-executable. Unix chmod 0o644; on Windows a
-/// documented no-op (executability there is by extension/content, not a perm
-/// bit — a deny-execute ACL would be Tier 3). Never fails the caller.
-fn set_non_executable(path: &Path) {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if let Err(e) = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o644)) {
-            tracing::debug!("could not set 0o644 on {path:?}: {e}");
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = path;
-    }
 }
 
 #[cfg(test)]
@@ -236,4 +113,11 @@ mod tests {
         assert!(confined_path(&root(), Path::new(r"..\..\evil")).is_err());
     }
 
+    #[test]
+    fn assert_confined_flags_first_offender() {
+        let good = Path::new("Movie/a.mkv");
+        let bad = Path::new("../evil");
+        assert!(assert_confined(Path::new("/srv/cache"), [good]).is_ok());
+        assert!(assert_confined(Path::new("/srv/cache"), [good, bad]).is_err());
+    }
 }

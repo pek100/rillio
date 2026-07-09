@@ -9,10 +9,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context;
-use librqbit::{AddTorrent, ManagedTorrent, Session, SessionOptions};
+use librqbit::{AddTorrent, ManagedTorrent, Session, SessionOptions, SessionPersistenceConfig};
 
-use crate::storage::ConfinedStorageFactory;
-use crate::types;
+use crate::{storage, types};
 
 /// Handle to one managed torrent. librqbit defines this alias internally but
 /// does not re-export it, so we mirror it.
@@ -84,6 +83,8 @@ const OPT_GROWLER_PULSE: u64 = 3_670_016;
 #[derive(Clone)]
 pub struct Engine {
     session: Arc<Session>,
+    /// Absolute cache root; torrents whose files would escape it are refused.
+    cache_root: Arc<PathBuf>,
 }
 
 impl Engine {
@@ -95,7 +96,7 @@ impl Engine {
     /// non-executable. There is no per-torrent size cap — a streaming server
     /// plays a window of a torrent regardless of its total size.
     pub async fn new(cache_dir: PathBuf) -> anyhow::Result<Self> {
-        let confined = ConfinedStorageFactory::new(&cache_dir)?.boxed();
+        let cache_root = storage::absolutize(&cache_dir)?;
         let opts = SessionOptions {
             // DHT on: with trackers off it is the only peer source for a magnet.
             disable_dht: false,
@@ -106,18 +107,32 @@ impl Engine {
             // None => no inbound TCP listener is bound => leech-only.
             listen_port_range: None,
             enable_upnp_port_forwarding: false,
-            // No session persistence: librqbit 8.1.1 only supports persistence
-            // with its built-in FilesystemStorageFactory, which is incompatible
-            // with our ConfinedStorage sandbox (a core security requirement).
-            // The restart-then-replay re-add is instead made safe by
-            // `overwrite: true` in add_torrent_options (reuse existing files).
-            persistence: None,
-            // Confine every torrent's writes to the cache (M1.5).
-            default_storage_factory: Some(confined),
+            // Persist torrent state + fast-resume so a restart RESUMES instantly
+            // instead of re-hashing the whole file (~a minute for a 31 GiB title).
+            // librqbit's persistence store type-checks for its native
+            // FilesystemStorageFactory, so we use that (default_storage_factory
+            // None) rather than a wrapper. Path confinement is instead asserted at
+            // add time ([`Engine::assert_confined`]) and already enforced by
+            // librqbit-core (parse-time ".." rejection). See storage.rs.
+            persistence: Some(SessionPersistenceConfig::Json {
+                folder: Some(cache_dir.join("session")),
+            }),
+            fastresume: true,
+            default_storage_factory: None,
             ..Default::default()
         };
         let session = Session::new_with_opts(cache_dir, opts).await?;
-        Ok(Self { session })
+        Ok(Self { session, cache_root: Arc::new(cache_root) })
+    }
+
+    /// Refuse a torrent whose files would resolve outside the cache root. A
+    /// belt-and-suspenders assertion over librqbit-core's own parse-time
+    /// rejection; a no-op until the torrent's metadata has resolved.
+    fn assert_confined(&self, handle: &Handle) -> anyhow::Result<()> {
+        let files: Vec<PathBuf> = handle
+            .with_metadata(|m| m.file_infos.iter().map(|fi| fi.relative_filename.clone()).collect())
+            .unwrap_or_default();
+        storage::assert_confined(&self.cache_root, files.iter().map(PathBuf::as_path))
     }
 
     pub fn session(&self) -> &Arc<Session> {
@@ -130,7 +145,18 @@ impl Engine {
             .session
             .add_torrent(AddTorrent::from_bytes(bytes), Some(add_torrent_options()))
             .await?;
-        resp.into_handle().context("add_torrent returned list-only")
+        let handle = resp.into_handle().context("add_torrent returned list-only")?;
+        self.reject_if_unconfined(&handle).await?;
+        Ok(handle)
+    }
+
+    /// Tear the torrent back down (and its files) if it escapes the cache.
+    async fn reject_if_unconfined(&self, handle: &Handle) -> anyhow::Result<()> {
+        if let Err(e) = self.assert_confined(handle) {
+            self.remove(&Self::info_hash_hex(handle)).await;
+            return Err(e);
+        }
+        Ok(())
     }
 
     /// Get-or-create a torrent from a magnet URL (`POST /:ih/create`, and the
@@ -144,6 +170,7 @@ impl Engine {
         let handle = resp.into_handle().context("add_torrent returned list-only")?;
         // Bounded wait: a magnet with no reachable peers must not hang the request.
         let _ = tokio::time::timeout(METADATA_TIMEOUT, handle.wait_until_initialized()).await;
+        self.reject_if_unconfined(&handle).await?;
         Ok(handle)
     }
 
