@@ -132,6 +132,11 @@ impl Drop for Mpv {
     }
 }
 
+// The libmpv client API is thread-safe: an `mpv_handle` may be used from
+// multiple threads. We serialize access behind a Mutex in Tauri state anyway.
+unsafe impl Send for Mpv {}
+unsafe impl Sync for Mpv {}
+
 fn cstr(s: &str) -> Result<CString, String> {
     CString::new(s).map_err(|_| format!("interior NUL in {s:?}"))
 }
@@ -139,6 +144,13 @@ fn cstr(s: &str) -> Result<CString, String> {
 /// Default location of the dev/bundled `libmpv-2.dll`: next to the executable,
 /// falling back to the crate dir during `cargo test`/`run`.
 pub fn default_dll_path() -> PathBuf {
+    // Dev override: point at any libmpv-2.dll (e.g. an on-machine build).
+    if let Ok(p) = std::env::var("STREMIO_LIBMPV") {
+        let p = PathBuf::from(p);
+        if p.exists() {
+            return p;
+        }
+    }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             let p = dir.join("libmpv-2.dll");

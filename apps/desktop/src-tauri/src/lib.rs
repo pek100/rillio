@@ -6,7 +6,13 @@
 
 pub mod mpv;
 
+use std::sync::Mutex;
+
 use tauri::Manager;
+
+/// The embedded mpv instance (S3). `None` until playback starts.
+#[derive(Default)]
+struct MpvState(Mutex<Option<mpv::Mpv>>);
 
 /// Open a URL or file path in the OS default handler / native app (S2).
 ///
@@ -21,10 +27,25 @@ fn open_external(url: String) -> Result<(), String> {
 
 /// Build and run the Tauri application.
 pub fn run() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,stremio_desktop_lib=debug".into()),
+        )
+        .try_init();
+
     tauri::Builder::default()
+        .manage(MpvState::default())
         .setup(|app| {
             start_streaming_server(app.handle());
-            build_main_window(app)?;
+            let window = build_main_window(app)?;
+            // S3 part-2 render proof: STREMIO_MPV_TEST=<url|"test"> embeds mpv in
+            // the window and plays it. "test" = a generated color pattern.
+            if let Ok(src) = std::env::var("STREMIO_MPV_TEST") {
+                if let Err(e) = start_mpv_embedded(app.handle(), &window, &src) {
+                    tracing::error!("mpv embed test failed: {e}");
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![open_external])
@@ -32,11 +53,49 @@ pub fn run() {
         .expect("error while running the Stremio desktop shell");
 }
 
+/// Load mpv, embed it into the window (`wid`), and play `source`. Stores the
+/// instance in state so it isn't dropped. Windows-only for now.
+#[cfg(windows)]
+fn start_mpv_embedded(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
+    source: &str,
+) -> Result<(), String> {
+    let hwnd = window.hwnd().map_err(|e| e.to_string())?;
+    let wid = hwnd.0 as isize;
+
+    let dll = mpv::default_dll_path();
+    let mpv = mpv::Mpv::load(&dll)?;
+    mpv.set_option("wid", &wid.to_string())?; // render into our window
+    mpv.set_option("hwdec", "auto")?; // hardware decode (HDR/perf)
+    mpv.initialize()?;
+
+    let file = if source == "test" {
+        "av://lavfi:testsrc=size=1280x720:rate=30"
+    } else {
+        source
+    };
+    mpv.command(&["loadfile", file])?;
+
+    *app.state::<MpvState>().0.lock().unwrap() = Some(mpv);
+    tracing::info!("mpv embedded (wid={wid}), playing {file}");
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn start_mpv_embedded(
+    _app: &tauri::AppHandle,
+    _window: &tauri::WebviewWindow,
+    _source: &str,
+) -> Result<(), String> {
+    Err("mpv embedding is Windows-only for now".into())
+}
+
 /// Create the main window in code so we can intercept navigation: custom-scheme
 /// links (`vlc://`, `mpv://`, `magnet:`, external-player deep links) are opened
 /// in the OS/native app and the in-app navigation is cancelled (S2). Normal
 /// http(s)/tauri navigations proceed in the WebView.
-fn build_main_window(app: &tauri::App) -> tauri::Result<()> {
+fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
     tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
         .title("Stremio")
         .inner_size(1280.0, 800.0)
@@ -53,8 +112,7 @@ fn build_main_window(app: &tauri::App) -> tauri::Result<()> {
                 }
             }
         })
-        .build()?;
-    Ok(())
+        .build()
 }
 
 /// Spawn the embedded streaming server on Tauri's async (tokio) runtime. It
