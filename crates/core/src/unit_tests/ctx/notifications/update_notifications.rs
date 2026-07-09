@@ -13,7 +13,7 @@ use semver::Version;
 use serde::Deserialize;
 use url::Url;
 
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 use crate::{
     constants::{CATALOG_RESOURCE_NAME, LAST_VIDEOS_IDS_EXTRA_PROP},

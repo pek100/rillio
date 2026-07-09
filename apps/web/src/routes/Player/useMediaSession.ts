@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { usePlatform } from 'stremio/common';
+import { usePlatform } from 'rillio/common';
 
 const useMediaSession = (
     videoState: VideoState,

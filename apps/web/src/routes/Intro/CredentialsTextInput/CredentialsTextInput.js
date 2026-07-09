@@ -2,7 +2,7 @@
 
 const React = require('react');
 const PropTypes = require('prop-types');
-const { TextInput } = require('stremio/components');
+const { TextInput } = require('rillio/components');
 
 const CredentialsTextInput = React.forwardRef((props, ref) => {
     const onKeyDown = React.useCallback((event) => {

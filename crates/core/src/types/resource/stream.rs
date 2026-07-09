@@ -31,7 +31,7 @@ use crate::{runtime::EnvError, types::streams::ConvertedStreamSource};
 /// # Examples
 ///
 /// ```
-/// use stremio_core::types::resource::{Stream, StreamSource, StreamBehaviorHints};
+/// use rillio_core::types::resource::{Stream, StreamSource, StreamBehaviorHints};
 ///
 /// let expected_stream = Stream {
 ///     source: StreamSource::Url { url: "https://example.com/some-awesome-video-file.mp4".parse().unwrap()},
@@ -161,7 +161,7 @@ impl Stream {
 
     /// # Examples
     /// ```
-    /// use stremio_core::types::resource::{Stream, StreamSource};
+    /// use rillio_core::types::resource::{Stream, StreamSource};
     ///
     /// assert_eq!("file.rar".to_string(), Stream::ftp_filename(&"ftp://example.com/file.rar".parse().unwrap()).unwrap());
     /// assert_eq!("0x00000000000000000000".to_string(), Stream::ftp_filename(&"ftp://example.com/0x00000000000000000000".parse().unwrap()).unwrap());
@@ -611,7 +611,7 @@ impl Stream {
 /// [`StreamSource::Rar`] with `rarUrls` field:
 ///
 /// ```
-/// use stremio_core::types::resource::{ArchiveUrl, StreamSource};
+/// use rillio_core::types::resource::{ArchiveUrl, StreamSource};
 ///
 /// let streams_json = serde_json::json!([
 /// {
@@ -669,7 +669,7 @@ impl Stream {
 /// [`StreamSource::Zip`] with `zipUrls` field:
 ///
 /// ```
-/// use stremio_core::types::resource::{ArchiveUrl, StreamSource};
+/// use rillio_core::types::resource::{ArchiveUrl, StreamSource};
 ///
 /// let streams_json = serde_json::json!([
 /// {
@@ -836,7 +836,7 @@ pub enum StreamSource {
 }
 
 /// ```
-/// use stremio_core::types::resource::ArchiveUrl;
+/// use rillio_core::types::resource::ArchiveUrl;
 ///
 /// let expected = serde_json::json!([
 ///     ["http://example.com/file0.rar"],
@@ -884,7 +884,7 @@ impl From<ArchiveUrl> for ArchiveUrlShort {
 
 // TODO:
 /// ```
-/// use stremio_core::types::resource::ArchiveUrlShort;
+/// use rillio_core::types::resource::ArchiveUrlShort;
 ///
 /// let stream_source = serde_json::from_value::<Vec<ArchiveUrlShort>>(serde_json::json!([
 ///     ["https://example.com"],

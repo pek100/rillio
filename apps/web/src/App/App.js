@@ -4,11 +4,12 @@ require('spatial-navigation-polyfill');
 const React = require('react');
 const { useTranslation } = require('react-i18next');
 const { useNavigate } = require('react-router');
-const { useCore } = require('stremio/core');
-const { Routes } = require('stremio-router');
-const { Chromecast, ServicesProvider, GamepadProvider } = require('stremio/services');
-const { FullscreenProvider, ToastProvider, TooltipProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { Routes } = require('rillio-router');
+const { Chromecast, ServicesProvider, GamepadProvider } = require('rillio/services');
+const { FullscreenProvider, ToastProvider, TooltipProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('rillio/common');
 const ServicesToaster = require('./ServicesToaster');
+const NotificationsToaster = require('./NotificationsToaster');
 const SearchParamsHandler = require('./SearchParamsHandler');
 const DeepLinkHandler = require('./DeepLinkHandler');
 const { default: UpdaterBanner } = require('./UpdaterBanner');
@@ -195,6 +196,7 @@ const App = () => {
                                         gamepadModalOpen && <GamepadModal onClose={closeGamepadModal}/>
                                     }
                                     <ServicesToaster />
+                                    <NotificationsToaster />
                                     <SearchParamsHandler />
                                     <DeepLinkHandler />
                                     <UpdaterBanner className={styles['updater-banner-container']} />

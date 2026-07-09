@@ -4,9 +4,9 @@ const React = require('react');
 const throttle = require('lodash.throttle');
 const { deepEqual } = require('fast-equals');
 const intersection = require('lodash.intersection');
-const { useCore } = require('stremio/core');
-const { useCoreSuspender } = require('stremio/common/CoreSuspender');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
+const { useCore } = require('rillio/core');
+const { useCoreSuspender } = require('rillio/common/CoreSuspender');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
 
 const useModelState = ({ action, ...args }) => {
     const core = useCore();

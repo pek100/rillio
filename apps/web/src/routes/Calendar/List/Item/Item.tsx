@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import Icon from '@stremio/stremio-icons/react';
 import classNames from 'classnames';
-import { useNavigateWithOrigin } from 'stremio-router';
-import { Button } from 'stremio/components';
+import { useNavigateWithOrigin } from 'rillio-router';
+import { Button } from 'rillio/components';
 import useCalendarDate from '../../useCalendarDate';
 import styles from './Item.less';
 

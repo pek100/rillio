@@ -4,8 +4,8 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
-const { useCore } = require('stremio/core');
-const { usePlatform, useToast } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { usePlatform, useToast } = require('rillio/common');
 const Option = require('./Option');
 const styles = require('./styles');
 

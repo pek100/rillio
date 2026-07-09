@@ -6,15 +6,15 @@ const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { useCore } = require('stremio/core');
-const { Button } = require('stremio/components');
-const { useFullscreen } = require('stremio/common/Fullscreen');
-const useProfile = require('stremio/common/useProfile');
-const usePWA = require('stremio/common/usePWA');
-const { default: usePlayUrl } = require('stremio/common/usePlayUrl');
-const useToast = require('stremio/common/Toast/useToast');
-const { withCoreSuspender } = require('stremio/common/CoreSuspender');
-const useStreamingServer = require('stremio/common/useStreamingServer');
+const { useCore } = require('rillio/core');
+const { Button } = require('rillio/components');
+const { useFullscreen } = require('rillio/common/Fullscreen');
+const useProfile = require('rillio/common/useProfile');
+const usePWA = require('rillio/common/usePWA');
+const { default: usePlayUrl } = require('rillio/common/usePlayUrl');
+const useToast = require('rillio/common/Toast/useToast');
+const { withCoreSuspender } = require('rillio/common/CoreSuspender');
+const useStreamingServer = require('rillio/common/useStreamingServer');
 const styles = require('./styles');
 
 const NavMenuContent = ({ onClick }) => {
@@ -101,10 +101,6 @@ const NavMenuContent = ({ onClick }) => {
                 <Button className={styles['nav-menu-option-container']} title={ t('SETTINGS') } href={'#/settings'}>
                     <Icon className={styles['icon']} name={'settings'} />
                     <div className={styles['nav-menu-option-label']}>{ t('SETTINGS') }</div>
-                </Button>
-                <Button className={styles['nav-menu-option-container']} title={ t('ADDONS') } href={'#/addons'}>
-                    <Icon className={styles['icon']} name={'addons-outline'} />
-                    <div className={styles['nav-menu-option-label']}>{ t('ADDONS') }</div>
                 </Button>
                 <Button className={styles['nav-menu-option-container']} title={ t('PLAY_URL_MAGNET_LINK') } onClick={onPlayMagnetLinkClick}>
                     <Icon className={styles['icon']} name={'magnet-link'} />

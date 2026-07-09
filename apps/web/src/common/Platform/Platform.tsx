@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { WHITELISTED_HOSTS } from 'stremio/common/CONSTANTS';
+import { WHITELISTED_HOSTS } from 'rillio/common/CONSTANTS';
 import { name, isMobile } from './device';
 import useShell from './shell/useShell';
 

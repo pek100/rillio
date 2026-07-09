@@ -6,7 +6,7 @@ use super::*;
 #[cfg(debug_assertions)]
 use serde::Serialize;
 
-use stremio_core::{
+use rillio_core::{
     models::{
         addon_details::AddonDetails,
         calendar::Calendar,

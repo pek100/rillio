@@ -26,7 +26,7 @@ use crate::types::{torrent::InfoHash, DefaultOnBool};
 /// # Examples
 ///
 /// ```
-/// use stremio_core::types::streaming_server::CreatedTorrent;
+/// use rillio_core::types::streaming_server::CreatedTorrent;
 /// let json = serde_json::json!({
 ///     "torrent": {
 ///         "infoHash": "df389295484b3059a4726dc6d8a57f71bb5f4c81",

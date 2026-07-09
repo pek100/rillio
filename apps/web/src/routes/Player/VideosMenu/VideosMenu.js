@@ -3,8 +3,8 @@
 const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
-const { useCore } = require('stremio/core');
-const { Video } = require('stremio/components');
+const { useCore } = require('rillio/core');
+const { Video } = require('rillio/components');
 const styles = require('./styles');
 
 const VideosMenu = ({ className, metaItem, seriesInfo }) => {

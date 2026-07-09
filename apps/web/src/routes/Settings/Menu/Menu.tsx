@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
-import { usePlatform } from 'stremio/common';
-import { Button } from 'stremio/components';
+import { usePlatform } from 'rillio/common';
+import { Button } from 'rillio/components';
 import { SECTIONS } from '../constants';
 import styles from './Menu.less';
 

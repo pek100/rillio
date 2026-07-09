@@ -4,10 +4,10 @@ const React = require('react');
 const { useTranslation } = require('react-i18next');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
-const { useModalsContainer } = require('stremio/router/ModalsContainerContext');
-const Modal = require('stremio/router/Modal');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const { default: Button } = require('stremio/components/Button');
+const { useModalsContainer } = require('rillio/router/ModalsContainerContext');
+const Modal = require('rillio/router/Modal');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const { default: Button } = require('rillio/components/Button');
 const { default: Icon } = require('@stremio/stremio-icons/react');
 const styles = require('./styles');
 

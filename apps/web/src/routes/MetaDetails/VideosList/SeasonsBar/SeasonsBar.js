@@ -5,7 +5,7 @@ const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { t } = require('i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button, MultiselectMenu } = require('stremio/components');
+const { Button, MultiselectMenu } = require('rillio/components');
 const SeasonsBarPlaceholder = require('./SeasonsBarPlaceholder');
 const styles = require('./styles');
 

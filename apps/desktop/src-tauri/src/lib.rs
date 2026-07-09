@@ -1,4 +1,4 @@
-//! Stremio desktop shell (Tauri v2).
+//! Rillio desktop shell (Tauri v2).
 //!
 //! S0: a WebView2 window hosting the `apps/web` client.
 //! S1: the Rust streaming server runs in-process (no container/sidecar) — the
@@ -63,7 +63,7 @@ pub fn run() {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,stremio_desktop_lib=debug".into()),
+                .unwrap_or_else(|_| "info,rillio_desktop_lib=debug".into()),
         )
         .try_init();
 
@@ -89,7 +89,7 @@ pub fn run() {
             shell::shell_mpv_stats
         ])
         .run(tauri::generate_context!())
-        .expect("error while running the Stremio desktop shell");
+        .expect("error while running the Rillio desktop shell");
 }
 
 /// Load mpv, embed it into the window (`wid`), and play `source`. Stores the
@@ -149,7 +149,7 @@ fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
         .map(tauri::WebviewUrl::External)
         .unwrap_or_default();
     tauri::WebviewWindowBuilder::new(app, "main", start_url)
-        .title("Stremio")
+        .title("Rillio")
         .inner_size(1280.0, 800.0)
         .resizable(true)
         .transparent(mpv_embed_enabled())
@@ -180,9 +180,9 @@ fn start_streaming_server(app: &tauri::AppHandle) {
     if let Err(e) = std::fs::create_dir_all(&cache_dir) {
         tracing::error!("cannot create cache dir {cache_dir:?}: {e}");
     }
-    let config = stremio_streaming_server::Config::local(cache_dir);
+    let config = rillio_streaming_server::Config::local(cache_dir);
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = stremio_streaming_server::serve(config).await {
+        if let Err(e) = rillio_streaming_server::serve(config).await {
             tracing::error!("embedded streaming server exited: {e}");
         }
     });

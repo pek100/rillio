@@ -20,7 +20,7 @@ use enclose::enclose;
 use futures::future;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
-use stremio_derive::Model;
+use rillio_derive::Model;
 use url::Url;
 
 #[test]

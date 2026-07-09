@@ -4,7 +4,7 @@
 use std::net::SocketAddr;
 
 use serde_json::Value;
-use stremio_streaming_server::{router, Config, Engine};
+use rillio_streaming_server::{router, Config, Engine};
 
 /// Minimal single-file `.torrent` (bencode), one piece.
 fn make_torrent(name: &str, length: u64) -> Vec<u8> {

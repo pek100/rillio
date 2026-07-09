@@ -5,7 +5,7 @@
 use std::net::SocketAddr;
 
 use serde_json::Value;
-use stremio_streaming_server::{router, Config, Engine};
+use rillio_streaming_server::{router, Config, Engine};
 
 async fn spawn(tag: &str) -> String {
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))

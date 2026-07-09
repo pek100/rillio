@@ -2,8 +2,8 @@
 
 const React = require('react');
 const { deepEqual } = require('fast-equals');
-const { useCore } = require('stremio/core');
-const { withCoreSuspender, useProfile, useToast } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { withCoreSuspender, useProfile, useToast } = require('rillio/common');
 
 const SearchParamsHandler = () => {
     const core = useCore();

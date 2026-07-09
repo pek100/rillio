@@ -2,11 +2,11 @@ use crate::model::deep_links_ext::DeepLinksExt;
 #[cfg(feature = "wasm")]
 use gloo_utils::format::JsValueSerdeExt;
 use serde::Serialize;
-use stremio_core::deep_links::{LibraryDeepLinks, LibraryItemDeepLinks};
-use stremio_core::models::ctx::Ctx;
-use stremio_core::models::library_with_filters::{LibraryWithFilters, Selected, Sort};
-use stremio_core::types::resource::PosterShape;
-use stremio_core::types::streams::StreamsItemKey;
+use rillio_core::deep_links::{LibraryDeepLinks, LibraryItemDeepLinks};
+use rillio_core::models::ctx::Ctx;
+use rillio_core::models::library_with_filters::{LibraryWithFilters, Selected, Sort};
+use rillio_core::types::resource::PosterShape;
+use rillio_core::types::streams::StreamsItemKey;
 use url::Url;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::JsValue;

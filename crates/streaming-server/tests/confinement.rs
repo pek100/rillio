@@ -3,7 +3,7 @@
 
 use std::net::SocketAddr;
 
-use stremio_streaming_server::{router, Config, Engine};
+use rillio_streaming_server::{router, Config, Engine};
 
 /// Build a minimal valid single-file `.torrent` (bencode) declaring `length`
 /// bytes under `name`, with one piece. Enough for metadata parsing + our

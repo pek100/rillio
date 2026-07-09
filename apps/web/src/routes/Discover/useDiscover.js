@@ -2,8 +2,8 @@
 
 const React = require('react');
 const UrlUtils = require('url');
-const { useCore } = require('stremio/core');
-const { useModelState } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { useModelState } = require('rillio/common');
 
 const map = (discover) => ({
     ...discover,

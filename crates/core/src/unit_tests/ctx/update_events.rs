@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use futures::future;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 use crate::{
     models::{common::Loadable, ctx::Ctx},

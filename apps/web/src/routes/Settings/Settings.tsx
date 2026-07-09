@@ -3,8 +3,8 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import classnames from 'classnames';
 import throttle from 'lodash.throttle';
-import { usePlatform, useProfile, useStreamingServer, useRouteFocused, withCoreSuspender } from 'stremio/common';
-import { MainNavBars } from 'stremio/components';
+import { usePlatform, useProfile, useStreamingServer, useRouteFocused, withCoreSuspender } from 'rillio/common';
+import { MainNavBars } from 'rillio/components';
 import { SECTIONS } from './constants';
 import Menu from './Menu';
 import General from './General';

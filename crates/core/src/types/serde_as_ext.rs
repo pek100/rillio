@@ -132,7 +132,7 @@ impl<'de> DeserializeAs<'de, String> for NumberAsString {
 /// ```
 /// use serde::Deserialize;
 /// use serde_with::serde_as;
-/// use stremio_core::types::DefaultOnBool;
+/// use rillio_core::types::DefaultOnBool;
 ///
 /// #[serde_as]
 /// #[derive(Deserialize, Debug, PartialEq, Eq)]

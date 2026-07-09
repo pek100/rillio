@@ -7,10 +7,10 @@ use itertools::Itertools;
 use serde::Serialize;
 use url::Url;
 #[cfg(feature = "wasm")]
-use {gloo_utils::format::JsValueSerdeExt, stremio_core::runtime::Env, wasm_bindgen::JsValue};
+use {gloo_utils::format::JsValueSerdeExt, rillio_core::runtime::Env, wasm_bindgen::JsValue};
 
-use stremio_core::runtime::EnvError;
-use stremio_core::{
+use rillio_core::runtime::EnvError;
+use rillio_core::{
     constants::META_RESOURCE_NAME,
     deep_links::{MetaItemDeepLinks, StreamDeepLinks, VideoDeepLinks},
     models::{
@@ -41,7 +41,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Stream<'a> {
         #[serde(flatten)]
-        pub stream: &'a stremio_core::types::resource::Stream,
+        pub stream: &'a rillio_core::types::resource::Stream,
         /// Watch progress percentage
         pub progress: Option<f64>,
         pub deep_links: StreamDeepLinks,
@@ -55,7 +55,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Video<'a> {
         #[serde(flatten)]
-        pub video: &'a stremio_core::types::resource::Video,
+        pub video: &'a rillio_core::types::resource::Video,
         pub upcoming: bool,
         pub watched: bool,
         // Watch progress percentage
@@ -67,7 +67,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct MetaItem<'a> {
         #[serde(flatten)]
-        pub meta_item: &'a stremio_core::types::resource::MetaItem,
+        pub meta_item: &'a rillio_core::types::resource::MetaItem,
         pub videos: Vec<Video<'a>>,
         pub trailer_streams: Vec<Stream<'a>>,
         pub in_library: bool,

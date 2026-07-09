@@ -19,7 +19,7 @@ use crate::{
 };
 use futures::future;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 fn create_stream(binge_group: &str) -> Stream {
     Stream {

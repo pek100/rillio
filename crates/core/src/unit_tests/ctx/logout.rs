@@ -16,7 +16,7 @@ use crate::unit_tests::{
 };
 use futures::future;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 #[test]
 fn actionctx_logout() {

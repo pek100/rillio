@@ -4,9 +4,9 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const debounce = require('lodash.debounce');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const { useBinaryState } = require('stremio/common');
-const { Button, Slider } = require('stremio/components');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const { useBinaryState } = require('rillio/common');
+const { Button, Slider } = require('rillio/components');
 const formatTime = require('./formatTime');
 const styles = require('./styles');
 

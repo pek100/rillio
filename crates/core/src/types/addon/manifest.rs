@@ -48,7 +48,7 @@ pub struct Manifest {
     /// ## Short format
     /// ```
     /// use std::vec::Vec;
-    /// use stremio_core::types::addon::ManifestResource;
+    /// use rillio_core::types::addon::ManifestResource;
     ///
     /// let manifest_resources_short = serde_json::json!({
     ///     // Addon manifest.json ....
@@ -64,7 +64,7 @@ pub struct Manifest {
     ///
     /// ```
     /// use std::vec::Vec;
-    /// use stremio_core::types::addon::ManifestResource;
+    /// use rillio_core::types::addon::ManifestResource;
     ///
     /// let manifest_resources_long = serde_json::json!({
     ///     // Addon manifest.json ....
@@ -190,7 +190,7 @@ impl From<&Manifest> for ManifestPreview {
 /// # Examples
 ///
 /// ```
-/// use stremio_core::types::addon::ManifestResource;
+/// use rillio_core::types::addon::ManifestResource;
 ///
 /// let short_resource = serde_json::json!("name");
 /// let manifest_resource = serde_json::from_value::<ManifestResource>(short_resource).expect("Valid ManifestResource::Short");

@@ -2,16 +2,16 @@
 
 const React = require('react');
 const { useNavigate } = require('react-router');
-const { default: toPath } = require('stremio-router/toPath');
+const { default: toPath } = require('rillio-router/toPath');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button, Image, MultiselectMenu } = require('stremio/components');
-const { useCore } = require('stremio/core');
+const { Button, Image, MultiselectMenu } = require('rillio/components');
+const { useCore } = require('rillio/core');
 const Stream = require('./Stream');
 const styles = require('./styles');
-const { usePlatform, useProfile } = require('stremio/common');
+const { usePlatform, useProfile } = require('rillio/common');
 const { default: SeasonEpisodePicker } = require('../EpisodePicker');
 
 const ALL_ADDONS_KEY = 'ALL';

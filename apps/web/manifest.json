@@ -1,7 +1,7 @@
 {
-    "name": "Stremio Web",
-    "short_name": "Stremio",
-    "description": "Freedom To Stream",
+    "name": "Rillio",
+    "short_name": "Rillio",
+    "description": "Private, quiet streaming",
     "background_color": "#161523",
     "theme_color": "#2a2843",
     "orientation": "any",
@@ -46,14 +46,14 @@
             "sizes": "1440x900",
             "type": "image/webp",
             "form_factor": "wide",
-            "label": "Homescreen of Stremio"
+            "label": "Homescreen of Rillio"
         },
         {
             "src": "screenshots/board_narrow.webp",
             "sizes": "414x896",
             "type": "image/webp",
             "form_factor": "narrow",
-            "label": "Homescreen of Stremio"
+            "label": "Homescreen of Rillio"
         }
     ]
 }

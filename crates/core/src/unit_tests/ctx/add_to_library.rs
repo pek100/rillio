@@ -18,7 +18,7 @@ use crate::unit_tests::{
 use chrono::{TimeZone, Utc};
 use futures::future;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 use url::Url;
 
 #[test]

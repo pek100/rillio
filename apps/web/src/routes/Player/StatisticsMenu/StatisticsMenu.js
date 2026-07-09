@@ -4,7 +4,7 @@ const React = require('react');
 const { useTranslation } = require('react-i18next');
 const classNames = require('classnames');
 const PropTypes = require('prop-types');
-const { usePlatform } = require('stremio/common');
+const { usePlatform } = require('rillio/common');
 const styles = require('./styles.less');
 
 const DASH = '—';

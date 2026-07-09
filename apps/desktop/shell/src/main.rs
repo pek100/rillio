@@ -102,7 +102,7 @@ fn main() -> Result<()> {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,stremio_streaming_server=info".into()),
+                .unwrap_or_else(|_| "info,rillio_streaming_server=info".into()),
         )
         .try_init();
 
@@ -224,8 +224,8 @@ fn start_streaming_server() {
             if let Err(e) = std::fs::create_dir_all(&cache) {
                 tracing::error!("cannot create cache dir {cache:?}: {e}");
             }
-            let cfg = stremio_streaming_server::Config::local(cache);
-            if let Err(e) = stremio_streaming_server::serve(cfg).await {
+            let cfg = rillio_streaming_server::Config::local(cache);
+            if let Err(e) = rillio_streaming_server::serve(cfg).await {
                 tracing::error!("streaming server exited: {e}");
             }
         });

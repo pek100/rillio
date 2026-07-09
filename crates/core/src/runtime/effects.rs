@@ -19,7 +19,7 @@ pub enum Effect {
 /// # Examples
 ///
 /// ```
-/// use stremio_core::runtime::Effects;
+/// use rillio_core::runtime::Effects;
 ///
 /// let none_unchanged = Effects::none().unchanged();
 /// let default = Effects::default();

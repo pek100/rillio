@@ -5,8 +5,8 @@ use serde::Serialize;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::JsValue;
 
-use stremio_core::deep_links::LocalSearchItemDeepLinks;
-use stremio_core::models::local_search::{LocalSearch, Searchable};
+use rillio_core::deep_links::LocalSearchItemDeepLinks;
+use rillio_core::models::local_search::{LocalSearch, Searchable};
 
 use crate::model::deep_links_ext::DeepLinksExt;
 

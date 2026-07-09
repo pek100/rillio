@@ -5,7 +5,7 @@ const { useTranslation } = require('react-i18next');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button } = require('stremio/components');
+const { Button } = require('rillio/components');
 const styles = require('./styles');
 
 const ToastItem = ({ title, message, dataset, onSelect, onClose, ...props }) => {

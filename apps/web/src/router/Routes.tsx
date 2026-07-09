@@ -3,7 +3,7 @@
 import React from 'react';
 import { Routes as RRoutes, Route as RRoute, useLocation, useNavigate, matchPath } from 'react-router';
 import type { Location } from 'react-router';
-import { useProfile } from 'stremio/common';
+import { useProfile } from 'rillio/common';
 import routerPaths from './routerPaths';
 import Route from './Route';
 

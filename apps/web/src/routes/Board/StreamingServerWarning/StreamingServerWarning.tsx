@@ -3,10 +3,10 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import classnames from 'classnames';
-import { Button } from 'stremio/components';
-import { useCore } from 'stremio/core';
-import useProfile from 'stremio/common/useProfile';
-import { withCoreSuspender } from 'stremio/common/CoreSuspender';
+import { Button } from 'rillio/components';
+import { useCore } from 'rillio/core';
+import useProfile from 'rillio/common/useProfile';
+import { withCoreSuspender } from 'rillio/common/CoreSuspender';
 import styles from './StreamingServerWarning.less';
 
 type Props = {

@@ -2,11 +2,11 @@ use crate::model::deep_links_ext::DeepLinksExt;
 #[cfg(feature = "wasm")]
 use gloo_utils::format::JsValueSerdeExt;
 use serde::Serialize;
-use stremio_core::deep_links::AddonsDeepLinks;
-use stremio_core::models::catalog_with_filters::{CatalogWithFilters, Selected};
-use stremio_core::models::common::Loadable;
-use stremio_core::models::ctx::Ctx;
-use stremio_core::types::addon::Descriptor;
+use rillio_core::deep_links::AddonsDeepLinks;
+use rillio_core::models::catalog_with_filters::{CatalogWithFilters, Selected};
+use rillio_core::models::common::Loadable;
+use rillio_core::models::ctx::Ctx;
+use rillio_core::types::addon::Descriptor;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::JsValue;
 
@@ -37,7 +37,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Descriptor<'a> {
         #[serde(flatten)]
-        pub addon: &'a stremio_core::types::addon::Descriptor,
+        pub addon: &'a rillio_core::types::addon::Descriptor,
         pub installed: bool,
     }
     #[derive(Serialize)]

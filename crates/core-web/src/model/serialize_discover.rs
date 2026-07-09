@@ -4,7 +4,7 @@ use {
     boolinator::Boolinator,
     gloo_utils::format::JsValueSerdeExt,
     itertools::Itertools,
-    stremio_core::deep_links::{DiscoverDeepLinks, MetaItemDeepLinks, StreamDeepLinks},
+    rillio_core::deep_links::{DiscoverDeepLinks, MetaItemDeepLinks, StreamDeepLinks},
     wasm_bindgen::JsValue,
 };
 
@@ -13,7 +13,7 @@ pub use model::*;
 mod model {
     use serde::Serialize;
 
-    use stremio_core::{
+    use rillio_core::{
         deep_links::{DiscoverDeepLinks, MetaItemDeepLinks, StreamDeepLinks},
         models::{catalog_with_filters::Selected as CatalogWithFiltersSelected, common::Loadable},
     };
@@ -72,14 +72,14 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Stream<'a> {
         #[serde(flatten)]
-        pub stream: &'a stremio_core::types::resource::Stream,
+        pub stream: &'a rillio_core::types::resource::Stream,
         pub deep_links: StreamDeepLinks,
     }
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct MetaItemPreview<'a> {
         #[serde(flatten)]
-        pub meta_item: &'a stremio_core::types::resource::MetaItemPreview,
+        pub meta_item: &'a rillio_core::types::resource::MetaItemPreview,
         pub trailer_streams: Vec<Stream<'a>>,
         pub watched: bool,
         pub in_library: bool,
@@ -102,13 +102,13 @@ mod model {
 
 #[cfg(feature = "wasm")]
 pub fn serialize_discover(
-    discover: &stremio_core::models::catalog_with_filters::CatalogWithFilters<
-        stremio_core::types::resource::MetaItemPreview,
+    discover: &rillio_core::models::catalog_with_filters::CatalogWithFilters<
+        rillio_core::types::resource::MetaItemPreview,
     >,
-    ctx: &stremio_core::models::ctx::Ctx,
-    streaming_server: &stremio_core::models::streaming_server::StreamingServer,
+    ctx: &rillio_core::models::ctx::Ctx,
+    streaming_server: &rillio_core::models::streaming_server::StreamingServer,
 ) -> JsValue {
-    use stremio_core::models::common::Loadable;
+    use rillio_core::models::common::Loadable;
 
     <JsValue as JsValueSerdeExt>::from_serde(&model::CatalogWithFilters {
         selected: &discover.selected,

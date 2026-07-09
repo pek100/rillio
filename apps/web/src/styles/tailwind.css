@@ -1,0 +1,40 @@
+/* Tailwind v4, CSS-first. Preflight is intentionally NOT imported — the legacy
+ * App/styles.less reset stays the single reset, moved into @layer legacy (via a
+ * postcss wrap in webpack.config) so these utilities win over its `* { }` rules.
+ * Layer order: legacy < theme < base < components < utilities. */
+@layer legacy, theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../**/*.{js,jsx,ts,tsx,html}";
+
+@theme {
+    /* Palette — semantic tokens only, single dark theme. */
+    --color-bg: #020407;
+    --color-surface: #0A1017;
+    --color-surface-hover: #111A24;
+    --color-line: rgba(255, 255, 255, 0.08);
+    --color-accent: #FFA033;
+    --color-accent-soft: rgba(255, 160, 51, 0.14);
+    --color-highlight: #FFA033; /* alias of accent */
+    --color-fg: rgba(255, 255, 255, 0.95);
+    --color-fg-muted: rgba(255, 255, 255, 0.62);
+    --color-fg-subtle: rgba(255, 255, 255, 0.40);
+
+    /* Type — Nunito Sans (brand override of the usual Geist). */
+    --font-sans: "Nunito Sans", system-ui, Arial, Helvetica, sans-serif;
+
+    /* Radius — 12px base + one oversized squircle for hero surfaces. */
+    --radius-card: 0.75rem;
+    --radius-squircle: 1.375rem;
+
+    /* Motion — the two reused easings. */
+    --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Elevation — two-tier + a sparing accent glow. */
+    --shadow-island: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.5);
+    --shadow-glow-accent: 0 0 20px rgba(255, 160, 51, 0.28);
+}

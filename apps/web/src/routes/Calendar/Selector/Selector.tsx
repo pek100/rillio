@@ -2,9 +2,9 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { toPath } from 'stremio-router';
+import { toPath } from 'rillio-router';
 import Icon from '@stremio/stremio-icons/react';
-import { Button } from 'stremio/components';
+import { Button } from 'rillio/components';
 import useCalendarDate from '../useCalendarDate';
 import styles from './Selector.less';
 

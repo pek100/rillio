@@ -2,7 +2,7 @@
 
 import React, { forwardRef } from 'react';
 import classnames from 'classnames';
-import { Button } from 'stremio/components';
+import { Button } from 'rillio/components';
 import styles from './Toggle.less';
 
 type Props = {

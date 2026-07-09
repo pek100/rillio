@@ -1,7 +1,7 @@
 {
-  "name": "stremio-translations",
+  "name": "rillio-translations",
   "version": "1.53.1",
-  "description": "Translation strings used for Stremio app",
+  "description": "Translation strings used for Rillio app",
   "main": "index.js",
   "scripts": {
     "test": "npm run test:syntax && npm run test:keys",

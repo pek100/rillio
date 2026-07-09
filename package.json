@@ -1,5 +1,5 @@
 {
-    "name": "stremio-monorepo",
+    "name": "rillio-monorepo",
     "private": true,
     "license": "gpl-2.0",
     "packageManager": "pnpm@11.10.0",
@@ -8,10 +8,10 @@
         "pnpm": ">=11"
     },
     "scripts": {
-        "build:wasm": "pnpm --filter @stremio/stremio-core-web run build",
-        "build:wasm:dev": "pnpm --filter @stremio/stremio-core-web run build-dev",
-        "build": "pnpm run build:wasm && pnpm --filter stremio run build",
-        "start": "pnpm --filter stremio run start",
+        "build:wasm": "pnpm --filter @rillio/core-web run build",
+        "build:wasm:dev": "pnpm --filter @rillio/core-web run build-dev",
+        "build": "pnpm run build:wasm && pnpm --filter rillio run build",
+        "start": "pnpm --filter rillio run start",
         "lint": "pnpm -r run lint",
         "test": "pnpm -r run test"
     }

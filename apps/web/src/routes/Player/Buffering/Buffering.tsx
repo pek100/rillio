@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo } from 'react';
 import classNames from 'classnames';
-import { Image } from 'stremio/components';
+import { Image } from 'rillio/components';
 import styles from './Buffering.less';
 
 type Props = {

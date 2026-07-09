@@ -2,8 +2,8 @@
 
 const React = require('react');
 const { useTranslation } = require('react-i18next');
-const { default: Button } = require('stremio/components/Button');
-const ModalDialog = require('stremio/components/ModalDialog');
+const { default: Button } = require('rillio/components/Button');
+const ModalDialog = require('rillio/components/ModalDialog');
 const useEvents = require('./useEvents');
 const styles = require('./styles');
 const { default: Icon } = require('@stremio/stremio-icons/react');

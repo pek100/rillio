@@ -1,6 +1,6 @@
 //! M1.1 — the librqbit Session actually bootstraps (not just compiles).
 
-use stremio_streaming_server::engine::Engine;
+use rillio_streaming_server::engine::Engine;
 
 #[tokio::test]
 async fn session_bootstraps_leech_only() {

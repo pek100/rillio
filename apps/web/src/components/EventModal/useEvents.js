@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const { useCore } = require('stremio/core');
-const useModelState = require('stremio/common/useModelState');
+const { useCore } = require('rillio/core');
+const useModelState = require('rillio/common/useModelState');
 
 const map = (ctx) => ({
     ...ctx.events,

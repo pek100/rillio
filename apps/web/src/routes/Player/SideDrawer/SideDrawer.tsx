@@ -3,10 +3,10 @@
 import React, { useMemo, useCallback, useState, useRef, forwardRef, memo } from 'react';
 import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
-import { useCore } from 'stremio/core';
-import { CONSTANTS } from 'stremio/common';
-import { MetaPreview, Video } from 'stremio/components';
-import SeasonsBar from 'stremio/routes/MetaDetails/VideosList/SeasonsBar';
+import { useCore } from 'rillio/core';
+import { CONSTANTS } from 'rillio/common';
+import { MetaPreview, Video } from 'rillio/components';
+import SeasonsBar from 'rillio/routes/MetaDetails/VideosList/SeasonsBar';
 import styles from './SideDrawer.less';
 
 type Props = {

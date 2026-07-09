@@ -2198,12 +2198,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
-name = "stremio-shell-native"
+name = "rillio-shell-native"
 version = "0.1.0"
 dependencies = [
  "libloading",
  "serde_json",
- "stremio-streaming-server",
+ "rillio-streaming-server",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2213,7 +2213,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stremio-streaming-server"
+name = "rillio-streaming-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",

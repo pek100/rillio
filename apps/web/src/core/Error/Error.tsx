@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import Image from 'stremio/components/Image';
-import Button from 'stremio/components/Button';
+import Image from 'rillio/components/Image';
+import Button from 'rillio/components/Button';
 import styles from './styles.less';
 
 type Props = {

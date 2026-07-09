@@ -9,7 +9,7 @@ use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use stremio_streaming_server::{router, Config, Engine};
+use rillio_streaming_server::{router, Config, Engine};
 
 /// A tiny origin: an HLS master, a range-capable data file, and a header echo.
 async fn origin_master(State(port): State<u16>) -> impl IntoResponse {

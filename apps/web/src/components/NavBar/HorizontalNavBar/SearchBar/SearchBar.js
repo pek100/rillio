@@ -8,15 +8,15 @@ const classnames = require('classnames');
 const debounce = require('lodash.debounce');
 const { useTranslation } = require('react-i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const Button = require('stremio/components/Button').default;
-const TextInput = require('stremio/components/TextInput').default;
-const { default: usePlayUrl } = require('stremio/common/usePlayUrl');
-const { withCoreSuspender } = require('stremio/common/CoreSuspender');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const Button = require('rillio/components/Button').default;
+const TextInput = require('rillio/components/TextInput').default;
+const { default: usePlayUrl } = require('rillio/common/usePlayUrl');
+const { withCoreSuspender } = require('rillio/common/CoreSuspender');
 const useSearchHistory = require('./useSearchHistory');
 const useLocalSearch = require('./useLocalSearch');
 const styles = require('./styles');
-const useBinaryState = require('stremio/common/useBinaryState');
+const useBinaryState = require('rillio/common/useBinaryState');
 
 const SearchBar = React.memo(({ className, query, active }) => {
     const { t } = useTranslation();

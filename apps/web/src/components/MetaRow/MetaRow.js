@@ -5,9 +5,9 @@ const ReactIs = require('react-is');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button } = require('stremio/components');
-const CONSTANTS = require('stremio/common/CONSTANTS');
-const useTranslate = require('stremio/common/useTranslate');
+const { Button } = require('rillio/components');
+const CONSTANTS = require('rillio/common/CONSTANTS');
+const useTranslate = require('rillio/common/useTranslate');
 const MetaRowPlaceholder = require('./MetaRowPlaceholder');
 const styles = require('./styles');
 

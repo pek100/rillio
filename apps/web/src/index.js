@@ -1,5 +1,7 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
+require('./styles/tailwind.css');
+
 if (typeof process.env.SENTRY_DSN === 'string') {
     const Sentry = require('@sentry/browser');
     Sentry.init({ dsn: process.env.SENTRY_DSN });
@@ -16,7 +18,7 @@ const ReactDOM = require('react-dom/client');
 const { HashRouter } = require('react-router-dom');
 const i18n = require('i18next');
 const { initReactI18next } = require('react-i18next');
-const stremioTranslations = require('stremio-translations');
+const stremioTranslations = require('rillio-translations');
 const App = require('./App');
 const { CoreProvider } = require('./core');
 const { FileDropProvider, PlatformProvider } = require('./common');

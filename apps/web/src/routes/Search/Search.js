@@ -3,10 +3,10 @@
 const React = require('react');
 const classnames = require('classnames');
 const debounce = require('lodash.debounce');
-const useTranslate = require('stremio/common/useTranslate');
+const useTranslate = require('rillio/common/useTranslate');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { withCoreSuspender, getVisibleChildrenRange } = require('stremio/common');
-const { Image, MainNavBars, MetaItem, MetaRow } = require('stremio/components');
+const { withCoreSuspender, getVisibleChildrenRange } = require('rillio/common');
+const { Image, MainNavBars, MetaItem, MetaRow } = require('rillio/components');
 const useSearch = require('./useSearch');
 const styles = require('./styles');
 const { useSearchParams } = require('react-router-dom');

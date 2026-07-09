@@ -1,6 +1,6 @@
 use serde::Deserialize;
-use stremio_core::runtime::msg::{Action, Event};
-use stremio_core::types::resource::Stream;
+use rillio_core::runtime::msg::{Action, Event};
+use rillio_core::types::resource::Stream;
 
 #[derive(Deserialize)]
 #[serde(tag = "event", content = "args")]

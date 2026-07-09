@@ -105,7 +105,7 @@ struct MetaItemPreviewLegacy {
 
 ///
 /// ```
-/// use stremio_core::types::resource::{MetaItemPreview, MetaItemBehaviorHints, PosterShape};
+/// use rillio_core::types::resource::{MetaItemPreview, MetaItemBehaviorHints, PosterShape};
 ///
 /// let expected = MetaItemPreview {
 ///     id: "tt:1111111".into(),

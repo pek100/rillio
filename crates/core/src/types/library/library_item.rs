@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DefaultOnError, DefaultOnNull, NoneAsEmptyString};
-use stremio_watched_bitfield::{WatchedBitField, WatchedField};
+use rillio_watched_bitfield::{WatchedBitField, WatchedField};
 use url::Url;
 
 use crate::{

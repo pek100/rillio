@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
 import React, { memo } from 'react';
-import { HorizontalScroll } from 'stremio/components';
+import { HorizontalScroll } from 'rillio/components';
 import Chip from './Chip';
 import styles from './Chips.less';
 

@@ -1,8 +1,8 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCore } from 'stremio/core';
-import { Button, Toggle } from 'stremio/components';
-import { usePlatform, useToast, useDiscord } from 'stremio/common';
+import { useCore } from 'rillio/core';
+import { Button, Toggle } from 'rillio/components';
+import { usePlatform, useToast, useDiscord } from 'rillio/common';
 import { Section, Option, Link } from '../components';
 import User from './User';
 import useDataExport from './useDataExport';

@@ -1,11 +1,11 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
 import React, { useCallback, useMemo } from 'react';
-import { useProfile } from 'stremio/common';
-import { DEFAULT_STREAMING_SERVER_URL } from 'stremio/common/CONSTANTS';
+import { useProfile } from 'rillio/common';
+import { DEFAULT_STREAMING_SERVER_URL } from 'rillio/common/CONSTANTS';
 import { useTranslation } from 'react-i18next';
-import { Button, RadioButton } from 'stremio/components';
-import useStreamingServer from 'stremio/common/useStreamingServer';
+import { Button, RadioButton } from 'rillio/components';
+import useStreamingServer from 'rillio/common/useStreamingServer';
 import Icon from '@stremio/stremio-icons/react';
 import styles from './Item.less';
 import classNames from 'classnames';

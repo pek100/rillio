@@ -1,11 +1,18 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
-@import (reference) '~stremio/common/screen-sizes.less';
+@import (reference) '~rillio/common/screen-sizes.less';
 @import (reference) '~@stremio/stremio-colors/less/stremio-colors.less';
 
 @font-face {
     font-family: 'PlusJakartaSans';
     src: url('/assets/fonts/PlusJakartaSans.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Nunito Sans';
+    src: url('/assets/fonts/NunitoSans.ttf') format('truetype');
+    font-weight: 200 1000;
+    font-display: swap;
 }
 
 @font-face {
@@ -15,8 +22,8 @@
 }
 
 :global {
-    @import (once, less) '~stremio/common/animations.less';
-    @import (once, less) '~stremio-router/styles.css';
+    @import (once, less) '~rillio/common/animations.less';
+    @import (once, less) '~rillio-router/styles.css';
 }
 
 // iOS pads the bottom inset more than needed, so we deduce the actual inset size when using the webapp
@@ -58,17 +65,23 @@
     --color-placeholder: #60606080;
     --color-placeholder-text: @color-surface-50;
     --color-placeholder-background: @color-surface-dark5-20;
-    --primary-background-color: rgba(12, 11, 17, 1);
-    --secondary-background-color: rgba(26, 23, 62, 1);
+    --rillio-marker: 42;
+    --color-bg: #020407;
+    --color-surface: #0A1017;
+    --color-surface-hover: #111A24;
+    --color-accent: #FFA033;
+    --color-line: rgba(255, 255, 255, 0.08);
+    --primary-background-color: #020407;
+    --secondary-background-color: #0A1017;
     --primary-foreground-color: rgba(255, 255, 255, 0.9);
     --secondary-foreground-color: rgb(12, 11, 17, 1);
-    --primary-accent-color: rgb(123, 91, 245);
+    --primary-accent-color: #FFA033;
     --secondary-accent-color: rgba(34, 179, 101, 1);
     --tertiary-accent-color: rgba(246, 199, 0, 1);
     --quaternary-accent-color: rgba(18, 69, 166, 1);
     --overlay-color: rgba(255, 255, 255, 0.05);
     --modal-background-color: rgba(15, 13, 32, 1);
-    --outer-glow: 0px 0px 15px rgba(123, 91, 245, 0.37);
+    --outer-glow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 3px 10px rgba(0, 0, 0, 0.42);
     --warning-accent-color: rgba(255, 165, 0, 1);
     --danger-accent-color: rgba(220, 38, 38, 1);  
     --border-radius: 0.75rem;
@@ -157,7 +170,7 @@ svg {
 html {
     width: @html-width;
     height: @html-height;
-    font-family: 'PlusJakartaSans', 'Arial', 'Helvetica', 'TwemojiFlags', 'sans-serif';
+    font-family: 'Nunito Sans', 'PlusJakartaSans', 'Arial', 'Helvetica', 'TwemojiFlags', 'sans-serif';
     overflow: auto;
     overscroll-behavior: none;
     user-select: none;
@@ -174,7 +187,7 @@ html {
     body {
         width: 100%;
         height: 100%;
-        background: linear-gradient(41deg, var(--primary-background-color) 0%, var(--secondary-background-color) 100%);
+        background: var(--primary-background-color);
         -webkit-font-smoothing: antialiased;
 
         :global(#app) {

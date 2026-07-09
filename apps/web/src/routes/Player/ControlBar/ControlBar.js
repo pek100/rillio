@@ -4,12 +4,12 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button } = require('stremio/components');
-const { useServices } = require('stremio/services');
+const { Button } = require('rillio/components');
+const { useServices } = require('rillio/services');
 const SeekBar = require('./SeekBar');
 const VolumeSlider = require('./VolumeSlider');
 const styles = require('./styles');
-const { useBinaryState, usePlatform } = require('stremio/common');
+const { useBinaryState, usePlatform } = require('rillio/common');
 const { t } = require('i18next');
 
 const ControlBar = React.forwardRef(({

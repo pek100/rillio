@@ -1,5 +1,5 @@
 [package]
-name = "stremio-core"
+name = "rillio-core"
 version = "0.1.0"
 authors = ["Smart Code OOD"]
 edition = "2021"
@@ -19,7 +19,7 @@ default = []
 # see https://github.com/rustwasm/wasm-bindgen/issues/2833
 env-future-send = []
 
-# Exports the Model derive macro from `stremio-derive`
+# Exports the Model derive macro from `rillio-derive`
 derive = []
 
 # Enable core analytics
@@ -29,8 +29,8 @@ analytics = []
 deflate = ["stremio-official-addons/deflate"]
 
 [dependencies]
-stremio-derive = { path = "../derive" }
-stremio-watched-bitfield = { path = "../watched-bitfield" }
+rillio-derive = { path = "../derive" }
+rillio-watched-bitfield = { path = "../watched-bitfield" }
 stremio-official-addons = "=2.1.2"
 
 # (De)Serialization

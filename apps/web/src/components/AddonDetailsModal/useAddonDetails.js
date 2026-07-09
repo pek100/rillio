@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const useModelState = require('stremio/common/useModelState');
+const useModelState = require('rillio/common/useModelState');
 
 const useAddonDetails = (transportUrl) => {
     const action = React.useMemo(() => {

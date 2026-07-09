@@ -1,5 +1,5 @@
  [package]
-name = "stremio-core-web"
+name = "rillio-core-web"
 version = "0.59.0"
 authors = ["Smart Code OOD"]
 edition = "2021"
@@ -11,7 +11,7 @@ crate-type = ["lib", "cdylib"]
 default = ["std", "wasm"]
 
 std = []
-# enable wasm bindings exports, enabled by default (stremio-core-web crate after all)
+# enable wasm bindings exports, enabled by default (rillio-core-web crate after all)
 wasm = ["env", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:gloo-utils", "dep:tracing-wasm", "dep:console_error_panic_hook", "dep:js-sys", "dep:web-sys", "getrandom?/js"]
 # Enable's the wasm Env. impl
 # (this means that `wasm` feature is a superset of this one)
@@ -21,7 +21,7 @@ env = ["dep:http", "dep:regex", "dep:hex", "dep:getrandom", "dep:serde_path_to_e
 log-trace = []
 
 [dependencies]
-stremio-core = { version = "0.1", features = ["derive", "analytics"], path = "../core" }
+rillio-core = { version = "0.1", features = ["derive", "analytics"], path = "../core" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }

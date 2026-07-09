@@ -22,7 +22,7 @@ use chrono::{Duration, Utc};
 use futures::future;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 #[test]
 fn actionctx_synclibrarywithapi() {

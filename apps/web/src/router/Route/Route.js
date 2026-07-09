@@ -3,7 +3,7 @@
 const React = require('react');
 const PropTypes = require('prop-types');
 const { ModalsContainerProvider } = require('../ModalsContainerContext');
-const { RouteFocusedProvider } = require('stremio/common/useRouteFocused');
+const { RouteFocusedProvider } = require('rillio/common/useRouteFocused');
 
 const Route = ({ component, focused }) => {
     return (

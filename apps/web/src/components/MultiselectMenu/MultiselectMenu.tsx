@@ -1,13 +1,13 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
 import React from 'react';
-import { Button } from 'stremio/components';
-import useBinaryState from 'stremio/common/useBinaryState';
+import { Button } from 'rillio/components';
+import useBinaryState from 'rillio/common/useBinaryState';
 import Dropdown from './Dropdown';
 import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
 import styles from './MultiselectMenu.less';
-import useOutsideClick from 'stremio/common/useOutsideClick';
+import useOutsideClick from 'rillio/common/useOutsideClick';
 
 type Props = {
     className?: string,

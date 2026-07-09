@@ -64,7 +64,7 @@ pub enum ActionCtx {
     /// # Examples
     ///
     /// ```
-    /// use stremio_core::runtime::msg::ActionCtx;
+    /// use rillio_core::runtime::msg::ActionCtx;
     ///
     /// let pull_user_with_token = serde_json::from_value::<ActionCtx>(serde_json::json!({
     ///     "action": "PullUserFromAPI",
@@ -272,7 +272,7 @@ pub enum ActionSearch {
 /// Action messages
 ///
 /// Those messages are meant to be dispatched only by the users of the
-/// `stremio-core` crate and handled by the `stremio-core` crate.
+/// `rillio-core` crate and handled by the `rillio-core` crate.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "action", content = "args")]
 pub enum Action {

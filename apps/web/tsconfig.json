@@ -8,7 +8,7 @@
         "moduleResolution": "nodenext",
         "types": ["node"],
         "paths": {
-            "stremio/*": ["./src/*"],
+            "rillio/*": ["./src/*"],
         },
         "resolveJsonModule": true,
         "esModuleInterop": true,

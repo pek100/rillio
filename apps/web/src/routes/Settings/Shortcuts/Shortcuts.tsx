@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import { Section } from '../components';
-import { ShortcutsGroup } from 'stremio/components';
-import { useShortcuts } from 'stremio/common';
+import { ShortcutsGroup } from 'rillio/components';
+import { useShortcuts } from 'rillio/common';
 import styles from './Shortcuts.less';
 
 const Shortcuts = forwardRef<HTMLDivElement>((_, ref) => {

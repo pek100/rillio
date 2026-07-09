@@ -6,12 +6,12 @@ const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
 const filterInvalidDOMProps = require('filter-invalid-dom-props').default;
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { useNavigateWithOrigin } = require('stremio-router');
-const { default: Button } = require('stremio/components/Button');
-const { default: Image } = require('stremio/components/Image');
-const Multiselect = require('stremio/components/Multiselect');
-const useBinaryState = require('stremio/common/useBinaryState');
-const { ICON_FOR_TYPE } = require('stremio/common/CONSTANTS');
+const { useNavigateWithOrigin } = require('rillio-router');
+const { default: Button } = require('rillio/components/Button');
+const { default: Image } = require('rillio/components/Image');
+const Multiselect = require('rillio/components/Multiselect');
+const useBinaryState = require('rillio/common/useBinaryState');
+const { ICON_FOR_TYPE } = require('rillio/common/CONSTANTS');
 const styles = require('./styles');
 
 const MetaItem = React.memo(({ className, type, name, poster, posterShape, posterChangeCursor, progress, newVideos, options, deepLinks, dataset, optionOnSelect, onDismissClick, onPlayClick, watched, ...props }) => {

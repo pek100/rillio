@@ -6,7 +6,7 @@ const { default: Icon } = require('@stremio/stremio-icons/react');
 const { default: classNames } = require('classnames');
 const PropTypes = require('prop-types');
 const styles = require('./styles');
-const { useBinaryState } = require('stremio/common');
+const { useBinaryState } = require('rillio/common');
 
 const VolumeChangeIndicator = React.memo(({ muted, volume }) => {
     const [volumeIndicatorOpen, openVolumeIndicator, closeVolumeIndicator] = useBinaryState(false);

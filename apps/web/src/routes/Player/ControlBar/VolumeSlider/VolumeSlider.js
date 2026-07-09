@@ -4,9 +4,9 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const debounce = require('lodash.debounce');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const { usePlatform } = require('stremio/common');
-const { Slider } = require('stremio/components');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const { usePlatform } = require('rillio/common');
+const { Slider } = require('rillio/components');
 const styles = require('./styles');
 
 const VolumeSlider = ({ className, volume, onVolumeChangeRequested, muted }) => {

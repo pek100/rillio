@@ -1,10 +1,10 @@
-declare module '@stremio/stremio-core-web/bridge';
+declare module '@rillio/core-web/bridge';
 
 declare module '*.less' {
     const resource: Record<string, string>;
     export = resource;
 }
 
-declare module 'stremio-router';
-declare module 'stremio/components/NavBar';
-declare module 'stremio/components/ModalDialog';
+declare module 'rillio-router';
+declare module 'rillio/components/NavBar';
+declare module 'rillio/components/ModalDialog';

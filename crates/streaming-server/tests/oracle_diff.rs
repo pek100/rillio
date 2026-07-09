@@ -11,12 +11,12 @@
 //! server's own shape in CI. Run the container to get the full diff:
 //!   docker compose -f docker/streaming-server/compose.yaml up -d
 //!
-//! Run: cargo test -p stremio-streaming-server --test oracle_diff -- --nocapture
+//! Run: cargo test -p rillio-streaming-server --test oracle_diff -- --nocapture
 
 use std::net::SocketAddr;
 
 use serde_json::Value;
-use stremio_streaming_server::{router, Config, Engine};
+use rillio_streaming_server::{router, Config, Engine};
 
 const CONTAINER: &str = "http://127.0.0.1:11470";
 

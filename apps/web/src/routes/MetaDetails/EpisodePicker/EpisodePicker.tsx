@@ -3,7 +3,7 @@
 import React, { useCallback, useMemo, useState, ChangeEvent } from 'react';
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Button, NumberInput } from 'stremio/components';
+import { Button, NumberInput } from 'rillio/components';
 import styles from './EpisodePicker.less';
 
 type Props = {

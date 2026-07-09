@@ -2,8 +2,8 @@
 
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContextMenu } from 'stremio/components';
-import { languages, useToast } from 'stremio/common';
+import { Button, ContextMenu } from 'rillio/components';
+import { languages, useToast } from 'rillio/common';
 import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
 import styles from './SubtitleVariant.less';

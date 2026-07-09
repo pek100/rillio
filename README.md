@@ -1,8 +1,13 @@
-# Stremio (fork)
+# Rillio
 
-A hard fork of the Stremio client, consolidated from five upstream repositories
-into a single monorepo. **There is no upstream merge path** — history was squashed
-and the repos were restructured.
+Rillio is a hard fork of the Stremio client, consolidated from five upstream
+Stremio repositories into a single monorepo. **There is no upstream merge path** —
+history was squashed and the repos were restructured. (The name comes from *rill*,
+a small quiet stream — a nod to the privacy-first approach.)
+
+> **Note:** the architecture sections below are stale (they predate the Tauri
+> desktop shell with native mpv and the Rust streaming server that replaces
+> `server.js`). They need a rewrite; treat the layout section as current.
 
 ## Layout
 
@@ -14,7 +19,7 @@ packages/
   translations/         Locale strings (was Stremio/stremio-translations)
 crates/
   core/                 Rust state machines + addon transport (was Stremio/stremio-core)
-  core-web/             wasm-bindgen bridge, published as @stremio/stremio-core-web
+  core-web/             wasm-bindgen bridge, workspace package @rillio/core-web
   derive/               Model derive macro
   watched-bitfield/     Watched-episode bitfield
 docker/

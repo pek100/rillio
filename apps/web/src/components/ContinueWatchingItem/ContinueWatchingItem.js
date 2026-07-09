@@ -2,8 +2,8 @@
 
 const React = require('react');
 const PropTypes = require('prop-types');
-const { useCore } = require('stremio/core');
-const LibItem = require('stremio/components/LibItem');
+const { useCore } = require('rillio/core');
+const LibItem = require('rillio/components/LibItem');
 
 const ContinueWatchingItem = ({ _id, notifications, ...props }) => {
     const core = useCore();

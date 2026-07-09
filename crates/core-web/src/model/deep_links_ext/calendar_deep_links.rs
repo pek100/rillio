@@ -1,5 +1,5 @@
 use crate::model::deep_links_ext::DeepLinksExt;
-use stremio_core::deep_links::{CalendarDeepLinks, CalendarItemDeepLinks};
+use rillio_core::deep_links::{CalendarDeepLinks, CalendarItemDeepLinks};
 
 impl DeepLinksExt for CalendarDeepLinks {
     fn into_web_deep_links(self) -> Self {

@@ -16,7 +16,7 @@ use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::WorkerGlobalScope;
 
-use stremio_core::{
+use rillio_core::{
     analytics::Analytics,
     models::{ctx::Ctx, streaming_server::StreamingServer},
     runtime::{
@@ -571,7 +571,7 @@ pub mod tests {
 
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    use stremio_core::{
+    use rillio_core::{
         runtime::EnvError,
         types::{
             addon::ResourceResponse,

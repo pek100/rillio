@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCore } from 'stremio/core';
+import { useCore } from 'rillio/core';
 import { Link } from '../../components';
 import styles from './User.less';
 

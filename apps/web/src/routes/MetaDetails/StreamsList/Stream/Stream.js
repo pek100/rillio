@@ -5,10 +5,10 @@ const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
 const { t } = require('i18next');
-const { useCore } = require('stremio/core');
-const { useProfile, usePlatform, useToast, useBinaryState } = require('stremio/common');
-const { Button, Image, Popup } = require('stremio/components');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
+const { useCore } = require('rillio/core');
+const { useProfile, usePlatform, useToast, useBinaryState } = require('rillio/common');
+const { Button, Image, Popup } = require('rillio/components');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
 const StreamPlaceholder = require('./StreamPlaceholder');
 const styles = require('./styles');
 

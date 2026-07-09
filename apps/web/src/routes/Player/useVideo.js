@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const Video = require('@stremio/stremio-video');
+const Video = require('@rillio/video');
 const EventEmitter = require('eventemitter3');
 
 const events = new EventEmitter();

@@ -4,7 +4,7 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Image } = require('stremio/components');
+const { Image } = require('rillio/components');
 const styles = require('./styles');
 const { Link } = require('react-router-dom');
 

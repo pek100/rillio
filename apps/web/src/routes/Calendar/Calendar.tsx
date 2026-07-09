@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams } from 'react-router';
-import { useProfile, withCoreSuspender } from 'stremio/common';
-import { MainNavBars, BottomSheet } from 'stremio/components';
+import { useProfile, withCoreSuspender } from 'rillio/common';
+import { MainNavBars, BottomSheet } from 'rillio/components';
 import Selector from './Selector';
 import Table from './Table';
 import List from './List';

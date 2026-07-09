@@ -4,12 +4,12 @@ use url::Url;
 #[cfg(feature = "wasm")]
 use {gloo_utils::format::JsValueSerdeExt, wasm_bindgen::JsValue};
 
-use stremio_core::deep_links::{StreamDeepLinks, VideoDeepLinks};
-use stremio_core::models::common::{Loadable, ResourceError, ResourceLoadable};
-use stremio_core::models::ctx::Ctx;
-use stremio_core::models::player::Player;
-use stremio_core::models::streaming_server::StreamingServer;
-use stremio_core::types::{
+use rillio_core::deep_links::{StreamDeepLinks, VideoDeepLinks};
+use rillio_core::models::common::{Loadable, ResourceError, ResourceLoadable};
+use rillio_core::models::ctx::Ctx;
+use rillio_core::models::player::Player;
+use rillio_core::models::streaming_server::StreamingServer;
+use rillio_core::types::{
     addon::{ResourcePath, ResourceRequest},
     streams::StreamItemState,
 };
@@ -17,7 +17,7 @@ use stremio_core::types::{
 use crate::model::deep_links_ext::DeepLinksExt;
 
 mod model {
-    use stremio_core::{
+    use rillio_core::{
         runtime::EnvError,
         types::{
             resource::StreamSource,
@@ -30,7 +30,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Stream<S: StreamSourceTrait = StreamSource> {
         #[serde(flatten)]
-        pub stream: stremio_core::types::resource::Stream<S>,
+        pub stream: rillio_core::types::resource::Stream<S>,
         pub deep_links: StreamDeepLinks,
     }
     #[derive(Serialize)]
@@ -54,7 +54,7 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Video<'a> {
         #[serde(flatten)]
-        pub video: &'a stremio_core::types::resource::Video,
+        pub video: &'a rillio_core::types::resource::Video,
         pub upcoming: bool,
         pub watched: bool,
         pub progress: Option<f64>,
@@ -65,14 +65,14 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct MetaItem<'a> {
         #[serde(flatten)]
-        pub meta_item: &'a stremio_core::types::resource::MetaItem,
+        pub meta_item: &'a rillio_core::types::resource::MetaItem,
         pub videos: Vec<Video<'a>>,
     }
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct Subtitles<'a> {
         #[serde(flatten)]
-        pub subtitles: &'a stremio_core::types::resource::Subtitles,
+        pub subtitles: &'a rillio_core::types::resource::Subtitles,
         // overrides the id of the subtitles in a format that avoids
         // conflicts with other subtitle ids
         pub id: String,
@@ -110,18 +110,18 @@ mod model {
         pub meta_item: Option<Loadable<model::MetaItem<'a>, &'a ResourceError>>,
         pub subtitles: Vec<model::Subtitles<'a>>,
         pub next_video: Option<Video<'a>>,
-        pub series_info: Option<&'a stremio_core::types::resource::SeriesInfo>,
+        pub series_info: Option<&'a rillio_core::types::resource::SeriesInfo>,
         pub library_item: Option<LibraryItem<'a>>,
         pub stream_state: Option<&'a StreamItemState>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub intro_outro: Option<&'a stremio_core::types::player::IntroOutro>,
+        pub intro_outro: Option<&'a rillio_core::types::player::IntroOutro>,
         pub title: Option<String>,
         pub addon: Option<model::DescriptorPreview<'a>>,
     }
 }
 
 #[cfg(feature = "wasm")]
-pub fn serialize_player<E: stremio_core::runtime::Env + 'static>(
+pub fn serialize_player<E: rillio_core::runtime::Env + 'static>(
     player: &Player,
     ctx: &Ctx,
     streaming_server: &StreamingServer,

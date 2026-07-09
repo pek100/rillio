@@ -3,14 +3,14 @@
 [workspace]
 
 [package]
-name = "stremio-desktop"
+name = "rillio-desktop"
 version = "0.1.0"
 edition = "2021"
-description = "Stremio desktop shell (Tauri) embedding the Rust streaming server"
+description = "Rillio desktop shell (Tauri) embedding the Rust streaming server"
 license = "gpl-2.0"
 
 [lib]
-name = "stremio_desktop_lib"
+name = "rillio_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -23,7 +23,7 @@ serde_json = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # The Rust streaming server, embedded in-process (S1). No container/sidecar.
-stremio-streaming-server = { path = "../../../crates/streaming-server", default-features = false }
+rillio-streaming-server = { path = "../../../crates/streaming-server", default-features = false }
 # Open URLs / files in the OS default handler (S2 external-player fallback).
 open = "5"
 # Dynamically load libmpv-2.dll at runtime (S3). Hand-declared FFI against the

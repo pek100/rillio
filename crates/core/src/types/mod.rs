@@ -13,10 +13,10 @@ pub mod streaming_server;
 pub mod streams;
 pub mod torrent;
 
-// Re-export of stremio_watched_bitfield crate
+// Re-export of rillio_watched_bitfield crate
 pub mod watched_bitfield {
     #[doc(inline)]
-    pub use stremio_watched_bitfield::*;
+    pub use rillio_watched_bitfield::*;
 }
 
 mod query_params_encode;

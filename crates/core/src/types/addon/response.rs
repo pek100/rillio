@@ -26,7 +26,7 @@ use crate::types::{
 /// ```
 /// use serde_json::json;
 ///
-/// use stremio_core::types::{
+/// use rillio_core::types::{
 ///     addon::{ResourceResponseCache, ResourceResponse},
 ///     resource::{Stream, StreamSource, StreamBehaviorHints},
 /// };
@@ -91,7 +91,7 @@ pub enum ResourceResponse {
     /// # Examples
     ///
     /// ```
-    /// use stremio_core::types::addon::ResourceResponse;
+    /// use rillio_core::types::addon::ResourceResponse;
     ///
     /// let null_metas = serde_json::json!({ "metas": null });
     /// let null_metas = serde_json::from_value::<ResourceResponse>(null_metas).expect("Should be valid");

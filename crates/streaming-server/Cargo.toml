@@ -3,7 +3,7 @@
 [workspace]
 
 [package]
-name = "stremio-streaming-server"
+name = "rillio-streaming-server"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.77"
@@ -13,11 +13,11 @@ description = "Auditable Rust replacement for the Stremio streaming server (serv
 # Library-first: the eventual native host embeds `router()`. The bin is for
 # standalone dev/testing against the reference container.
 [lib]
-name = "stremio_streaming_server"
+name = "rillio_streaming_server"
 path = "src/lib.rs"
 
 [[bin]]
-name = "stremio-streaming-server"
+name = "rillio-streaming-server"
 path = "src/bin/serve.rs"
 
 [dependencies]

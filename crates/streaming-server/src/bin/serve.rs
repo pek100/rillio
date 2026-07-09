@@ -1,4 +1,4 @@
-//! Standalone dev/test host. Embedders use `stremio_streaming_server::router`
+//! Standalone dev/test host. Embedders use `rillio_streaming_server::router`
 //! instead of this binary.
 //!
 //! Env:
@@ -8,14 +8,14 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use stremio_streaming_server::{serve, Config};
+use rillio_streaming_server::{serve, Config};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,stremio_streaming_server=debug".into()),
+                .unwrap_or_else(|_| "info,rillio_streaming_server=debug".into()),
         )
         .init();
 

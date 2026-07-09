@@ -3,9 +3,9 @@
 const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const Popup = require('stremio/components/Popup');
-const useBinaryState = require('stremio/common/useBinaryState');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const Popup = require('rillio/components/Popup');
+const useBinaryState = require('rillio/common/useBinaryState');
 const NavMenuContent = require('./NavMenuContent');
 const styles = require('./styles.less');
 

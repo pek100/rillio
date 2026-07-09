@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useGamepad } from 'stremio/services';
-import type { ControllerType } from 'stremio/services/GamepadContext';
+import { useGamepad } from 'rillio/services';
+import type { ControllerType } from 'rillio/services/GamepadContext';
 import styles from './styles.less';
 
 type ActiveButton = string | null;

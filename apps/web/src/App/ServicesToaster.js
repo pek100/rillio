@@ -1,8 +1,8 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const { useCore } = require('stremio/core');
-const { useToast, useFileDrop } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { useToast, useFileDrop } = require('rillio/common');
 
 const ServicesToaster = () => {
     const core = useCore();

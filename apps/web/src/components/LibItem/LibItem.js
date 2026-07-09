@@ -2,10 +2,10 @@
 
 const React = require('react');
 const { useNavigate } = require('react-router');
-const { default: toPath } = require('stremio-router/toPath');
+const { default: toPath } = require('rillio-router/toPath');
 const PropTypes = require('prop-types');
-const { useCore } = require('stremio/core');
-const MetaItem = require('stremio/components/MetaItem');
+const { useCore } = require('rillio/core');
+const MetaItem = require('rillio/components/MetaItem');
 const { t } = require('i18next');
 
 const LibItem = ({ _id, removable, notifications, watched, ...props }) => {

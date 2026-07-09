@@ -15,7 +15,7 @@ use std::{
 /// # Examples
 ///
 /// ```
-/// use stremio_watched_bitfield::WatchedField;
+/// use rillio_watched_bitfield::WatchedField;
 ///
 /// // `tt2934286:1:5` - anchor video id
 /// // `5` - anchor video length

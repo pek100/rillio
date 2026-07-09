@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import useProfile from './useProfile';
-import { useCore } from 'stremio/core';
+import { useCore } from 'rillio/core';
 
 const useSettings = (): [Settings, (settings: Settings) => void] => {
     const core = useCore();

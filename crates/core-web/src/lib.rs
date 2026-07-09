@@ -68,7 +68,7 @@ pub mod env;
 #[cfg(feature = "wasm")]
 pub mod event;
 #[cfg(all(feature = "wasm", feature = "env"))]
-mod stremio_core_web;
+mod rillio_core_web;
 #[cfg(all(feature = "wasm", feature = "env"))]
 // re-export all wasm-specific
-pub use stremio_core_web::*;
+pub use rillio_core_web::*;

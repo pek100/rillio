@@ -2,8 +2,8 @@
 
 const React = require('react');
 const { useNavigate } = require('react-router');
-const { withCoreSuspender, useStreamingServer } = require('stremio/common');
-const { default: toPath } = require('stremio-router/toPath');
+const { withCoreSuspender, useStreamingServer } = require('rillio/common');
+const { default: toPath } = require('rillio-router/toPath');
 
 const DeepLinkHandler = () => {
     const navigate = useNavigate();

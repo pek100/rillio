@@ -18,7 +18,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use futures::future;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 #[derive(Model, Default, Clone, Debug)]
 #[model(TestEnv)]

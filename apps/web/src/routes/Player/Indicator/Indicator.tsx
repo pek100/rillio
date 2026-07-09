@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { t } from 'i18next';
-import { Transition } from 'stremio/components';
-import { useBinaryState } from 'stremio/common';
+import { Transition } from 'rillio/components';
+import { useBinaryState } from 'rillio/common';
 import styles from './Indicator.less';
 
 type Property = {

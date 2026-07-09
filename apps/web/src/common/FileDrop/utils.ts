@@ -1,4 +1,4 @@
-import { MIME_SIGNATURES } from 'stremio/common/CONSTANTS';
+import { MIME_SIGNATURES } from 'rillio/common/CONSTANTS';
 
 const SIGNATURES = MIME_SIGNATURES as Record<string, string[]>;
 

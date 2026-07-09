@@ -4,7 +4,7 @@ use enclose::enclose;
 use futures::FutureExt;
 use serde::{Deserialize, Serialize};
 
-use stremio_watched_bitfield::WatchedBitField;
+use rillio_watched_bitfield::WatchedBitField;
 
 use crate::{
     constants::{

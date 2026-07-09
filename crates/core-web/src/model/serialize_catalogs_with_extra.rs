@@ -6,7 +6,7 @@ use {gloo_utils::format::JsValueSerdeExt, wasm_bindgen::JsValue};
 
 use crate::model::deep_links_ext::DeepLinksExt;
 
-pub use stremio_core::{
+pub use rillio_core::{
     deep_links::{DiscoverDeepLinks, MetaItemDeepLinks, StreamDeepLinks},
     models::{catalogs_with_extra::Selected, common::Loadable, ctx::Ctx},
     types::resource::PosterShape,
@@ -27,14 +27,14 @@ pub struct DescriptorPreview<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct Stream<'a> {
     #[serde(flatten)]
-    pub stream: &'a stremio_core::types::resource::Stream,
+    pub stream: &'a rillio_core::types::resource::Stream,
     pub deep_links: StreamDeepLinks,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaItemPreview<'a> {
     #[serde(flatten)]
-    pub meta_item: &'a stremio_core::types::resource::MetaItemPreview,
+    pub meta_item: &'a rillio_core::types::resource::MetaItemPreview,
     pub poster_shape: &'a PosterShape,
     pub trailer_streams: Vec<Stream<'a>>,
     pub watched: bool,
@@ -62,9 +62,9 @@ pub struct CatalogsWithExtra<'a> {
 
 impl<'a> CatalogsWithExtra<'a> {
     pub fn new(
-        catalogs_with_extra: &'a stremio_core::models::catalogs_with_extra::CatalogsWithExtra,
+        catalogs_with_extra: &'a rillio_core::models::catalogs_with_extra::CatalogsWithExtra,
         ctx: &'a Ctx,
-        streaming_server: &stremio_core::models::streaming_server::StreamingServer,
+        streaming_server: &rillio_core::models::streaming_server::StreamingServer,
     ) -> Self {
         Self {
             selected: &catalogs_with_extra.selected,

@@ -2,7 +2,7 @@
 
 const React = require('react');
 const { useTranslation } = require('react-i18next');
-const { HorizontalNavBar, Image } = require('stremio/components');
+const { HorizontalNavBar, Image } = require('rillio/components');
 const styles = require('./styles');
 
 const NotFound = () => {

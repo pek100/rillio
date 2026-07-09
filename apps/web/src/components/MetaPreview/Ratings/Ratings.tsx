@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useRating from './useRating';
-import { ActionsGroup } from 'stremio/components';
+import { ActionsGroup } from 'rillio/components';
 
 type Props = {
     metaId?: string;

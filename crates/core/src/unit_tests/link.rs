@@ -14,7 +14,7 @@ use crate::types::streams::StreamsBucket;
 use crate::unit_tests::{default_fetch_handler, Request, TestEnv, FETCH_HANDLER, REQUESTS};
 use futures::future;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 #[test]
 fn create_link_code() {

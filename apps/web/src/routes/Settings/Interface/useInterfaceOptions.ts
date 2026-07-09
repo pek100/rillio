@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useCore } from 'stremio/core';
-import { interfaceLanguages, useLanguageSorting } from 'stremio/common';
+import { useCore } from 'rillio/core';
+import { interfaceLanguages, useLanguageSorting } from 'rillio/common';
 
 const useInterfaceOptions = (profile: Profile) => {
     const core = useCore();

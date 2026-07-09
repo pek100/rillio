@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
-import { usePlatform } from 'stremio/common';
-import { MultiselectMenu, Toggle } from 'stremio/components';
+import { usePlatform } from 'rillio/common';
+import { MultiselectMenu, Toggle } from 'rillio/components';
 import { Section, Option } from '../components';
 import useInterfaceOptions from './useInterfaceOptions';
 

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useGamepad } from '../GamepadContext';
-import useFullscreen from 'stremio/common/Fullscreen';
+import useFullscreen from 'rillio/common/Fullscreen';
 
 const useHorizontalNavGamepadNavigation = (gamepadHandlerId: string, enableGoBack: boolean) => {
     const gamepad = useGamepad();

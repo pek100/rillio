@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Button } from 'stremio/components';
+import { Button } from 'rillio/components';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import Option from './Option';

@@ -29,9 +29,9 @@ mkdirSync(outDir, { recursive: true });
 
 run('wasm-pack', ['build', '--no-typescript', '--no-pack', '--out-dir', 'wasm_build', mode, '--target', 'web']);
 
-renameSync(join(outDir, 'stremio_core_web_bg.wasm'), join(pkgRoot, 'stremio_core_web_bg.wasm'));
+renameSync(join(outDir, 'rillio_core_web_bg.wasm'), join(pkgRoot, 'rillio_core_web_bg.wasm'));
 
-babel('wasm_build/stremio_core_web.js', 'stremio_core_web.js');
+babel('wasm_build/rillio_core_web.js', 'rillio_core_web.js');
 babel('src/bridge.js', 'bridge.js');
 babel('src/worker.js', 'worker.js');
 

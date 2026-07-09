@@ -3,15 +3,15 @@
 const React = require('react');
 const { useTranslation } = require('react-i18next');
 const { useNavigate } = require('react-router');
-const { default: toPath } = require('stremio-router/toPath');
+const { default: toPath } = require('rillio-router/toPath');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button, Image, Popup } = require('stremio/components');
-const useBinaryState = require('stremio/common/useBinaryState');
-const useProfile = require('stremio/common/useProfile');
-const { usePlatform } = require('stremio/common/Platform');
+const { Button, Image, Popup } = require('rillio/components');
+const useBinaryState = require('rillio/common/useBinaryState');
+const useProfile = require('rillio/common/useProfile');
+const { usePlatform } = require('rillio/common/Platform');
 const VideoPlaceholder = require('./VideoPlaceholder');
 const styles = require('./styles');
 

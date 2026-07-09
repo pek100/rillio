@@ -1,4 +1,4 @@
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 use crate::{
     constants::SEARCH_HISTORY_STORAGE_KEY,

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, forwardRef } from 'react';
 import classNames from 'classnames';
-import { Button } from 'stremio/components';
+import { Button } from 'rillio/components';
 import styles from './Option.less';
 import Icon from '@stremio/stremio-icons/react';
 

@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::{env, iter};
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, Ident};
 
-const CORE_CRATE_ORIGINAL_NAME: &str = "stremio-core";
+const CORE_CRATE_ORIGINAL_NAME: &str = "rillio-core";
 
 #[proc_macro_derive(Model, attributes(model))]
 pub fn model_derive(input: TokenStream) -> TokenStream {

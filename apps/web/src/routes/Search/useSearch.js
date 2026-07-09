@@ -1,12 +1,12 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const { useCore } = require('stremio/core');
-const { useModelState } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { useModelState } = require('rillio/common');
 
 const useSearch = (queryParams) => {
     const core = useCore();
-    // TODO: refactor this to be in stremio-core-web
+    // TODO: refactor this to be in rillio-core-web
     // React.useEffect(() => {
     //     let timerId = setTimeout(emitSearchEvent, 500);
     //     function emitSearchEvent() {

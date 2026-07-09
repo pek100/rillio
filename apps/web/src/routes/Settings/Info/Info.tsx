@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlatform } from 'stremio/common';
+import { usePlatform } from 'rillio/common';
 import { Option, Section } from '../components';
 import styles from './Info.less';
 

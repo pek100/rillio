@@ -5,10 +5,10 @@ const { useTranslation } = require('react-i18next');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button } = require('stremio/components');
-const Popup = require('stremio/components/Popup');
-const ModalDialog = require('stremio/components/ModalDialog');
-const useBinaryState = require('stremio/common/useBinaryState');
+const { Button } = require('rillio/components');
+const Popup = require('rillio/components/Popup');
+const ModalDialog = require('rillio/components/ModalDialog');
+const useBinaryState = require('rillio/common/useBinaryState');
 const styles = require('./styles');
 
 const Multiselect = ({ className, mode, direction, title, disabled, dataset, options, renderLabelContent, renderLabelText, onOpen, onClose, onSelect, ...props }) => {

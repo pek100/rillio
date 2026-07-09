@@ -8,14 +8,14 @@
 [workspace]
 
 [package]
-name = "stremio-shell-native"
+name = "rillio-shell-native"
 version = "0.1.0"
 edition = "2021"
-description = "Native Stremio desktop shell (own WebView2 + DComp + libmpv)"
+description = "Native Rillio desktop shell (own WebView2 + DComp + libmpv)"
 license = "gpl-2.0"
 
 [[bin]]
-name = "stremio-shell"
+name = "rillio-shell"
 path = "src/main.rs"
 
 [dependencies]
@@ -38,7 +38,7 @@ webview2-com = "0.38"
 # libmpv (dynamically loaded) for the native render path (3b+).
 libloading = "0.8"
 # The Rust streaming server, embedded in-process (no container/sidecar).
-stremio-streaming-server = { path = "../../../crates/streaming-server", default-features = false }
+rillio-streaming-server = { path = "../../../crates/streaming-server", default-features = false }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 tracing = "0.1"

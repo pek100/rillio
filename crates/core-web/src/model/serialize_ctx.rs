@@ -4,7 +4,7 @@ use {gloo_utils::format::JsValueSerdeExt, wasm_bindgen::JsValue};
 pub use model::*;
 
 #[cfg(feature = "wasm")]
-pub fn serialize_ctx(ctx: &stremio_core::models::ctx::Ctx) -> JsValue {
+pub fn serialize_ctx(ctx: &rillio_core::models::ctx::Ctx) -> JsValue {
     <JsValue as JsValueSerdeExt>::from_serde(&model::Ctx::from(ctx)).expect("JsValue from Ctx")
 }
 
@@ -15,8 +15,8 @@ mod model {
     use itertools::Itertools;
     use serde::Serialize;
 
-    use stremio_core::deep_links::SearchHistoryItemDeepLinks;
-    use stremio_core::types::{
+    use rillio_core::deep_links::SearchHistoryItemDeepLinks;
+    use rillio_core::types::{
         events::Events, notifications::NotificationItem, resource::MetaItemId,
     };
     use url::Url;
@@ -60,14 +60,14 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct Profile<'a> {
         #[serde(flatten)]
-        profile: &'a stremio_core::types::profile::Profile,
+        profile: &'a rillio_core::types::profile::Profile,
         #[serde(skip_serializing_if = "Option::is_none")]
         auth: Option<Auth<'a>>,
     }
 
     #[derive(Serialize)]
     pub struct Auth<'a> {
-        pub key: stremio_core::types::profile::AuthKey,
+        pub key: rillio_core::types::profile::AuthKey,
         pub user: User<'a>,
     }
 
@@ -75,12 +75,12 @@ mod model {
     #[serde(rename_all = "camelCase")]
     pub struct User<'a> {
         #[serde(flatten)]
-        pub user: &'a stremio_core::types::profile::User,
+        pub user: &'a rillio_core::types::profile::User,
         pub is_new_user: bool,
     }
 
-    impl<'a> From<&'a stremio_core::models::ctx::Ctx> for Ctx<'a> {
-        fn from(ctx: &'a stremio_core::models::ctx::Ctx) -> Self {
+    impl<'a> From<&'a rillio_core::models::ctx::Ctx> for Ctx<'a> {
+        fn from(ctx: &'a rillio_core::models::ctx::Ctx) -> Self {
             Self {
                 profile: Profile {
                     profile: &ctx.profile,

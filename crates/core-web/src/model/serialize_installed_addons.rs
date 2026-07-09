@@ -1,7 +1,7 @@
 #[cfg(feature = "wasm")]
 use {
     crate::model::deep_links_ext::DeepLinksExt, gloo_utils::format::JsValueSerdeExt,
-    stremio_core::deep_links::AddonsDeepLinks, wasm_bindgen::JsValue,
+    rillio_core::deep_links::AddonsDeepLinks, wasm_bindgen::JsValue,
 };
 
 pub use model::*;
@@ -9,7 +9,7 @@ mod model {
     use serde::Serialize;
     use url::Url;
 
-    use stremio_core::{
+    use rillio_core::{
         models::installed_addons_with_filters::Selected,
         types::addon::{DescriptorFlags, Manifest},
     };
@@ -59,7 +59,7 @@ mod model {
 
 #[cfg(feature = "wasm")]
 pub fn serialize_installed_addons(
-    installed_addons: &stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters,
+    installed_addons: &rillio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters,
 ) -> JsValue {
     <JsValue as JsValueSerdeExt>::from_serde(&model::InstalledAddonsWithFilters {
         selected: &installed_addons.selected,
@@ -79,7 +79,7 @@ pub fn serialize_installed_addons(
                 name: "Installed".to_owned(),
                 selected: installed_addons.selected.is_some(),
                 deep_links: AddonsDeepLinks::from(
-                    &stremio_core::models::installed_addons_with_filters::InstalledAddonsRequest {
+                    &rillio_core::models::installed_addons_with_filters::InstalledAddonsRequest {
                         r#type: None,
                     },
                 )

@@ -2,9 +2,9 @@
 
 const React = require('react');
 const magnet = require('magnet-uri');
-const { useCore } = require('stremio/core');
-const useToast = require('stremio/common/Toast/useToast');
-const useStreamingServer = require('stremio/common/useStreamingServer');
+const { useCore } = require('rillio/core');
+const useToast = require('rillio/common/Toast/useToast');
+const useStreamingServer = require('rillio/common/useStreamingServer');
 
 const CREATE_TORRENT_TIMEOUT = 20000;
 

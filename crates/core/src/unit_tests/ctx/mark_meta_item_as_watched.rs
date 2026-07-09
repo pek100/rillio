@@ -12,7 +12,7 @@ use crate::types::server_urls::ServerUrlsBucket;
 use crate::types::streams::StreamsBucket;
 use crate::unit_tests::{TestEnv, NOW, STORAGE};
 use chrono::{TimeZone, Utc};
-use stremio_derive::Model;
+use rillio_derive::Model;
 
 fn meta_preview() -> MetaItemPreview {
     MetaItemPreview {

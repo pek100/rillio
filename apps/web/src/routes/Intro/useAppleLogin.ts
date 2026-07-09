@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2025 Smart code 203358507
 
 import { useCallback, useEffect, useRef } from 'react';
-import { usePlatform } from 'stremio/common';
+import { usePlatform } from 'rillio/common';
 import hat from 'hat';
 
 type AppleLoginResponse = {

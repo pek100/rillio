@@ -3,10 +3,10 @@
 const React = require('react');
 const { useTranslation } = require('react-i18next');
 const PropTypes = require('prop-types');
-const { useCore } = require('stremio/core');
-const ModalDialog = require('stremio/components/ModalDialog');
-const { withCoreSuspender } = require('stremio/common/CoreSuspender');
-const { usePlatform } = require('stremio/common/Platform');
+const { useCore } = require('rillio/core');
+const ModalDialog = require('rillio/components/ModalDialog');
+const { withCoreSuspender } = require('rillio/common/CoreSuspender');
+const { usePlatform } = require('rillio/common/Platform');
 const AddonDetailsWithRemoteAndLocalAddon = withRemoteAndLocalAddon(require('./AddonDetails'));
 const useAddonDetails = require('./useAddonDetails');
 const styles = require('./styles');

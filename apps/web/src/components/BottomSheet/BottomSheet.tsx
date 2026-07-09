@@ -3,8 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
-import useBinaryState from 'stremio/common/useBinaryState';
-import useOrientation from 'stremio/common/useOrientation';
+import useBinaryState from 'rillio/common/useBinaryState';
+import useOrientation from 'rillio/common/useOrientation';
 import styles from './BottomSheet.less';
 
 const CLOSE_THRESHOLD = 100;

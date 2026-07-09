@@ -41,7 +41,7 @@ pub struct CtxAuthResponse {
 pub type LibraryPlanResponse = (Vec<String>, Vec<String>);
 
 //
-// Those messages are meant to be dispatched and handled only inside stremio-core crate
+// Those messages are meant to be dispatched and handled only inside rillio-core crate
 //
 #[derive(Debug)]
 pub enum Internal {

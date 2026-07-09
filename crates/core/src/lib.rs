@@ -9,9 +9,9 @@
 #![cfg_attr(test, allow(clippy::needless_update))]
 
 // Re-export of the derive macro for Model which removes the need for
-// depending on `stremio-derive` everywhere.
+// depending on `rillio-derive` everywhere.
 #[cfg(feature = "derive")]
-pub use stremio_derive::Model;
+pub use rillio_derive::Model;
 
 pub mod addon_transport;
 #[cfg(feature = "analytics")]

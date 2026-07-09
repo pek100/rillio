@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures::future;
-use stremio_derive::Model;
+use rillio_derive::Model;
 use url::Url;
 
 use crate::{

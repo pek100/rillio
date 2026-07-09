@@ -1,8 +1,8 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const { useCore } = require('stremio/core');
-const { useModelState, useCoreSuspender } = require('stremio/common');
+const { useCore } = require('rillio/core');
+const { useModelState, useCoreSuspender } = require('rillio/common');
 
 const map = (player) => ({
     ...player,

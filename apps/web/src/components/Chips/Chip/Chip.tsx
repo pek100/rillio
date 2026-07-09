@@ -2,7 +2,7 @@
 
 import React, { MouseEvent, memo, useCallback, useEffect, useRef } from 'react';
 import classNames from 'classnames';
-import { Button } from 'stremio/components';
+import { Button } from 'rillio/components';
 import styles from './Chip.less';
 
 type Props = {

@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2025 Smart code 203358507
 
 import React from 'react';
-import routes from 'stremio/routes';
+import routes from 'rillio/routes';
 
 export default [
     {

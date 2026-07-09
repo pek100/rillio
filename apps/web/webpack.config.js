@@ -14,11 +14,30 @@ const packageJson = require('./package.json');
 
 const COMMIT_HASH = execSync('git rev-parse HEAD').toString().trim();
 
+// Wrap ONLY App/styles.less's output in `@layer legacy` so Tailwind v4 utilities
+// (in @layer utilities) win over its universal `* { }` reset. Component-level Less
+// stays unlayered/untouched — it only ever targets its own legacy elements, never
+// the new Tailwind components, so there is nothing for utilities to lose to there.
+const wrapLegacyLayer = () => ({
+    postcssPlugin: 'wrap-legacy-layer',
+    Once(root, { postcss }) {
+        const file = (root.source && root.source.input && root.source.input.file) || '';
+        if (!/[\\/]App[\\/]styles\.less$/.test(file)) return;
+        const nodes = root.nodes.slice();
+        if (!nodes.length) return;
+        const layer = postcss.atRule({ name: 'layer', params: 'legacy' });
+        root.removeAll();
+        nodes.forEach((n) => layer.append(n));
+        root.append(layer);
+    },
+});
+wrapLegacyLayer.postcss = true;
+
 // Only ever run our own sources through the loaders.
 //
 // Upstream expressed this as `exclude: /node_modules/`, which worked because
 // every dependency was a real directory under node_modules. In this monorepo
-// @stremio/stremio-core-web and @stremio/stremio-video are workspace:* symlinks
+// @rillio/core-web and @rillio/video are workspace:* symlinks
 // into crates/ and packages/, so webpack resolves them to real paths that no
 // longer match that pattern -- babel/ts-loader would start reprocessing
 // already-built package output. An explicit `include` says what we mean.
@@ -51,7 +70,7 @@ module.exports = (env, argv) => ({
     devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
     entry: {
         main: './src/index.js',
-        worker: './node_modules/@stremio/stremio-core-web/worker.js'
+        worker: './node_modules/@rillio/core-web/worker.js'
     },
     output: {
         path: path.join(__dirname, 'build'),
@@ -146,7 +165,8 @@ module.exports = (env, argv) => ({
                                                 zindex: false
                                             }
                                         ]
-                                    })
+                                    }),
+                                    wrapLegacyLayer()
                                 ]
                             }
                         }
@@ -157,6 +177,36 @@ module.exports = (env, argv) => ({
                             lessOptions: {
                                 strictMath: true,
                                 ieCompat: false
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                test: /\.css$/,
+                include: SRC,
+                use: [
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            esModule: false
+                        }
+                    },
+                    {
+                        loader: 'css-loader',
+                        options: {
+                            esModule: false,
+                            importLoaders: 1,
+                            modules: false
+                        }
+                    },
+                    {
+                        loader: 'postcss-loader',
+                        options: {
+                            postcssOptions: {
+                                plugins: [
+                                    require('@tailwindcss/postcss')
+                                ]
                             }
                         }
                     }
@@ -195,8 +245,8 @@ module.exports = (env, argv) => ({
         // to that real path. Setting symlinks:false strands every transitive
         // dependency (qs, html-parse-stringify, ...).
         alias: {
-            'stremio': path.resolve(__dirname, 'src'),
-            'stremio-router': path.resolve(__dirname, 'src', 'router')
+            'rillio': path.resolve(__dirname, 'src'),
+            'rillio-router': path.resolve(__dirname, 'src', 'router')
         }
     },
     devServer: {
@@ -251,6 +301,7 @@ module.exports = (env, argv) => ({
             }),
         new CopyWebpackPlugin({
             patterns: [
+                { from: 'assets/fonts', to: 'assets/fonts' },
                 { from: 'assets/favicons', to: 'favicons' },
                 { from: 'assets/images', to: 'images' },
                 { from: 'assets/screenshots/*.webp', to: 'screenshots/[name][ext]' },

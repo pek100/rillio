@@ -1,7 +1,7 @@
 #[cfg(feature = "wasm")]
 use {
     gloo_utils::format::JsValueSerdeExt,
-    stremio_core::types::{profile::Settings, streams::StreamsBucket},
+    rillio_core::types::{profile::Settings, streams::StreamsBucket},
     url::Url,
     wasm_bindgen::JsValue,
 };
@@ -10,7 +10,7 @@ pub use model::*;
 
 #[cfg(feature = "wasm")]
 pub fn serialize_continue_watching_preview(
-    continue_watching_preview: &stremio_core::models::continue_watching_preview::ContinueWatchingPreview,
+    continue_watching_preview: &rillio_core::models::continue_watching_preview::ContinueWatchingPreview,
     streams_bucket: &StreamsBucket,
     streaming_server_url: Option<&Url>,
     settings: &Settings,
@@ -28,7 +28,7 @@ mod model {
     use serde::Serialize;
     use url::Url;
 
-    use stremio_core::{
+    use rillio_core::{
         deep_links::{LibraryDeepLinks, LibraryItemDeepLinks},
         types::{
             profile::Settings,
@@ -48,7 +48,7 @@ mod model {
 
     impl<'a>
         From<(
-            &'a stremio_core::models::continue_watching_preview::ContinueWatchingPreview,
+            &'a rillio_core::models::continue_watching_preview::ContinueWatchingPreview,
             &StreamsBucket,
             Option<&Url>,
             &Settings,
@@ -56,7 +56,7 @@ mod model {
     {
         fn from(
             (continue_watching_preview, streams_bucket, streaming_server_url, settings): (
-                &'a stremio_core::models::continue_watching_preview::ContinueWatchingPreview,
+                &'a rillio_core::models::continue_watching_preview::ContinueWatchingPreview,
                 &StreamsBucket,
                 Option<&Url>,
                 &Settings,
@@ -104,7 +104,7 @@ mod model {
 
     impl<'a>
         From<(
-            &'a stremio_core::models::continue_watching_preview::Item,
+            &'a rillio_core::models::continue_watching_preview::Item,
             Option<&StreamsItem>,
             Option<&Url>,
             &Settings,
@@ -112,7 +112,7 @@ mod model {
     {
         fn from(
             (item, stream_item, streaming_server_url, settings): (
-                &'a stremio_core::models::continue_watching_preview::Item,
+                &'a rillio_core::models::continue_watching_preview::Item,
                 Option<&StreamsItem>,
                 Option<&Url>,
                 &Settings,
@@ -146,7 +146,7 @@ mod model {
 
     impl<'a>
         From<(
-            &'a stremio_core::types::library::LibraryItem,
+            &'a rillio_core::types::library::LibraryItem,
             Option<&StreamsItem>,
             Option<&Url>,
             &Settings,
@@ -154,7 +154,7 @@ mod model {
     {
         fn from(
             (library_item, streams_item, streaming_server_url, settings): (
-                &'a stremio_core::types::library::LibraryItem,
+                &'a rillio_core::types::library::LibraryItem,
                 Option<&StreamsItem>,
                 Option<&Url>,
                 &Settings,
@@ -190,8 +190,8 @@ mod model {
         pub video_id: Option<&'a String>,
     }
 
-    impl<'a> From<&'a stremio_core::types::library::LibraryItemState> for LibraryItemState<'a> {
-        fn from(state: &'a stremio_core::types::library::LibraryItemState) -> Self {
+    impl<'a> From<&'a rillio_core::types::library::LibraryItemState> for LibraryItemState<'a> {
+        fn from(state: &'a rillio_core::types::library::LibraryItemState) -> Self {
             Self {
                 video_id: state.video_id.as_ref(),
             }

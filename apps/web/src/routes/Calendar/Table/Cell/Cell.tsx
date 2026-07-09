@@ -3,8 +3,8 @@
 import React, { useCallback, useMemo, MouseEvent } from 'react';
 import Icon from '@stremio/stremio-icons/react';
 import classNames from 'classnames';
-import { useNavigateWithOrigin } from 'stremio-router';
-import { Button, HorizontalScroll, Image } from 'stremio/components';
+import { useNavigateWithOrigin } from 'rillio-router';
+import { Button, HorizontalScroll, Image } from 'rillio/components';
 import styles from './Cell.less';
 
 type Props = {

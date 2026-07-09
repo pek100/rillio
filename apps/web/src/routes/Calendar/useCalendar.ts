@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Params } from 'react-router';
-import { useModelState } from 'stremio/common';
+import { useModelState } from 'rillio/common';
 
 const useCalendar = (urlParams: Readonly<Params<string>>) => {
     const action = React.useMemo(() => {

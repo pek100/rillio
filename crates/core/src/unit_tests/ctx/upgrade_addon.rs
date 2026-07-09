@@ -12,7 +12,7 @@ use crate::types::server_urls::ServerUrlsBucket;
 use crate::types::streams::StreamsBucket;
 use crate::unit_tests::{TestEnv, REQUESTS, STORAGE};
 use semver::Version;
-use stremio_derive::Model;
+use rillio_derive::Model;
 use url::Url;
 
 #[test]

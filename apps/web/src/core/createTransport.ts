@@ -1,4 +1,4 @@
-import Bridge from '@stremio/stremio-core-web/bridge';
+import Bridge from '@rillio/core-web/bridge';
 
 const worker = new Worker(`${process.env.COMMIT_HASH}/scripts/worker.js`);
 const bridge = new Bridge(window, worker);

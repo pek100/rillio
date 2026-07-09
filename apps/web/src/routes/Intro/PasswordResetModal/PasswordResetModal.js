@@ -3,9 +3,9 @@
 const React = require('react');
 const { useTranslation } = require('react-i18next');
 const PropTypes = require('prop-types');
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
-const { usePlatform } = require('stremio/common');
-const { ModalDialog } = require('stremio/components');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
+const { usePlatform } = require('rillio/common');
+const { ModalDialog } = require('rillio/components');
 const CredentialsTextInput = require('../CredentialsTextInput');
 const styles = require('./styles');
 

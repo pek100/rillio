@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useToast from 'stremio/common/Toast/useToast';
+import useToast from 'rillio/common/Toast/useToast';
 import GamepadContext from './GamepadContext';
 import type { ControllerType } from './GamepadContext';
 

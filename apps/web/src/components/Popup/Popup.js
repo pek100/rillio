@@ -4,7 +4,7 @@ const React = require('react');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const FocusLock = require('react-focus-lock').default;
-const { default: useRouteFocused } = require('stremio/common/useRouteFocused');
+const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
 const styles = require('./styles');
 
 const getAnchorElement = (element) => {

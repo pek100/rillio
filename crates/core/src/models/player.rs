@@ -35,7 +35,7 @@ use crate::types::streams::{
     ConvertedStreamSource, StreamItemState, StreamsBucket, StreamsItemKey,
 };
 
-use stremio_watched_bitfield::WatchedBitField;
+use rillio_watched_bitfield::WatchedBitField;
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use derivative::Derivative;

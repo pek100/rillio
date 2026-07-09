@@ -9,7 +9,7 @@ use std::hash::Hash;
 ///
 /// ```
 /// use std::{cmp::Ordering, collections::HashMap};
-/// use stremio_core::{constants::TYPE_PRIORITIES, models::common::compare_with_priorities};
+/// use rillio_core::{constants::TYPE_PRIORITIES, models::common::compare_with_priorities};
 ///
 /// # fn main() {
 ///

@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import magnet from 'magnet-uri';
-import { useCore } from 'stremio/core';
-import useToast from 'stremio/common/Toast/useToast';
-import useTorrent from 'stremio/common/useTorrent';
-import useStreamingServer from 'stremio/common/useStreamingServer';
+import { useCore } from 'rillio/core';
+import useToast from 'rillio/common/Toast/useToast';
+import useTorrent from 'rillio/common/useTorrent';
+import useStreamingServer from 'rillio/common/useStreamingServer';
 
 const HTTP_REGEX = /^https?:\/\/.+/i;
 

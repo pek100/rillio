@@ -15,7 +15,7 @@ use crate::unit_tests::{default_fetch_handler, Request, TestEnv, FETCH_HANDLER, 
 use futures::future;
 use semver::Version;
 use std::any::Any;
-use stremio_derive::Model;
+use rillio_derive::Model;
 use url::Url;
 
 #[test]

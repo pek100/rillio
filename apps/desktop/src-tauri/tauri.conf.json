@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Stremio",
+  "productName": "Rillio",
   "version": "0.1.0",
-  "identifier": "com.stremio.desktop",
+  "identifier": "com.rillio.desktop",
   "build": {
     "frontendDist": "../../web/build"
   },

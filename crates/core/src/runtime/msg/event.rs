@@ -8,8 +8,8 @@ use serde::Serialize;
 use url::Url;
 
 ///
-/// Those messages are meant to be dispatched by the `stremio-core` crate and
-/// handled by the users of the `stremio-core` crate and by the `stremio-core`
+/// Those messages are meant to be dispatched by the `rillio-core` crate and
+/// handled by the users of the `rillio-core` crate and by the `rillio-core`
 /// crate itself.
 #[derive(Clone, Serialize, Debug, PartialEq, Eq)]
 #[serde(tag = "event", content = "args")]

@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import Icon from '@stremio/stremio-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useMatch } from 'react-router';
-import { useBinaryState, usePlatform } from 'stremio/common';
-import { Button, Transition } from 'stremio/components';
+import { useBinaryState, usePlatform } from 'rillio/common';
+import { Button, Transition } from 'rillio/components';
 import styles from './UpdaterBanner.less';
 
 type Props = {

@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
 const React = require('react');
-const { useCore } = require('stremio/core');
+const { useCore } = require('rillio/core');
 
 const useStatistics = (player, streamingServer) => {
     const core = useCore();

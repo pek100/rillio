@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCore } from 'stremio/core';
-import { CONSTANTS, languageNames, useLanguageSorting, usePlatform } from 'stremio/common';
+import { useCore } from 'rillio/core';
+import { CONSTANTS, languageNames, useLanguageSorting, usePlatform } from 'rillio/common';
 
 const LANGUAGES_NAMES: Record<string, string> = languageNames;
 

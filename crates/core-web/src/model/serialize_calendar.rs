@@ -1,7 +1,7 @@
 use gloo_utils::format::JsValueSerdeExt;
 use itertools::Itertools;
 use serde::Serialize;
-use stremio_core::{
+use rillio_core::{
     deep_links::{CalendarDeepLinks, CalendarItemDeepLinks},
     models::calendar::{FullDate, MonthInfo, Selected, YearMonthDate},
     types::resource::SeriesInfo,
@@ -59,7 +59,7 @@ mod model {
 }
 
 #[cfg(feature = "wasm")]
-pub fn serialize_calendar(calendar: &stremio_core::models::calendar::Calendar) -> JsValue {
+pub fn serialize_calendar(calendar: &rillio_core::models::calendar::Calendar) -> JsValue {
     <JsValue as JsValueSerdeExt>::from_serde(&model::Calendar {
         selected: &calendar.selected,
         selectable: model::Selectable {
