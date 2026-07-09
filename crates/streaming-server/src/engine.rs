@@ -52,6 +52,16 @@ const DEFAULT_TRACKERS: &[&str] = &[
     "udp://bt.rer.lol:6969/announce",
 ];
 
+/// Parse a KiB/s rate limit from an env var into librqbit's bytes-per-second
+/// `NonZeroU32`. Unset / 0 / invalid ⇒ `None` (uncapped).
+fn rate_limit_from_env(var: &str) -> Option<std::num::NonZeroU32> {
+    std::env::var(var)
+        .ok()
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .and_then(|kib| kib.checked_mul(1024))
+        .and_then(std::num::NonZeroU32::new)
+}
+
 fn add_torrent_options() -> librqbit::AddTorrentOptions {
     librqbit::AddTorrentOptions {
         trackers: Some(DEFAULT_TRACKERS.iter().map(|s| s.to_string()).collect()),
@@ -140,6 +150,14 @@ impl Engine {
                 read_write_timeout: Some(Duration::from_secs(60)),
                 keep_alive_interval: None,
             }),
+            // Optional rate caps (KiB/s via env, uncapped by default). A modest
+            // UPLOAD cap is the useful one: on an asymmetric link, a saturated
+            // upstream delays the TCP ACKs for your downloads, so capping upload
+            // can raise DOWNLOAD throughput. Download cap is there for parity.
+            ratelimits: librqbit::limits::LimitsConfig {
+                upload_bps: rate_limit_from_env("STREMIO_UPLOAD_LIMIT_KBPS"),
+                download_bps: rate_limit_from_env("STREMIO_DOWNLOAD_LIMIT_KBPS"),
+            },
             // Persist torrent state + fast-resume so a restart RESUMES instantly
             // instead of re-hashing the whole file (~a minute for a 31 GiB title).
             // librqbit's persistence store type-checks for its native
