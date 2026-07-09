@@ -113,6 +113,12 @@ const Player = () => {
         closeSideDrawer();
     }, []);
 
+    // Raw streaming-server statistics content for the expandable stats section
+    // (downloaded/uploaded/file size), beyond the peers/speed summary.
+    const statisticsDetails = React.useMemo(() => {
+        return streamingServer.statistics?.type === 'Ready' ? streamingServer.statistics.content : null;
+    }, [streamingServer.statistics]);
+
     const {
         streamSubtitles,
         allSubtitleTracks,
@@ -931,6 +937,7 @@ const Player = () => {
                 <StatisticsMenu
                     className={classnames(styles['layer'], styles['menu-layer'])}
                     {...statistics}
+                    details={statisticsDetails}
                 />
             </Transition>
             <Transition when={sideDrawerOpen} name={'slide-left'}>

@@ -56,6 +56,18 @@ const useShell = (): Shell => {
     const on = (name: string, listener: (arg: any) => void) => events.on(name, listener);
     const off = (name: string, listener: (arg: any) => void) => events.off(name, listener);
 
+    // Snapshot of mpv's live media properties (codec/HDR/bitrate/hwdec/audio…)
+    // for the player's Stats panel. Native shell only; null elsewhere.
+    const getMpvStats = async (): Promise<Record<string, any> | null> => {
+        if (!USE_TAURI) return null;
+        try {
+            return await TAURI.core.invoke('shell_mpv_stats');
+        } catch (e) {
+            console.error('Shell', 'shell_mpv_stats failed', e);
+            return null;
+        }
+    };
+
     const send = (method: string, ...args: (string | number | object)[]) => {
         if (USE_TAURI) {
             TAURI.core.invoke('shell_send', { method, args })
@@ -168,6 +180,7 @@ const useShell = (): Shell => {
         send,
         on,
         off,
+        getMpvStats,
         state,
         capabilities,
     };

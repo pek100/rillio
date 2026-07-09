@@ -19,6 +19,7 @@ interface Shell {
     on: (name: string, listener: (arg: any) => void) => void;
     off: (name: string, listener: (arg: any) => void) => void;
     send: (method: string, ...args: (string | number | object)[]) => void;
+    getMpvStats: () => Promise<Record<string, any> | null>;
 }
 
 type ShellCapabilities = {

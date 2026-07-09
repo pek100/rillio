@@ -31,5 +31,9 @@ open = "5"
 libloading = "0.8"
 
 [target.'cfg(windows)'.dependencies]
-# Win32 HWND for mpv `wid` embedding (S3). Already in Tauri's tree.
-windows = { version = "0.61", features = ["Win32_Foundation"] }
+# Win32 HWND for mpv `wid` embedding + child-window z-order (S3/S4). Already in
+# Tauri's tree.
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+] }

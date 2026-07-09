@@ -15,6 +15,15 @@ use tauri::Manager;
 #[derive(Default)]
 struct MpvState(Mutex<Option<mpv::Mpv>>);
 
+/// Whether to embed mpv inside the app window (S4 compositing: video renders
+/// into the main window behind the transparent WebView, controls overlaid) vs a
+/// separate mpv output window. Embedded is the default; opt out with
+/// `STREMIO_EMBED_MPV=0` (e.g. if a GPU/driver mishandles the transparent
+/// overlay) to get a separate mpv window.
+pub(crate) fn mpv_embed_enabled() -> bool {
+    !matches!(std::env::var("STREMIO_EMBED_MPV").as_deref(), Ok("0") | Ok("false"))
+}
+
 /// Open a URL or file path in the OS default handler / native app (S2).
 ///
 /// This is the desktop implementation of the web client's
@@ -53,7 +62,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_external,
             shell::shell_init,
-            shell::shell_send
+            shell::shell_send,
+            shell::shell_mpv_stats
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Stremio desktop shell");
@@ -102,10 +112,17 @@ fn start_mpv_embedded(
 /// in the OS/native app and the in-app navigation is cancelled (S2). Normal
 /// http(s)/tauri navigations proceed in the WebView.
 fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
+    // In-window mpv compositing (S4) is opt-in behind STREMIO_EMBED_MPV: on
+    // Windows a transparent (layered) top-level window does NOT display child
+    // windows that render with the GPU, so mpv's gpu-next output embedded via
+    // `wid` renders to an invisible surface. Until that's solved properly, the
+    // default is a non-transparent window + mpv in its own output window (which
+    // works). See mpv_embed_enabled().
     tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
         .title("Stremio")
         .inner_size(1280.0, 800.0)
         .resizable(true)
+        .transparent(mpv_embed_enabled())
         .on_navigation(|url| {
             match url.scheme() {
                 "http" | "https" | "tauri" | "data" | "blob" | "about" => true,
