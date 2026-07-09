@@ -5,8 +5,8 @@
 .item {
     display: flex;
     padding: 0.7rem 1.5rem;
-    border-radius: 2.5rem;
-    transition: 0.3s all ease-in-out;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     background-color: var(--overlay-color);
     border: 2px solid transparent;
     justify-content: space-between;
@@ -57,8 +57,9 @@
             }
 
             .label {
-                font-size: 1rem;
+                font-size: 0.8125rem;
                 color: var(--primary-foreground-color);
+                opacity: 0.62;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -69,27 +70,27 @@
             position: absolute;
             display: flex;
             right: 1.5rem;
-            top: 50%; 
+            top: 50%;
             gap: 0.5rem;
             padding: 0.5rem 0.25rem;
             align-items: center;
             justify-content: center;
             background-color: transparent;
-            transition: 0.3s all ease-in-out;
+            transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
             border-radius: var(--border-radius);
             transform: translateY(-50%);
             width: 3rem;
 
             .icon {
-                width: 1.5rem;
-                height: 1.5rem;
+                width: 1.25rem;
+                height: 1.25rem;
                 opacity: 0;
-                transition: 0.3s all ease-in-out;
+                transition: opacity 0.15s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
                 color: var(--primary-foreground-color);
             }
 
             &:hover, &:focus {
-                background-color: var(--overlay-color);
+                background-color: var(--color-surface-hover);
 
                 .icon {
                     color: var(--danger-accent-color);
@@ -100,8 +101,8 @@
     }
 
     &:hover {
-        border: 2px solid var(--overlay-color);
-    
+        background-color: var(--color-surface-hover);
+
         .actions {
             .delete {
                 .icon {

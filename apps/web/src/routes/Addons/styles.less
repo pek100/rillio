@@ -57,25 +57,30 @@
                 height: 3rem;
                 margin-right: 1.5rem;
                 padding: 0 1.5rem;
-                border-radius: 3rem;
-                background-color: var(--secondary-accent-color);
+                border-radius: 9999px;
+                background-color: var(--color-accent-soft);
+                transition: background-color 0.15s var(--ease-smooth), filter 0.15s var(--ease-smooth), transform 0.15s var(--ease-smooth);
                 z-index: 3;
 
                 &:hover {
-                    outline: var(--focus-outline-size) solid var(--secondary-accent-color);
-                    background-color: transparent;
+                    filter: brightness(1.1);
                 }
 
-                &:focus {
-                    outline-color: var(--primary-foreground-color);
+                &:active {
+                    transform: scale(0.97);
+                }
+
+                &:focus-visible {
+                    outline: var(--focus-outline-size) solid var(--primary-accent-color);
+                    outline-offset: calc(-1 * var(--focus-outline-size));
                 }
 
                 .icon {
                     flex: none;
-                    width: 1.2rem;
-                    height: 1.2rem;
+                    width: 1rem;
+                    height: 1rem;
                     margin-right: 0.5rem;
-                    color: var(--primary-foreground-color);
+                    color: var(--primary-accent-color);
                 }
 
                 .add-button-label {
@@ -84,8 +89,8 @@
                     flex-basis: auto;
                     max-height: 2.4em;
                     font-size: 1rem;
-                    font-weight: 700;
-                    color: var(--primary-foreground-color);
+                    font-weight: 600;
+                    color: var(--primary-accent-color);
                 }
             }
 
@@ -118,14 +123,32 @@
                 justify-content: center;
                 width: 3rem;
                 height: 3rem;
-                border-radius: var(--border-radius);
+                border-radius: 9999px;
                 background-color: var(--overlay-color);
+                transition: background-color 0.15s var(--ease-smooth), transform 0.15s var(--ease-smooth);
+
+                &:hover {
+                    background-color: var(--color-surface-hover);
+                }
+
+                &:active {
+                    transform: scale(0.97);
+                }
+
+                &:focus-visible {
+                    outline: var(--focus-outline-size) solid var(--primary-accent-color);
+                    outline-offset: calc(-1 * var(--focus-outline-size));
+                }
 
                 .filter-icon {
                     flex: none;
-                    width: 1.4rem;
-                    height: 1.4rem;
-                    color: var(--primary-foreground-color);
+                    width: 1rem;
+                    height: 1rem;
+                    color: var(--color-fg-muted);
+                }
+
+                &:hover .filter-icon {
+                    color: var(--color-fg);
                 }
             }
         }
@@ -135,7 +158,7 @@
             align-self: stretch;
             padding: 0 1.5rem;
             font-size: 2rem;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg-muted);
         }
 
         .addons-list-container {
@@ -181,43 +204,48 @@
         .notice {
             margin-bottom: 1.5rem;
             font-size: 1rem;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg-muted);
         }
 
         .addon-url-input {
             width: 100%;
             padding: 1rem;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg);
             border-radius: var(--border-radius);
             background-color: var(--overlay-color);
-            outline: var(--focus-outline-size) solid var(--overlay-color);
+            outline: var(--focus-outline-size) solid transparent;
             outline-offset: calc(-1 * var(--focus-outline-size));
+            transition: outline-color 0.15s var(--ease-smooth), background-color 0.15s var(--ease-smooth);
 
             &:hover {
-                outline-color: var(--primary-foreground-color);
+                background-color: var(--color-surface-hover);
             }
 
             &:focus {
-                outline-color: var(--primary-foreground-color);
+                outline-color: var(--primary-accent-color);
             }
         }
     }
 
     .cancel-button {
         background-color: transparent;
-        opacity: 0.3;
+        transition: background-color 0.15s var(--ease-smooth);
 
         &:hover {
-            outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-            opacity: 1;
+            background-color: var(--overlay-color);
         }
 
-        &:focus {
-            outline-color: var(--primary-foreground-color);
+        &:focus-visible {
+            outline: var(--focus-outline-size) solid var(--primary-accent-color);
+            outline-offset: calc(-1 * var(--focus-outline-size));
         }
 
         .cancel-button-label {
-            color: var(--primary-foreground-color);
+            color: var(--color-fg-muted);
+        }
+
+        &:hover .cancel-button-label {
+            color: var(--color-fg);
         }
     }
 }
@@ -237,15 +265,17 @@
                 height: 5rem;
                 margin-right: 1.5rem;
                 padding: 0.5rem;
+                border-radius: var(--border-radius);
             }
 
             .logo {
                 object-fit: contain;
                 object-position: center;
+                overflow: hidden;
             }
 
             .icon {
-                color: var(--primary-foreground-color);
+                color: var(--color-fg-muted);
             }
 
             .name-container {
@@ -263,7 +293,8 @@
                     flex-basis: auto;
                     margin-right: 0.5rem;
                     font-size: 1.6rem;
-                    color: var(--primary-foreground-color);
+                    font-weight: 600;
+                    color: var(--color-fg);
                 }
 
                 .version {
@@ -271,7 +302,7 @@
                     flex-shrink: 1;
                     flex-basis: auto;
                     margin-top: 0.5rem;
-                    color: var(--primary-foreground-color);
+                    color: var(--color-fg-muted);
                 }
             }
         }

@@ -13,24 +13,30 @@
         align-self: stretch;
         display: flex;
         align-items: center;
-        height: 4rem;
+        height: 2.75rem;
         border-radius: 4rem;
-        padding: 2rem;
-        margin-bottom: 0.5rem;
-        font-size: 1.1rem;
+        padding: 0 1.25rem;
+        margin-bottom: 0.35rem;
+        font-size: 1.05rem;
         font-weight: 500;
         color: var(--primary-foreground-color);
-        opacity: 0.4;
+        opacity: 0.62;
+        transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s cubic-bezier(0.22, 1, 0.36, 1), transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 
         &.selected {
             font-weight: 600;
-            color: var(--primary-foreground-color);
-            background-color: var(--overlay-color);
+            color: var(--primary-accent-color);
+            background-color: var(--color-surface-hover);
             opacity: 1;
         }
 
         &:hover {
-            background-color: var(--overlay-color);
+            background-color: var(--color-surface-hover);
+            opacity: 1;
+        }
+
+        &:active {
+            transform: scale(0.98);
         }
     }
 
@@ -41,10 +47,11 @@
     .version-info-label {
         flex: 0 1 auto;
         margin: 0.5rem 0;
+        font-size: 0.8125rem;
         white-space: nowrap;
         text-overflow: ellipsis;
         color: var(--primary-foreground-color);
-        opacity: 0.3;
+        opacity: 0.4;
         overflow: hidden;
     }
 }

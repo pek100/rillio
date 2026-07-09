@@ -84,7 +84,7 @@
 
         .logo-placeholder {
             font-size: 1.7rem;
-            color: @color-surface-light5-90;
+            color: var(--primary-foreground-color);
         }
 
         .runtime-release-info-container {
@@ -107,13 +107,18 @@
                 display: flex;
                 flex-direction: row;
                 align-items: center;
-                border-radius: 0.5rem;
+                border-radius: 9999px;
                 border: var(--focus-outline-size) solid transparent;
                 padding: 0rem 0.5rem;
+                transition: background-color 150ms var(--ease-smooth, ease);
+
+                &:hover {
+                    background-color: var(--overlay-color);
+                }
 
                 &:focus {
                     outline: none;
-                    border: var(--focus-outline-size) solid @color-surface-light5;
+                    border: var(--focus-outline-size) solid var(--primary-accent-color);
                 }
 
                 .label {
@@ -143,8 +148,9 @@
                 text-transform: uppercase;
                 font-size: 0.95rem;
                 font-weight: 700;
+                letter-spacing: 0.05em;
                 color: var(--primary-foreground-color);
-                opacity: 0.3;
+                opacity: 0.4;
             }
         }
 
@@ -202,7 +208,7 @@
 
             &.show-button {
                 &:hover, &:focus {
-                    background-color: var( --secondary-accent-color);
+                    background-color: var(--primary-accent-color);
                     outline: none;
                 }
             }

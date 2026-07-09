@@ -26,11 +26,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            border-radius: 0.75rem;
-            transition: background-color 150ms ease;
+            border-radius: 9999px;
+            background-color: color-mix(in srgb, var(--color-surface) 55%, transparent);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: background-color 150ms ease, filter 150ms ease, transform 150ms ease;
 
             &:hover:not(:global(.disabled)) {
-                background-color: var(--overlay-color);
+                background-color: var(--color-surface-hover);
+                filter: brightness(1.1);
+            }
+
+            &:active:not(:global(.disabled)) {
+                transform: scale(0.97);
             }
 
             &:global(.disabled) {
@@ -68,11 +76,19 @@
             display: none;
             justify-content: center;
             align-items: center;
-            border-radius: 0.75rem;
-            transition: background-color 150ms ease;
+            border-radius: 9999px;
+            background-color: color-mix(in srgb, var(--color-surface) 55%, transparent);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: background-color 150ms ease, filter 150ms ease, transform 150ms ease;
 
             &:hover {
-                background-color: var(--overlay-color);
+                background-color: var(--color-surface-hover);
+                filter: brightness(1.1);
+            }
+
+            &:active {
+                transform: scale(0.97);
             }
 
             .icon {
@@ -124,8 +140,7 @@
                 max-width: calc(100dvw - 1rem);
                 border-radius: var(--border-radius);
                 background-color: var(--modal-background-color);
-                box-shadow: 0 1.35rem 2.7rem @color-background-dark5-40,
-                    0 1.1rem 0.85rem @color-background-dark5-20;
+                box-shadow: var(--outer-glow);
                 overflow-x: auto;
 
                 &:not(:global(.open)) {

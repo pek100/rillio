@@ -8,8 +8,9 @@
         text-transform: uppercase;
         font-size: 0.95rem;
         font-weight: 700;
+        letter-spacing: 0.05em;
         color: var(--primary-foreground-color);
-        opacity: 0.3;
+        opacity: 0.4;
     }
 
     .links-container {
@@ -26,21 +27,22 @@
             padding: 0.4rem 1.25rem;
             white-space: nowrap;
             text-overflow: ellipsis;
-            border-radius: 2rem;
+            border-radius: 9999px;
             border: var(--focus-outline-size) solid transparent;
             font-size: 1rem;
             font-weight: 500;
             color: var(--primary-foreground-color);
             background-color: var(--overlay-color);
             backdrop-filter: blur(5px);
+            transition: background-color 150ms var(--ease-smooth, ease);
 
-            &:hover, &:focus {
-                background-color: @color-surface-light5-30;
+            &:hover {
+                background-color: var(--color-surface-hover);
             }
 
             &:focus {
                 outline: none;
-                border-color: @color-surface-light5;
+                border-color: var(--primary-accent-color);
             }
         }
     }

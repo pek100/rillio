@@ -14,11 +14,10 @@
 
     .title {
         font-size: 1.75rem;
-        font-weight: 400;
+        font-weight: 600;
         text-align: center;
-        color: var(--primary-foreground-color);
+        color: var(--color-fg-muted);
         margin-bottom: 1rem;
-        opacity: 0.5;
     }
 
     .image-container {
@@ -49,16 +48,14 @@
                 flex: none;
                 height: 3.25rem;
                 width: 3.25rem;
-                color: var(--primary-foreground-color);
-                opacity: 0.3;
+                color: var(--color-fg-subtle);
             }
 
             .text {
                 flex: auto;
-                font-size: 1.1rem;
-                font-size: 500;
-                color: var(--primary-foreground-color);
-                opacity: 0.9;
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--color-fg);
             }
         }
     }
@@ -68,19 +65,24 @@
     
         .button {
             display: flex;
+            align-items: center;
             justify-content: center;
-            height: 4rem;
-            line-height: 4rem;
+            height: 2.75rem;
             padding: 0 5rem;
-            font-size: 1.1rem;
-            color: var(--primary-foreground-color);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--secondary-foreground-color);
             text-align: center;
-            border-radius: 3.5rem;
-            background-color: var(--overlay-color);
+            border-radius: 9999px;
+            background-color: var(--color-accent);
+            transition: transform 0.15s var(--ease-smooth), filter 0.15s var(--ease-smooth);
 
             &:hover {
-                outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-                background-color: transparent;
+                filter: brightness(1.1);
+            }
+
+            &:active {
+                transform: scale(0.97);
             }
         }
     }

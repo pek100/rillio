@@ -7,7 +7,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 1);
+    background-color: var(--primary-background-color);
 
     .error-label {
         flex: 0 1 auto;
@@ -34,14 +34,18 @@
         flex-direction: row;
         align-items: center;
         height: 3.5rem;
-        border-radius: 3.5rem;
+        border-radius: 9999px;
         margin-top: 1.5rem;
         padding: 0 2rem;
-        background-color: var(--secondary-accent-color);
+        background-color: var(--primary-accent-color);
+        transition: filter 150ms ease, transform 150ms ease;
 
         &:hover {
-            outline: var(--focus-outline-size) solid var(--secondary-accent-color);
-            background-color: transparent;
+            filter: brightness(1.1);
+        }
+
+        &:active {
+            transform: scale(0.97);
         }
 
         .icon {

@@ -5,10 +5,11 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background-color: var(--overlay-color);
+    background-color: var(--color-surface);
     border-radius: var(--border-radius);
     border: 0.15rem solid transparent;
-    transition: border-color 0.1s ease-out;
+    overflow: hidden;
+    transition: border-color 0.15s var(--ease-smooth), background-color 0.15s var(--ease-smooth);
 
     .heading {
         flex: none;
@@ -17,8 +18,8 @@
         align-items: center;
         height: 3.5rem;
         font-size: 1rem;
-        font-weight: 500;
-        color: var(--primary-foreground-color);
+        font-weight: 600;
+        color: var(--color-fg);
         padding: 0 1rem;
     }
 
@@ -37,9 +38,10 @@
             gap: 1rem;
             height: 3rem;
             padding: 0 1rem;
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg);
+            transition: background-color 0.15s var(--ease-smooth);
 
             &:last-child {
                 border-radius: 0 0 var(--border-radius) var(--border-radius);
@@ -55,6 +57,7 @@
             .info {
                 flex: none;
                 display: block;
+                color: var(--color-fg-muted);
             }
 
             .icon {
@@ -64,12 +67,12 @@
                 height: 2rem;
                 padding: 0.5rem;
                 border-radius: 50%;
-                color: var(--primary-foreground-color);
-                background-color: var(--secondary-accent-color);
+                color: var(--secondary-foreground-color);
+                background-color: var(--color-accent);
             }
 
             &:hover {
-                background-color: var(--overlay-color);
+                background-color: var(--color-surface-hover);
 
                 .info {
                     display: none;
@@ -90,7 +93,7 @@
             width: 8rem;
             height: 1.2rem;
             background-color: var(--overlay-color);
-            border-radius: 0.2rem;
+            border-radius: 9999px;
         }
 
         .video {
@@ -109,7 +112,7 @@
                 width: 12rem;
                 height: 1.2rem;
                 background-color: var(--overlay-color);
-                border-radius: 0.2rem;
+                border-radius: 9999px;
             }
 
             .info {
@@ -117,7 +120,7 @@
                 width: 4rem;
                 height: 1.2rem;
                 background-color: var(--overlay-color);
-                border-radius: 0.2rem;
+                border-radius: 9999px;
             }
         }
     }
@@ -125,14 +128,15 @@
     &.today {
         .heading {
             background-color: var(--primary-accent-color);
+            color: var(--secondary-foreground-color);
         }
     }
 
     &.active {
-        border-color: var(--primary-foreground-color);
+        border-color: var(--color-accent);
     }
 
     &:not(.active):hover {
-        border-color: var(--overlay-color);
+        border-color: var(--color-line);
     }
 }

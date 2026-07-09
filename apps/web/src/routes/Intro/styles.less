@@ -46,7 +46,7 @@
         }
 
         .title-container, .slogan-container {
-            color: var(--primary-foreground-color);
+            color: var(--color-fg);
         }
 
         .title-container {
@@ -59,8 +59,8 @@
             font-size: 1.5rem;
             font-weight: 400;
             text-transform: lowercase;
-            opacity: 0.6;
-            
+            color: var(--color-fg-muted);
+
             &::first-letter {
                 text-transform: uppercase;
             }
@@ -74,51 +74,67 @@
         align-items: flex-start;
         justify-content: center;
         width: 100%;
-    
+
         .form-button {
             display: flex;
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            height: 4rem;
-            border-radius: 3.5rem;
-            padding: 0 1rem;
+            height: 3.5rem;
+            border-radius: 9999px;
+            padding: 0 1.5rem;
+            transition:
+                filter 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1)),
+                background-color 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1));
 
             .icon {
                 flex: none;
-                height: 2rem;
-                width: 2rem;
-                margin-right: 1rem;
-                color: var(--primary-foreground-color);
+                height: 1.5rem;
+                width: 1.5rem;
+                margin-right: 0.75rem;
+                color: var(--color-fg);
             }
 
             .label {
                 flex-grow: 0;
                 flex-shrink: 1;
                 flex-basis: auto;
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: var(--primary-foreground-color);
+                font-size: 1rem;
+                font-weight: 600;
+                color: var(--color-fg);
                 text-align: center;
+            }
+
+            &:hover {
+                filter: brightness(1.1);
+            }
+
+            &:active {
+                transform: scale(0.97);
+            }
+
+            &:focus {
+                outline-color: var(--color-accent);
             }
         }
 
         .submit-button, .guest-login-button, .signup-form-button, .login-form-button {
             margin-top: 1rem;
-            outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-            background-color: transparent;
+        }
 
-            .label {
-                color: var(--primary-foreground-color);
+        // Primary call to action: the one accent-filled button on the page.
+        .submit-button {
+            background-color: var(--color-accent);
+
+            .icon, .label {
+                color: var(--color-bg);
             }
+        }
 
-            &:hover {
-                background-color: var(--primary-foreground-color);
-
-                .label {
-                    color: var(--secondary-foreground-color);
-                }
-            }
+        // Secondary actions: tonal surface fills, not outline ghosts.
+        .guest-login-button, .signup-form-button, .login-form-button {
+            background-color: var(--color-surface);
         }
 
         .form-container {
@@ -132,13 +148,25 @@
                 width: 100%;
                 margin-bottom: 1rem;
                 padding: 1rem;
+                border: 1px solid var(--color-line);
                 border-radius: var(--border-radius);
                 outline-offset: calc(-1 * var(--focus-outline-size));
-                color: var(--primary-foreground-color);
-                background: var(--overlay-color);
+                color: var(--color-fg);
+                background: var(--color-surface);
+                transition:
+                    background-color 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1)),
+                    border-color 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1));
 
-                &:hover, &:focus {
-                    outline: var(--focus-outline-size) solid var(--overlay-color);
+                &::placeholder {
+                    color: var(--color-fg-muted);
+                }
+
+                &:hover {
+                    background: var(--color-surface-hover);
+                }
+
+                &:focus {
+                    outline: var(--focus-outline-size) solid var(--color-accent);
                 }
             }
 
@@ -154,9 +182,11 @@
                     flex-shrink: 1;
                     flex-basis: auto;
                     padding: 0.5rem 1rem;
-                    color: var(--primary-foreground-color);
+                    color: var(--color-fg-muted);
+                    transition: color 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1));
 
                     &:hover {
+                        color: var(--color-fg);
                         text-decoration: underline;
                     }
                 }
@@ -166,7 +196,7 @@
                 margin: 1rem 0;
                 padding: 0 1rem;
                 text-align: center;
-                color: var(--tertiary-accent-color);
+                color: var(--danger-accent-color);
             }
         }
 
@@ -181,35 +211,17 @@
             .facebook-button {
                 background: var(--color-facebook);
                 margin-bottom: 1rem;
-                
-                &:hover, &:focus {
-                    outline: var(--focus-outline-size) solid var(--color-facebook);
-                    background-color: transparent;
-                }
             }
 
             .apple-button {
                 background: var(--primary-foreground-color);
 
                 .icon {
-                    color: var(--primary-background-color);
+                    color: var(--color-bg);
                 }
 
                 .label {
-                    color: var(--primary-background-color);
-                }
-                
-                &:hover, &:focus {
-                    outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-                    background-color: transparent;
-
-                    .icon {
-                        color: var(--primary-foreground-color);
-                    }
-
-                    .label {
-                        color: var(--primary-foreground-color);
-                    }
+                    color: var(--color-bg);
                 }
             }
         }
@@ -232,6 +244,7 @@
         padding: 2.5rem;
         border-radius: var(--border-radius);
         background-color: var(--modal-background-color);
+        box-shadow: var(--outer-glow);
 
         @keyframes flash {
             0% {
@@ -247,13 +260,13 @@
             flex: none;
             width: 5rem;
             height: 5rem;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg);
             animation: 1s linear infinite alternate flash;
         }
 
         .label {
             font-size: 1.5rem;
-            color: var(--primary-foreground-color);
+            color: var(--color-fg);
             animation: 1s linear infinite alternate flash;
         }
 
@@ -264,17 +277,27 @@
             justify-content: center;
             height: 3.5rem;
             width: 100%;
-            border-radius: 3.5rem;
-            padding: 0 1rem;
+            border-radius: 9999px;
+            padding: 0 1.5rem;
             margin-top: 2rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--primary-foreground-color);
-            outline: var(--focus-outline-size) solid var(--primary-foreground-color);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-fg);
+            background-color: var(--color-surface);
+            transition:
+                filter 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.15s var(--ease-smooth, cubic-bezier(0.22, 1, 0.36, 1));
 
             &:hover {
-                color: var(--secondary-foreground-color);
-                background-color: var(--primary-foreground-color);
+                filter: brightness(1.1);
+            }
+
+            &:active {
+                transform: scale(0.97);
+            }
+
+            &:focus {
+                outline-color: var(--color-accent);
             }
         }
     }

@@ -21,17 +21,19 @@
 
     &:hover, &:focus, &:global(.active), &:global(.selected) {
         outline-style: none;
-        transition: background-color 100ms ease-out;
+        position: relative;
+        z-index: 1;
 
         .poster-container {
-            box-shadow: 0 0 0 0.2rem var(--primary-foreground-color);
+            transform: scale(1.02);
+            box-shadow: var(--outer-glow);
 
             .dismiss-icon-layer {
                 opacity: 1;
             }
 
             .poster-image-layer {
-                transform: scale(1.05);
+                filter: brightness(1.1);
             }
 
             .play-icon-layer {
@@ -40,7 +42,7 @@
                 }
 
                 .play-icon-background {
-                    background-color: var(--secondary-accent-color);
+                    background-color: var(--primary-accent-color);
                     opacity: 1;
                 }
             }
@@ -50,6 +52,12 @@
             .menu-label-container {
                 opacity: 1;
             }
+        }
+    }
+
+    &:focus {
+        .poster-container {
+            box-shadow: var(--outer-glow), 0 0 0 var(--focus-outline-size) var(--primary-accent-color);
         }
     }
 
@@ -74,8 +82,9 @@
     .poster-container {
         position: relative;
         z-index: 0;
-        background-color: var(--overlay-color);
+        background-color: var(--color-surface);
         border-radius: var(--border-radius);
+        transition: transform 200ms var(--ease-smooth, ease), box-shadow 200ms var(--ease-smooth, ease);
 
         &:global(.poster-change-cursor) {
             .poster-image-layer {
@@ -97,7 +106,7 @@
             width: 1.5rem;
             border-radius: 100%;
             opacity: 0;
-            transition: opacity 0.1s ease-in;
+            transition: opacity 150ms var(--ease-smooth, ease);
 
             .dismiss-icon {
                 z-index: 1;
@@ -129,9 +138,11 @@
             align-items: center;
             width: 1.5rem;
             height: 1.5rem;
-            background-color: var(--primary-accent-color);
+            background-color: var(--primary-background-color);
+            border: var(--focus-outline-size) solid var(--color-line);
             border-radius: 50%;
             margin: 0.5rem;
+            box-shadow: var(--outer-glow);
 
             .watched-icon {
                 width: 0.75rem;
@@ -151,7 +162,7 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            transition: transform 0.1s ease-out;
+            transition: filter 200ms var(--ease-smooth, ease);
 
             .poster-image {
                 flex: none;
@@ -184,7 +195,7 @@
             justify-content: center;
             height: @play-icon-size;
             width: @play-icon-size;
-            transition: transform 0.1s ease-out;
+            transition: transform 150ms var(--ease-smooth, ease);
 
             .play-icon {
                 z-index: 2;
@@ -204,7 +215,7 @@
                 color: var(--primary-foreground-color);
                 box-shadow: 0 0 0 0.15rem currentColor inset;
                 border-radius: 100%;
-                transition: color 0.1s ease-in;
+                transition: color 150ms var(--ease-smooth, ease);
             }
 
             .play-icon-background {
@@ -217,7 +228,7 @@
                 background-color: var(--primary-background-color);
                 border-radius: 100%;
                 opacity: 0.4;
-                transition: all 0.1s ease-in;
+                transition: background-color 150ms var(--ease-smooth, ease), opacity 150ms var(--ease-smooth, ease);
             }
 
             &:hover {
@@ -335,7 +346,7 @@
             background-color: transparent;
             opacity: 0;
             transform: translateX(1rem);
-            transition: opacity 0.1s ease-out;
+            transition: opacity 150ms var(--ease-smooth, ease);
 
             .icon {
                 display: block;

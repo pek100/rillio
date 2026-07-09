@@ -5,8 +5,8 @@
 .add-item {
     display: flex;
     padding: 0.35rem 1.5rem;
-    border-radius: 2.5rem;
-    transition: 0.3s all ease-in-out;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     background-color: var(--overlay-color);
     border: 2px solid transparent;
     justify-content: space-between;
@@ -19,9 +19,10 @@
         padding: 0.5rem 0.75rem;
         border: 1px solid transparent;
         width: 70%;
+        transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 
         &:focus {
-            border: 1px solid var(--primary-foreground-color);
+            border: 1px solid var(--primary-accent-color);
         }
     }
 
@@ -37,28 +38,24 @@
             align-items: center;
             justify-content: center;
             background-color: transparent;
-            transition: 0.3s all ease-in-out;
+            transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
             border-radius: var(--border-radius);
             width: 3rem;
             opacity: 0.6;
 
             .icon {
-                width: 2rem;
-                height: 2rem;
+                width: 1.25rem;
+                height: 1.25rem;
                 color: var(--primary-foreground-color);
             }
 
             &:hover {
                 opacity: 1;
-                background-color: var(--overlay-color);
+                background-color: var(--color-surface-hover);
             }
         }
 
         .add {
-            .icon {
-                width: 1.8rem;
-                height: 1.8rem;
-            }
             &:hover {
                 .icon {
                     color: var(--secondary-accent-color);
@@ -76,7 +73,7 @@
     }
 
     &:hover {
-        border: 2px solid var(--overlay-color);
+        background-color: var(--color-surface-hover);
     }
 }
 

@@ -12,11 +12,20 @@
     border-radius: 100%;
     background-color: var(--overlay-color);
     backdrop-filter: blur(5px);
-    transition: background-color 0.1s ease-out;
+    transition: background-color 150ms var(--ease-smooth, ease), box-shadow 150ms var(--ease-smooth, ease);
 
-    &:hover, &:focus {
-        outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-        background-color: transparent;
+    &:hover {
+        background-color: var(--color-surface-hover);
+
+        .icon-container .icon {
+            opacity: 1;
+        }
+    }
+
+    &:focus {
+        outline: none;
+        background-color: var(--color-surface-hover);
+        box-shadow: 0 0 0 var(--focus-outline-size) var(--primary-accent-color);
     }
 
     .icon-container {

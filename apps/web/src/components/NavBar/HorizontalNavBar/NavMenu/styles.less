@@ -83,7 +83,7 @@
     }
 
     .nav-menu-section {
-        border-top: thin solid var(--overlay-color);
+        border-top: thin solid var(--color-line);
 
         .nav-menu-option-container {
             display: flex;
@@ -91,6 +91,7 @@
             align-items: center;
             height: 4rem;
             padding: 0 1.5rem;
+            transition: background-color 150ms ease;
 
             &:hover {
                 background-color: var(--overlay-color);
@@ -102,7 +103,7 @@
                 height: 2rem;
                 margin-right: 1rem;
                 color: var(--primary-foreground-color);
-                opacity: 0.3;
+                opacity: 0.4;
             }
 
             .nav-menu-option-label {

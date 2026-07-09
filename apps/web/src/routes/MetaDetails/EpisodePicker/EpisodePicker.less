@@ -6,15 +6,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: var(--focus-outline-size) solid var(--primary-accent-color);
     background-color: var(--primary-accent-color);
     height: 4rem;
     padding: 0 2rem;
     margin: 1rem auto;
-    border-radius: 2rem;
+    border-radius: 4rem;
+    transition: filter 0.15s var(--ease-smooth, ease);
 
     &:hover {
-        background-color: transparent;
+        filter: brightness(1.1);
     }
 
     .label {

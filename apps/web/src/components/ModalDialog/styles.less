@@ -40,7 +40,7 @@
             width: 3rem;
             height: 3rem;
             padding: 0.5rem;
-            border-radius: var(--border-radius);
+            border-radius: 50%;
             z-index: 2;
 
             .icon {
@@ -114,11 +114,11 @@
     height: 3.5rem;
     border-radius: 3.5rem;
     padding: 1.2rem;
-    background-color: var(--secondary-accent-color);
+    background-color: var(--primary-accent-color);
+    transition: filter 0.15s var(--ease-smooth, ease-out);
 
     &:hover {
-        background-color: transparent;
-        outline: var(--focus-outline-size) solid var(--secondary-accent-color);
+        filter: brightness(1.1);
     }
 
     &:focus {
@@ -134,7 +134,7 @@
         width: 1.2rem;
         height: 1.2rem;
         margin-right: .5rem;
-        color: var(--primary-foreground-color);
+        color: var(--secondary-foreground-color);
     }
 
     .label {
@@ -145,7 +145,7 @@
         font-size: 1.1rem;
         font-weight: 700;
         text-align: center;
-        color: var(--primary-foreground-color);
+        color: var(--secondary-foreground-color);
     }
 }
 

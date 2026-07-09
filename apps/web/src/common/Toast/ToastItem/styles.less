@@ -13,7 +13,7 @@
     background-color: var(--modal-background-color);
     pointer-events: auto;
     border-radius: var(--border-radius);
-    border: 0.4px solid var(--primary-accent-color);
+    border: 1px solid var(--color-line);
     backdrop-filter: blur(10px);
     padding: 1rem;
     &.success {
@@ -34,16 +34,14 @@
 
     &.info {
         .icon-container {
-            background-color: @color-primary-light2;
-
             .icon {
-                color: @color-surface-light5-90;
+                color: var(--color-fg);
             }
         }
     }
 
     .icon-container {
-        border-radius: 3px;
+        border-radius: var(--border-radius);
         background-color: var(--overlay-color);
 
         .icon {
@@ -61,6 +59,7 @@
 
         .title-container {
             font-size: 1.2rem;
+            font-weight: 600;
             color: var(--primary-foreground-color);
 
             &:not(:last-child) {
@@ -78,7 +77,7 @@
     .close-button-container {
         width: 2rem;
         height: 2rem;
-        border-radius: 3px;
+        border-radius: 50%;
         
         .icon {
             display: block;

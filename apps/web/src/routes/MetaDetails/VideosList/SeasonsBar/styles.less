@@ -26,6 +26,7 @@
         height: 3rem;
         border-radius: 3rem;
         padding: 0.5rem;
+        transition: background-color 0.15s var(--ease-smooth, ease);
 
         &.disabled {
             pointer-events: none;
@@ -59,6 +60,7 @@
     .seasons-popup-label-container {
         flex: 0 1 auto;
         background: none;
+        transition: background-color 0.15s var(--ease-smooth, ease);
 
         &:hover, &:focus, &:global(.active) {
             background-color: var(--overlay-color);

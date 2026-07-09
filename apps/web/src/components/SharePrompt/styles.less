@@ -73,11 +73,11 @@
             width: 8rem;
             padding: 1rem;
             border-radius: 0 var(--border-radius) var(--border-radius) 0;
-            background-color: var(--secondary-accent-color);
+            background-color: var(--primary-accent-color);
+            transition: filter 0.15s var(--ease-smooth, ease-out);
 
             &:hover {
-                outline: var(--focus-outline-size) solid var(--secondary-accent-color);
-                background-color: transparent;
+                filter: brightness(1.1);
             }
 
             &:focus {
@@ -89,7 +89,7 @@
                 width: 1.2rem;
                 height: 1.2rem;
                 margin-right: 0.5rem;
-                color: var(--primary-foreground-color);
+                color: var(--secondary-foreground-color);
             }
 
             .label {
@@ -98,7 +98,7 @@
                 flex-basis: auto;
                 max-height: 2.4em;
                 font-size: 1.1rem;
-                color: var(--primary-foreground-color);
+                color: var(--secondary-foreground-color);
             }
         }
     }

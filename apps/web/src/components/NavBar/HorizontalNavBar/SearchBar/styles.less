@@ -8,9 +8,16 @@
     flex-direction: row;
     height: var(--search-bar-size);
     border-radius: var(--search-bar-size);
-    background-color: var(--overlay-color);
+    background-color: var(--color-surface);
     position: relative;
     overflow: visible;
+    transition: background-color 150ms ease;
+
+    @media (pointer: fine) {
+        &:hover {
+            background-color: var(--color-surface-hover);
+        }
+    }
 
     .search-input {
         flex: 1;
@@ -18,14 +25,14 @@
         display: flex;
         flex-direction: row;
         align-items: center;
-        padding: 0 0.5rem 0 2rem;
+        padding: 0 0.5rem 0 1.25rem;
+        font-size: 0.875rem;
         font-weight: 500;
         color: var(--primary-foreground-color);
         cursor: text;
 
         &::placeholder, .placeholder-label {
             max-height: 1.2em;
-            opacity: 1;
             color: var(--primary-foreground-color);
             opacity: 0.6;
         }
@@ -33,19 +40,26 @@
 
     .submit-button-container {
         flex: none;
+        align-self: stretch;
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        height: var(--search-bar-size);
-        padding: 0 1.5rem;
+        width: var(--search-bar-size);
+        color: var(--primary-foreground-color);
+        opacity: 0.6;
+        transition: opacity 150ms ease;
 
         .icon {
             flex: none;
-            width: 1.7rem;
-            height: 1.7rem;
-            color: var(--primary-foreground-color);
-            opacity: 0.6;
+            width: 1rem;
+            height: 1rem;
+        }
+
+        @media (pointer: fine) {
+            &:hover {
+                opacity: 1;
+            }
         }
     }
 
@@ -57,7 +71,7 @@
         height: auto;
         z-index: 10;
         padding: 1rem;
-        margin: 0 auto;
+        margin-top: 0.5rem;
         display: flex;
         justify-content: center;
         align-items: flex-start;
@@ -65,26 +79,34 @@
         gap: 1.5rem;
         background-color: var(--modal-background-color);
         border-radius: var(--border-radius);
-        
+        box-shadow: var(--outer-glow);
+
         .label {
-            font-size: 0.9rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
             color: var(--primary-foreground-color);
+            opacity: 0.6;
         }
 
         .title {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             width: 100%;
-            opacity: 0.8;
-            padding-bottom: 1rem;
+            padding-bottom: 0.5rem;
 
             .search-history-clear {
                 cursor: pointer;
+                font-size: 0.75rem;
+                font-weight: 500;
                 color: var(--primary-foreground-color);
-                font-size: 0.9rem;
+                opacity: 0.6;
+                transition: opacity 150ms ease;
 
                 &:hover {
-                    opacity: 0.6;
+                    opacity: 1;
                 }
             }
         }
@@ -96,20 +118,23 @@
             justify-content: center;
             align-items: flex-start;
             flex-direction: column;
+            gap: 0.25rem;
 
             .item {
-                width: 90%;
+                width: 100%;
                 color: var(--primary-foreground-color);
+                font-size: 0.875rem;
+                font-weight: 500;
                 text-align: left;
                 text-decoration: none;
-                padding: 0.5rem 1rem;
+                padding: 0.5rem 0.75rem;
                 border-radius: var(--border-radius);
-                width: 100%;
                 cursor: pointer;
                 z-index: 10;
+                transition: background-color 150ms ease;
 
                 &:hover {
-                    background-color: var(--secondary-background-color);
+                    background-color: var(--overlay-color);
                 }
             }
         }

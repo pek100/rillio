@@ -84,8 +84,17 @@
                         width: 3rem;
                         height: 3rem;
                         margin-left: 1.5rem;
-                        border-radius: var(--border-radius);
+                        border-radius: 50%;
                         background-color: var(--overlay-color);
+                        transition: background-color 0.15s ease-out, transform 0.15s ease-out;
+
+                        &:hover {
+                            background-color: var(--color-surface-hover);
+                        }
+
+                        &:active {
+                            transform: scale(0.95);
+                        }
 
                         .filter-icon {
                             flex: none;
@@ -119,11 +128,16 @@
                     min-width: 10rem;
                     max-width: 15rem;
                     padding: 1rem;
-                    background-color: var(--secondary-accent-color);
+                    border-radius: 2.75rem;
+                    background-color: var(--primary-accent-color);
+                    transition: filter 0.15s ease-out, transform 0.15s ease-out;
 
                     &:hover {
-                        outline: var(--focus-outline-size) solid var(--secondary-accent-color);
-                        background-color: transparent;
+                        filter: brightness(1.1);
+                    }
+
+                    &:active {
+                        transform: scale(0.97);
                     }
 
                     &:focus {
@@ -134,7 +148,7 @@
                         max-height: 2.4em;
                         font-weight: 500;
                         text-align: center;
-                        color: var(--primary-foreground-color);
+                        color: var(--secondary-foreground-color);
                     }
                 }
             }

@@ -38,8 +38,12 @@
                 padding: 0 1.5rem;
                 border-radius: var(--border-radius);
 
-                &:global(.selected), &:hover {
+                &:hover {
                     background-color: var(--overlay-color);
+                }
+
+                &:global(.selected) {
+                    background-color: color-mix(in srgb, var(--primary-accent-color) 14%, transparent);
                 }
 
                 .info {
@@ -71,7 +75,7 @@
                     width: 0.5rem;
                     height: 0.5rem;
                     border-radius: 100%;
-                    background-color: var(--secondary-accent-color);
+                    background-color: var(--primary-accent-color);
                 }
             }
         }

@@ -7,7 +7,7 @@
     padding: 0 1rem;
     font-size: 1rem;
     font-weight: bold;
-    color: var(--primary-foreground-color);
+    color: var(--secondary-foreground-color);
     background-color: var(--primary-accent-color);
 
     .button {
@@ -17,15 +17,17 @@
         justify-content: center;
         height: 2.5rem;
         padding: 0 1rem;
-        border-radius: var(--border-radius);
+        border-radius: 9999px;
         color: var(--primary-background-color);
         background-color: var(--primary-foreground-color);
-        transition: all 0.1s ease-out;
+        transition: transform 0.15s var(--ease-smooth);
 
         &:hover {
-            color: var(--primary-foreground-color);
-            background-color: transparent;
-            box-shadow: inset 0 0 0 0.15rem var(--primary-foreground-color);
+            transform: scale(1.02);
+        }
+
+        &:active {
+            transform: scale(0.97);
         }
     }
 

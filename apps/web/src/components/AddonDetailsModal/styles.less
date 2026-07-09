@@ -12,14 +12,14 @@
     .cancel-button {
         background-color: transparent;
         opacity: 0.3;
+        transition: opacity 0.15s var(--ease-smooth, ease-out);
 
         &:hover {
-            outline: var(--focus-outline-size) solid var(--primary-foreground-color);
             opacity: 1;
         }
 
         &:focus {
-            outline-color: var(--primary-foreground-color);
+            outline-color: var(--primary-accent-color);
         }
 
         .cancel-button-label {
@@ -29,14 +29,14 @@
 
     .uninstall-button {
         background-color: var(--overlay-color);
-    
+        transition: background-color 0.15s var(--ease-smooth, ease-out);
+
         &:hover {
-            outline: var(--focus-outline-size) solid var(--overlay-color);
-            background-color: transparent;
+            background-color: var(--color-surface-hover);
         }
 
         &:focus {
-            outline-color: var(--primary-foreground-color);
+            outline-color: var(--primary-accent-color);
         }
     }
 }

@@ -19,17 +19,21 @@
 
         .configure-button-container {
             flex: none;
-            width: 3rem;
-            height: 3rem;
+            width: 2.5rem;
+            height: 2.5rem;
             border-radius: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             background-color: var(--overlay-color);
+            transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 
             &:hover {
-                outline: var(--focus-outline-size) solid var(--primary-foreground-color);
-                background-color: transparent;
+                background-color: var(--color-surface-hover);
+            }
+
+            &:active {
+                transform: scale(0.95);
             }
 
             .icon {
