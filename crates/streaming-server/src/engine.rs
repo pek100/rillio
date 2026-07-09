@@ -1,8 +1,9 @@
 //! Torrent engine — a thin wrapper over one librqbit [`Session`] shared across
-//! the whole server. Leech-only: no inbound listen port is bound, DHT is on as
-//! the peer source, and added-torrent state is not persisted to disk. Mirrors
-//! the blob's `dht:false,tracker:false`+explicit-sources posture, except DHT is
-//! left on so magnets can find peers (see spec §1.2).
+//! the whole server. Tuned for download speed: DHT + injected trackers for peer
+//! discovery, an inbound listen port + UPnP for reachability, and batched disk
+//! writes. A bring-your-own SOCKS5 proxy (STREMIO_SOCKS_PROXY) hides the client
+//! IP from peers and force-disables the inbound port (no real-IP leak past the
+//! proxy). See [`Engine::new`].
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -97,6 +98,27 @@ impl Engine {
     /// plays a window of a torrent regardless of its total size.
     pub async fn new(cache_dir: PathBuf) -> anyhow::Result<Self> {
         let cache_root = storage::absolutize(&cache_dir)?;
+
+        // Bring-your-own SOCKS5 proxy (privacy): peers see the proxy's IP, not
+        // yours. Off unless STREMIO_SOCKS_PROXY is set. NOTE: we never ship a
+        // curated proxy list — a stranger's free proxy sees your IP + all traffic
+        // and often can't carry UDP (breaks DHT/uTP). Trust is the user's to bring.
+        let socks_proxy = std::env::var("STREMIO_SOCKS_PROXY")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        // Inbound listen port + UPnP → far more reachable peers (esp. NAT'd/passive
+        // seeders) = faster. ON by default. But a SOCKS5 proxy only tunnels
+        // OUTBOUND; a listen port on the real interface would leak your real IP to
+        // inbound peers and defeat the proxy — so it's force-disabled whenever a
+        // proxy is set. Also opt out with STREMIO_TORRENT_NO_LISTEN=1.
+        let listen_enabled = socks_proxy.is_none()
+            && !matches!(
+                std::env::var("STREMIO_TORRENT_NO_LISTEN").as_deref(),
+                Ok("1") | Ok("true")
+            );
+
         let opts = SessionOptions {
             // DHT on: with trackers off it is the only peer source for a magnet.
             disable_dht: false,
@@ -104,9 +126,20 @@ impl Engine {
             // persisted peer cache, and the shared cache path otherwise serializes
             // multiple Session instances (e.g. concurrent tests) onto one file.
             disable_dht_persistence: true,
-            // None => no inbound TCP listener is bound => leech-only.
-            listen_port_range: None,
-            enable_upnp_port_forwarding: false,
+            listen_port_range: if listen_enabled { Some(6881..6889) } else { None },
+            enable_upnp_port_forwarding: listen_enabled,
+            socks_proxy_url: socks_proxy,
+            // Batch disk writes (hold up to 32 MiB in memory before flushing) so
+            // per-write fsync stalls don't cap throughput once a well-seeded title
+            // starts saturating the pipe.
+            defer_writes_up_to: Some(32 * 1024 * 1024),
+            // Drop dead/slow peers faster so their connection slots recycle to live
+            // ones instead of sitting idle on a stalled handshake.
+            peer_opts: Some(librqbit::PeerConnectionOptions {
+                connect_timeout: Some(Duration::from_secs(10)),
+                read_write_timeout: Some(Duration::from_secs(60)),
+                keep_alive_interval: None,
+            }),
             // Persist torrent state + fast-resume so a restart RESUMES instantly
             // instead of re-hashing the whole file (~a minute for a 31 GiB title).
             // librqbit's persistence store type-checks for its native
