@@ -1,0 +1,4 @@
+# Build output (holds the ANGLE + d3dcompiler DLLs staged at runtime for 3b —
+# never commit binaries).
+/target
+*.dll

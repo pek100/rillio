@@ -1,0 +1,45 @@
+# Native Stremio desktop shell that OWNS the WebView2 (composition mode) so mpv
+# video and the transparent web UI are GPU-composited via DirectComposition —
+# the efficient path proven in spikes/dcomp-webview. Replaces the Tauri shell
+# (apps/desktop/src-tauri); that stays as the fallback during the transition.
+#
+# Standalone workspace (native-only: streaming-server pulls url >=2.5), isolated
+# from the root wasm workspace. Build from this directory.
+[workspace]
+
+[package]
+name = "stremio-shell-native"
+version = "0.1.0"
+edition = "2021"
+description = "Native Stremio desktop shell (own WebView2 + DComp + libmpv)"
+license = "gpl-2.0"
+
+[[bin]]
+name = "stremio-shell"
+path = "src/main.rs"
+
+[dependencies]
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+windows-core = "0.61"
+webview2-com = "0.38"
+# libmpv (dynamically loaded) for the native render path (3b+).
+libloading = "0.8"
+# The Rust streaming server, embedded in-process (no container/sidecar).
+stremio-streaming-server = { path = "../../../crates/streaming-server", default-features = false }
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
