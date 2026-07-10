@@ -51,10 +51,14 @@ type Props = {
 const GamepadModal = ({ onClose }: Props) => {
     const { t } = useTranslation();
     const gamepad = useGamepad();
+    const titleId = React.useId();
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const labels = LABELS[gamepad?.controllerType ?? 'generic'];
 
     useEffect(() => {
+        const previouslyFocused = document.activeElement as HTMLElement | null;
+        containerRef.current?.focus();
         gamepad?.lock('gamepad-');
         const onKeyDown = ({ key }: KeyboardEvent) => {
             key === 'Escape' && onClose();
@@ -66,6 +70,7 @@ const GamepadModal = ({ onClose }: Props) => {
             document.removeEventListener('keydown', onKeyDown);
             gamepad?.off('buttonB', 'gamepad-modal');
             gamepad?.unlock();
+            previouslyFocused?.focus?.();
         };
     }, [gamepad]);
 
@@ -73,9 +78,9 @@ const GamepadModal = ({ onClose }: Props) => {
         <div className={styles['gamepad-modal']} data-gamepad-modal>
             <div className={styles['backdrop']} onClick={onClose} />
 
-            <div className={styles['container']}>
+            <div className={styles['container']} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} ref={containerRef}>
                 <div className={styles['header']}>
-                    <div className={styles['title']}>
+                    <div className={styles['title']} id={titleId}>
                         {t('GAMEPAD_CONTROLS_TITLE')}
                     </div>
 
