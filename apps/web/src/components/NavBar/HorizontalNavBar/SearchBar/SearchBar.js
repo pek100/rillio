@@ -2,7 +2,7 @@
 
 const React = require('react');
 const { useNavigate } = require('react-router');
-const { useSearchParams } = require('react-router-dom');
+const { useSearchParams, useLocation } = require('react-router-dom');
 const PropTypes = require('prop-types');
 const classnames = require('classnames');
 const debounce = require('lodash.debounce');
@@ -24,6 +24,8 @@ const SearchBar = React.memo(({ className, query, active }) => {
     const searchHistory = useSearchHistory();
     const localSearch = useLocalSearch();
     const navigate = useNavigate();
+    const location = useLocation();
+    const onSearchRoute = location.pathname.startsWith('/search');
     const { handlePlayUrl } = usePlayUrl();
 
     const [historyOpen, openHistory, closeHistory, ] = useBinaryState(query === null ? true : false);
@@ -66,20 +68,28 @@ const SearchBar = React.memo(({ className, query, active }) => {
 
     const queryInputOnSubmit = React.useCallback((event) => {
         event.preventDefault();
-        const searchValue = `/search?search=${encodeURIComponent(event.target.value)}`;
-        setCurrentQuery(searchValue);
-        if (searchInputRef.current && searchValue) {
-            setSearchParams({ search: event.target.value });
-            closeHistory();
+        const value = event.target.value;
+        setCurrentQuery(value);
+        closeHistory();
+        if (typeof value === 'string' && value.length > 0) {
+            // Navigate rather than setSearchParams: the bar now lives in the top
+            // nav on every route, and setSearchParams would scribble ?search on
+            // whatever route happens to be showing.
+            navigate(`/search?search=${encodeURIComponent(value)}`);
         }
-    }, []);
+    }, [navigate]);
 
     const queryInputClear = React.useCallback(() => {
-        searchInputRef.current.value = '';
+        if (searchInputRef.current) {
+            searchInputRef.current.value = '';
+        }
+
         setCurrentQuery('');
-        setSearchParams({});
-        navigate('/search');
-    }, []);
+        // Only reset the URL when the search route is the thing showing results.
+        if (onSearchRoute) {
+            setSearchParams({});
+        }
+    }, [onSearchRoute, setSearchParams]);
 
     const updateLocalSearchDebounced = React.useCallback(debounce((query) => {
         localSearch.search(query);

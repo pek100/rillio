@@ -4,7 +4,6 @@ const React = require('react');
 const classnames = require('classnames');
 const debounce = require('lodash.debounce');
 const useTranslate = require('rillio/common/useTranslate');
-const { default: Icon } = require('@stremio/stremio-icons/react');
 const { withCoreSuspender, getVisibleChildrenRange } = require('rillio/common');
 const { Image, MainNavBars, MetaItem, MetaRow } = require('rillio/components');
 const useSearch = require('./useSearch');
@@ -50,30 +49,10 @@ const Search = () => {
         <MainNavBars className={styles['search-container']} route={'search'} query={query}>
             <div ref={scrollContainerRef} className={styles['search-content']} onScroll={onScroll}>
                 {
+                    // No query: nothing to show. The search field lives in the top
+                    // nav and expands in place, so there is no landing page to sit on.
                     query === null ?
-                        <div className={classnames(styles['search-hints-wrapper'])}>
-                            <div className={classnames(styles['search-hints-title-container'], 'animation-fade-in')}>
-                                <div className={styles['search-hints-title']}>{t.string('SEARCH_ANYTHING')}</div>
-                            </div>
-                            <div className={classnames(styles['search-hints-container'], 'animation-fade-in')}>
-                                <div className={styles['search-hint-container']}>
-                                    <Icon className={styles['icon']} name={'trailer'} />
-                                    <div className={styles['label']}>{t.string('SEARCH_CATEGORIES')}</div>
-                                </div>
-                                <div className={styles['search-hint-container']}>
-                                    <Icon className={styles['icon']} name={'actors'} />
-                                    <div className={styles['label']}>{t.string('SEARCH_PERSONS')}</div>
-                                </div>
-                                <div className={styles['search-hint-container']}>
-                                    <Icon className={styles['icon']} name={'link'} />
-                                    <div className={styles['label']}>{t.string('SEARCH_PROTOCOLS')}</div>
-                                </div>
-                                <div className={styles['search-hint-container']}>
-                                    <Icon className={styles['icon']} name={'imdb-outline'} />
-                                    <div className={styles['label']}>{t.string('SEARCH_TYPES')}</div>
-                                </div>
-                            </div>
-                        </div>
+                        null
                         :
                         search.catalogs.length === 0 ?
                             <div className={styles['message-container']}>

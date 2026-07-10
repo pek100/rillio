@@ -6,9 +6,8 @@ const { useParams } = require('react-router');
 const { useSearchParams } = require('react-router-dom');
 const classnames = require('classnames');
 const { default: Icon } = require('@stremio/stremio-icons/react');
-const { useCore } = require('rillio/core');
 const { CONSTANTS, useBinaryState, useOnScrollToBottom, withCoreSuspender } = require('rillio/common');
-const { AddonDetailsModal, Button, DelayedRenderer, Image, MainNavBars, MetaItem, MetaPreview, ModalDialog, MultiselectMenu } = require('rillio/components');
+const { AddonDetailsModal, Button, DelayedRenderer, Image, MainNavBars, MetaItem, ModalDialog, MultiselectMenu } = require('rillio/components');
 const useDiscover = require('./useDiscover');
 const useSelectableInputs = require('./useSelectableInputs');
 const styles = require('./styles');
@@ -24,20 +23,14 @@ const Discover = () => {
     }), [type, transportUrl, catalogId]);
     const [queryParams] = useSearchParams();
     const { t } = useTranslation();
-    const core = useCore();
     const [discover, loadNextPage] = useDiscover(urlParams, queryParams);
     const [selectInputs, hasNextPage] = useSelectableInputs(discover);
     const [inputsModalOpen, openInputsModal, closeInputsModal] = useBinaryState(false);
     const [addonModalOpen, openAddonModal, closeAddonModal] = useBinaryState(false);
+    // Still tracked so keyboard/gamepad focus highlights the active poster.
     const [selectedMetaItemIndex, setSelectedMetaItemIndex] = React.useState(0);
 
-    const selectedMetaItem = React.useMemo(() => {
-        return discover.catalog?.content.type === 'Ready' &&
-            discover.catalog.content.content[selectedMetaItemIndex] || null;
-    }, [discover.catalog, selectedMetaItemIndex]);
-
     const metasContainerRef = React.useRef();
-    const metaPreviewRef = React.useRef();
 
     React.useEffect(() => {
         if (discover.catalog?.content.type === 'Loading') {
@@ -53,60 +46,11 @@ const Discover = () => {
             }
         }
     }, [hasNextPage, loadNextPage]);
-    const addToLibrary = React.useCallback(() => {
-        if (selectedMetaItem === null) {
-            return;
-        }
-
-        core.transport.dispatch({
-            action: 'Ctx',
-            args: {
-                action: 'AddToLibrary',
-                args: selectedMetaItem
-            }
-        });
-    }, [selectedMetaItem]);
-    const removeFromLibrary = React.useCallback(() => {
-        if (selectedMetaItem === null) {
-            return;
-        }
-
-        core.transport.dispatch({
-            action: 'Ctx',
-            args: {
-                action: 'RemoveFromLibrary',
-                args: selectedMetaItem.id
-            }
-        });
-    }, [selectedMetaItem]);
-    const toggleWatched = React.useCallback(() => {
-        if (selectedMetaItem === null) {
-            return;
-        }
-
-        core.transport.dispatch({
-            action: 'Ctx',
-            args: {
-                action: 'MetaItemMarkAsWatched',
-                args: {
-                    meta_item: selectedMetaItem,
-                    is_watched: !selectedMetaItem.watched,
-                }
-            }
-        });
-    }, [selectedMetaItem]);
     const metaItemsOnFocusCapture = React.useCallback((event) => {
         if (event.target.dataset.index !== null && !isNaN(event.target.dataset.index)) {
             setSelectedMetaItemIndex(parseInt(event.target.dataset.index, 10));
         }
     }, []);
-    const metaItemOnClick = React.useCallback((event) => {
-        const visible = window.getComputedStyle(metaPreviewRef.current).display !== 'none';
-        if (event.currentTarget.dataset.index !== selectedMetaItemIndex.toString() && visible) {
-            event.preventDefault();
-            event.currentTarget.focus();
-        }
-    }, [selectedMetaItemIndex]);
     const onScrollToBottom = React.useCallback(() => {
         if (hasNextPage) {
             loadNextPage();
@@ -190,41 +134,11 @@ const Discover = () => {
                                                 deepLinks={metaItem.deepLinks}
                                                 watched={metaItem.watched}
                                                 data-index={index}
-                                                onClick={metaItemOnClick}
                                             />
                                         ))}
                                     </div>
                     }
                 </div>
-                {
-                    selectedMetaItem !== null ?
-                        <MetaPreview
-                            className={styles['meta-preview-container']}
-                            compact={true}
-                            ref={metaPreviewRef}
-                            name={selectedMetaItem.name}
-                            logo={selectedMetaItem.logo}
-                            background={selectedMetaItem.poster}
-                            runtime={selectedMetaItem.runtime}
-                            releaseInfo={selectedMetaItem.releaseInfo}
-                            released={selectedMetaItem.released}
-                            description={selectedMetaItem.description}
-                            links={selectedMetaItem.links}
-                            deepLinks={selectedMetaItem.deepLinks}
-                            trailerStreams={selectedMetaItem.trailerStreams}
-                            inLibrary={selectedMetaItem.inLibrary}
-                            toggleInLibrary={selectedMetaItem.inLibrary ? removeFromLibrary : addToLibrary}
-                            watched={selectedMetaItem.watched}
-                            toggleWatched={toggleWatched}
-                            metaId={selectedMetaItem.id}
-                            like={selectedMetaItem.like}
-                        />
-                        :
-                        discover.catalog !== null && discover.catalog.content.type === 'Loading' ?
-                            <div className={styles['meta-preview-container']} />
-                            :
-                            null
-                }
             </div>
             {
                 inputsModalOpen ?

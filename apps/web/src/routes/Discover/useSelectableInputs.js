@@ -69,7 +69,10 @@ const mapSelectableInputs = (discover, t, navigate) => {
             }
         };
     });
-    return [[typeSelect, catalogSelect, ...extraSelects], discover.selectable.nextPage];
+    // Consistent order: type, then the addon's filters (genre, ...), then the
+    // catalog (Popular / New / ...). The option LISTS themselves come from the
+    // installed addons -- they are not a fixed set we can hardcode here.
+    return [[typeSelect, ...extraSelects, catalogSelect], discover.selectable.nextPage];
 };
 
 const useSelectableInputs = (discover) => {

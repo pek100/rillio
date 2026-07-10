@@ -47,10 +47,24 @@ const TopNav = ({ className, route, query }: Props) => {
 
     React.useEffect(() => {
         if (!searchOpen) return;
-        const input = searchRef.current?.querySelector('input');
-        if (input instanceof HTMLInputElement) {
-            input.focus();
-        }
+
+        let frame = 0;
+        let attempts = 0;
+        const focusInput = () => {
+            const input = searchRef.current?.querySelector('input');
+            if (input instanceof HTMLInputElement) {
+                input.focus();
+                return;
+            }
+            // SearchBar is core-suspended, so its input can mount a frame or
+            // two after the field expands.
+            if (attempts++ < 30) {
+                frame = requestAnimationFrame(focusInput);
+            }
+        };
+
+        focusInput();
+        return () => cancelAnimationFrame(frame);
     }, [searchOpen]);
 
     // Collapse on an outside click or Escape — but only while the field is
@@ -131,7 +145,9 @@ const TopNav = ({ className, route, query }: Props) => {
             <div className="flex shrink-0 items-center gap-2 overflow-visible">
                 {searchOpen ? (
                     <div ref={searchRef} className="w-60 shrink-0 lg:w-72">
-                        <SearchBar className="w-full" query={query} active={isSearchRoute} />
+                        {/* `active` renders a live input and stops the bar from
+                            navigating on click — expanding must not change page. */}
+                        <SearchBar className="w-full" query={query} active={true} />
                     </div>
                 ) : (
                     <Button
