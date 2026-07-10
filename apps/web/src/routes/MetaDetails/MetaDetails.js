@@ -165,39 +165,44 @@ const MetaDetails = () => {
                 }
                 <div className={styles['main-column']}>
                     {
-                        metaPath === null ?
-                            <DelayedRenderer delay={500}>
-                                <div className={styles['meta-message-container']}>
-                                    <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                    <div className={styles['message-label']}>{t('ERR_NO_META_SELECTED')}</div>
-                                </div>
-                            </DelayedRenderer>
+                        metaDetails.metaItem !== null && metaDetails.metaItem.content.type === 'Ready' ?
+                            <HeroMedia
+                                className={classnames(styles['hero-media'], 'animation-fade-in')}
+                                ytId={trailerYtId}
+                                background={metaDetails.metaItem.content.content.background}
+                                poster={metaDetails.metaItem.content.content.poster}
+                                name={metaDetails.metaItem.content.content.name}
+                            />
                             :
-                            metaDetails.metaItem === null ?
-                                <div className={styles['meta-message-container']}>
-                                    <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                    <div className={styles['message-label']}>{t('ERR_NO_ADDONS_FOR_META')}</div>
-                                </div>
-                                :
-                                metaDetails.metaItem.content.type === 'Err' ?
+                            null
+                    }
+                    <div className={styles['below']}>
+                        {
+                            metaPath === null ?
+                                <DelayedRenderer delay={500}>
                                     <div className={styles['meta-message-container']}>
                                         <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                        <div className={styles['message-label']}>{t('ERR_NO_META_FOUND')}</div>
+                                        <div className={styles['message-label']}>{t('ERR_NO_META_SELECTED')}</div>
+                                    </div>
+                                </DelayedRenderer>
+                                :
+                                metaDetails.metaItem === null ?
+                                    <div className={styles['meta-message-container']}>
+                                        <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
+                                        <div className={styles['message-label']}>{t('ERR_NO_ADDONS_FOR_META')}</div>
                                     </div>
                                     :
-                                    metaDetails.metaItem.content.type === 'Loading' ?
-                                        <MetaPreview.Placeholder className={styles['meta-preview']} />
+                                    metaDetails.metaItem.content.type === 'Err' ?
+                                        <div className={styles['meta-message-container']}>
+                                            <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
+                                            <div className={styles['message-label']}>{t('ERR_NO_META_FOUND')}</div>
+                                        </div>
                                         :
-                                        <div className={classnames(styles['hero'], 'animation-fade-in')}>
-                                            <HeroMedia
-                                                className={styles['hero-media']}
-                                                ytId={trailerYtId}
-                                                background={metaDetails.metaItem.content.content.background}
-                                                poster={metaDetails.metaItem.content.content.poster}
-                                                name={metaDetails.metaItem.content.content.name}
-                                            />
+                                        metaDetails.metaItem.content.type === 'Loading' ?
+                                            <MetaPreview.Placeholder className={styles['meta-preview']} />
+                                            :
                                             <MetaPreview
-                                                className={styles['meta-preview']}
+                                                className={classnames(styles['meta-preview'], 'animation-fade-in')}
                                                 name={metaDetails.metaItem.content.content.name}
                                                 logo={metaDetails.metaItem.content.content.logo}
                                                 runtime={metaDetails.metaItem.content.content.runtime}
@@ -218,31 +223,31 @@ const MetaDetails = () => {
                                                 metaId={metaDetails.metaItem.content.content.id}
                                                 ratingInfo={metaDetails.ratingInfo}
                                             />
-                                        </div>
-                    }
-                    {
-                        streamPath !== null ?
-                            <StreamsList
-                                className={styles['streams-list']}
-                                streams={metaDetails.streams}
-                                video={video}
-                                type={streamPath.type}
-                                onEpisodeSearch={handleEpisodeSearch}
-                            />
-                            :
-                            metaPath !== null ?
-                                <VideosList
-                                    className={styles['videos-list']}
-                                    metaItem={metaDetails.metaItem}
-                                    libraryItem={metaDetails.libraryItem}
-                                    season={season}
-                                    selectedVideoId={metaDetails.libraryItem?.state?.video_id}
-                                    seasonOnSelect={seasonOnSelect}
-                                    toggleNotifications={toggleNotifications}
+                        }
+                        {
+                            streamPath !== null ?
+                                <StreamsList
+                                    className={styles['streams-list']}
+                                    streams={metaDetails.streams}
+                                    video={video}
+                                    type={streamPath.type}
+                                    onEpisodeSearch={handleEpisodeSearch}
                                 />
                                 :
-                                null
-                    }
+                                metaPath !== null ?
+                                    <VideosList
+                                        className={styles['videos-list']}
+                                        metaItem={metaDetails.metaItem}
+                                        libraryItem={metaDetails.libraryItem}
+                                        season={season}
+                                        selectedVideoId={metaDetails.libraryItem?.state?.video_id}
+                                        seasonOnSelect={seasonOnSelect}
+                                        toggleNotifications={toggleNotifications}
+                                    />
+                                    :
+                                    null
+                        }
+                    </div>
                 </div>
             </div>
             {

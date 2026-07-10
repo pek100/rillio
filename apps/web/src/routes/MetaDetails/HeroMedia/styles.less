@@ -4,19 +4,36 @@
     flex: none;
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: var(--radius-card);
+    height: clamp(20rem, 54vh, 42rem);
     overflow: hidden;
-    background-color: var(--color-surface);
-    box-shadow: var(--outer-glow);
+    background-color: var(--color-bg);
 
-    .trailer,
+    // A 16:9 video cover-cropped to the (wider, shorter) banner: size it to the
+    // larger of "full width at 16:9" and "full height at 16:9", then centre it.
+    // pointer-events are off so YouTube's hidden chrome can't be poked; the
+    // sound button below is the only control.
+    .trailer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 56.25vw;
+        min-width: 177.78vh;
+        min-height: 100%;
+        border: none;
+        pointer-events: none;
+    }
+
     .still,
     .still-empty {
-        display: block;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         width: 100%;
         height: 100%;
-        border: none;
     }
 
     .still {
@@ -26,5 +43,47 @@
 
     .still-empty {
         background-color: var(--color-surface);
+    }
+
+    // Top: keeps the floating nav bar legible over bright footage.
+    // Bottom: melts the banner into the page background.
+    .scrim {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(to bottom, rgba(2, 4, 7, 0.55) 0%, rgba(2, 4, 7, 0) 22%),
+            linear-gradient(to top, var(--color-bg) 0%, rgba(2, 4, 7, 0.6) 26%, rgba(2, 4, 7, 0) 62%);
+    }
+
+    .sound-button {
+        position: absolute;
+        right: 2rem;
+        bottom: 4.5rem;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid var(--color-line);
+        border-radius: 50%;
+        background-color: rgba(2, 4, 7, 0.55);
+        backdrop-filter: blur(6px);
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        transition:
+            color 0.15s var(--ease-smooth, ease),
+            background-color 0.15s var(--ease-smooth, ease);
+
+        &:hover,
+        &:focus {
+            outline: none;
+            color: var(--color-fg);
+            background-color: var(--color-surface-hover);
+        }
     }
 }
