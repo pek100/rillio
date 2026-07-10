@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import Icon from '@stremio/stremio-icons/react';
 import Logo from 'rillio/common/Logo/Logo';
 import { cn } from 'rillio/common/cn';
+import SearchModal from 'rillio/components/SearchModal';
 
-// Reused legacy components (all the search + auth/account logic lives here).
-const SearchBar = require('rillio/components/NavBar/HorizontalNavBar/SearchBar');
+// Reused legacy components (all the auth/account logic lives here).
 const NavMenu = require('rillio/components/NavBar/HorizontalNavBar/NavMenu');
 const Button = require('rillio/components/Button').default;
 
@@ -20,83 +20,30 @@ const TABS: Tab[] = [
     { id: 'calendar', label: 'Calendar', href: '/calendar' },
 ];
 
+// The keyboard shortcut lives in App; it asks us to open the palette.
+export const OPEN_SEARCH_EVENT = 'rillio:open-search';
+
+// Account keeps its island chip; search + addons are bare icons.
 const ICON_BUTTON = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface/70 backdrop-blur transition-colors duration-150';
+const ICON_BUTTON_BARE = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150';
 
 type Props = {
     className?: string;
     route?: string;
-    query?: string;
 };
 
-const TopNav = ({ className, route, query }: Props) => {
+const TopNav = ({ className, route }: Props) => {
     const { t } = useTranslation();
     const activeId = route === 'continue_watching' ? 'library' : route;
-    const isSearchRoute = route === 'search';
-
-    // The search field is collapsed to an icon and expands in place, so the
-    // right-hand cluster stays a quiet row of icons. On the search route the
-    // field is the point, so it stays open.
-    const [searchOpen, setSearchOpen] = React.useState(isSearchRoute);
-    const searchRef = React.useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        if (isSearchRoute) {
-            setSearchOpen(true);
-        }
-    }, [isSearchRoute]);
-
-    React.useEffect(() => {
-        if (!searchOpen) return;
-
-        let frame = 0;
-        let attempts = 0;
-        const focusInput = () => {
-            const input = searchRef.current?.querySelector('input');
-            if (input instanceof HTMLInputElement) {
-                input.focus();
-                return;
-            }
-            // SearchBar is core-suspended, so its input can mount a frame or
-            // two after the field expands.
-            if (attempts++ < 30) {
-                frame = requestAnimationFrame(focusInput);
-            }
-        };
-
-        focusInput();
-        return () => cancelAnimationFrame(frame);
-    }, [searchOpen]);
-
-    // Collapse on an outside click or Escape — but only while the field is
-    // empty, so a typed query is never thrown away.
-    React.useEffect(() => {
-        if (!searchOpen || isSearchRoute) return;
-
-        const isEmpty = () => {
-            const input = searchRef.current?.querySelector('input');
-            return !(input instanceof HTMLInputElement) || input.value.length === 0;
-        };
-        const onPointerDown = (event: MouseEvent) => {
-            const element = searchRef.current;
-            if (element && !element.contains(event.target as Node) && isEmpty()) {
-                setSearchOpen(false);
-            }
-        };
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && isEmpty()) {
-                setSearchOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', onPointerDown);
-        document.addEventListener('keydown', onKeyDown);
-        return () => {
-            document.removeEventListener('mousedown', onPointerDown);
-            document.removeEventListener('keydown', onKeyDown);
-        };
-    }, [searchOpen, isSearchRoute]);
+    const [searchOpen, setSearchOpen] = React.useState(false);
 
     const openSearch = React.useCallback(() => setSearchOpen(true), []);
+    const closeSearch = React.useCallback(() => setSearchOpen(false), []);
+
+    React.useEffect(() => {
+        window.addEventListener(OPEN_SEARCH_EVENT, openSearch);
+        return () => window.removeEventListener(OPEN_SEARCH_EVENT, openSearch);
+    }, [openSearch]);
 
     // Popup passes `className` (its `label-container` positioning context) + the
     // menu itself as `children`; both must be honored or the menu has no anchor
@@ -143,31 +90,25 @@ const TopNav = ({ className, route, query }: Props) => {
             <div className="flex-1" />
 
             <div className="flex shrink-0 items-center gap-2 overflow-visible">
-                {searchOpen ? (
-                    <div ref={searchRef} className="w-60 shrink-0 lg:w-72">
-                        {/* `active` renders a live input and stops the bar from
-                            navigating on click — expanding must not change page. */}
-                        <SearchBar className="w-full" query={query} active={true} />
-                    </div>
-                ) : (
-                    <Button
-                        onClick={openSearch}
-                        title={t('SEARCH')}
-                        className={cn(ICON_BUTTON, 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
-                    >
-                        <Icon className="size-4" name="search" />
-                    </Button>
-                )}
+                <Button
+                    onClick={openSearch}
+                    title={t('SEARCH')}
+                    className={cn(ICON_BUTTON_BARE, 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
+                >
+                    <Icon className="size-4" name="search" />
+                </Button>
                 <Link
                     to="/addons"
                     title={t('ADDONS')}
                     tabIndex={-1}
-                    className={cn(ICON_BUTTON, route === 'addons' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
+                    className={cn(ICON_BUTTON_BARE, route === 'addons' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
                 >
                     <Icon className="size-4" name="addons-outline" />
                 </Link>
                 <NavMenu renderLabel={renderAccountLabel} />
             </div>
+
+            {searchOpen ? <SearchModal onClose={closeSearch} /> : null}
         </nav>
     );
 };

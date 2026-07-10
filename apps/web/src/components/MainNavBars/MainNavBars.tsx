@@ -24,7 +24,6 @@ const MainNavBars = memo(({ className, route, query, children }: Props) => {
             <TopNav
                 className={styles['horizontal-nav-bar']}
                 route={route}
-                query={query}
             />
             <div ref={contentRef} className={styles['nav-content-container']}>{children}</div>
         </div>

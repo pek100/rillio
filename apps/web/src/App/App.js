@@ -15,6 +15,7 @@ const DeepLinkHandler = require('./DeepLinkHandler');
 const { default: UpdaterBanner } = require('./UpdaterBanner');
 const { default: ShortcutsModal } = require('./ShortcutsModal');
 const { default: GamepadModal } = require('./GamepadModal');
+const { OPEN_SEARCH_EVENT } = require('rillio/components/TopNav/TopNav');
 const styles = require('./styles');
 
 const ProtectedRoutes = withCoreSuspender(Routes);
@@ -44,7 +45,8 @@ const App = () => {
                 toggleGamepadModal();
                 break;
             case 'navigateSearch':
-                navigate('/search');
+                // Search is a modal palette now; there is no search landing page.
+                window.dispatchEvent(new CustomEvent(OPEN_SEARCH_EVENT));
                 break;
             case 'navigateTabs': {
                 const index = Number(key) - 1;
