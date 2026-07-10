@@ -136,7 +136,7 @@ const StreamsList = ({ className, video, type, onEpisodeSearch, ...props }) => {
                                 <SeasonEpisodePicker className={styles['search']} onSubmit={handleEpisodePicker} />
                                 : null
                         }
-                        <Image className={styles['image']} src={require('/assets/images/empty.png')} alt={' '} />
+                        <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
                         <div className={styles['label']}>{t('ERR_NO_ADDONS_FOR_STREAMS')}</div>
                     </div>
                     :
@@ -152,7 +152,7 @@ const StreamsList = ({ className, video, type, onEpisodeSearch, ...props }) => {
                                     <div className={styles['label']}>{t('UPCOMING')}...</div>
                                     : null
                             }
-                            <Image className={styles['image']} src={require('/assets/images/empty.png')} alt={' '} />
+                            <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
                             <div className={styles['label']}>{t('NO_STREAM')}</div>
                             {
                                 showInstallAddonsButton ?

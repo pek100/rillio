@@ -10,6 +10,7 @@ const { useCore } = require('rillio/core');
 const { useBinaryState } = require('rillio/common');
 const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
 const { Button, Image, Checkbox } = require('rillio/components');
+const { default: Logo } = require('rillio/common/Logo/Logo');
 const CredentialsTextInput = require('./CredentialsTextInput');
 const PasswordResetModal = require('./PasswordResetModal');
 const useFacebookLogin = require('./useFacebookLogin');
@@ -296,7 +297,7 @@ const Intro = () => {
             <div className={styles['background-container']} />
             <div className={styles['heading-container']}>
                 <div className={styles['logo-container']}>
-                    <Image className={styles['logo']} src={require('/assets/images/logo.png')} alt={' '} />
+                    <Logo className={styles['logo']} size={78} />
                 </div>
                 <div className={styles['title-container']}>
                     {t('WEBSITE_SLOGAN_NEW_NEW')}

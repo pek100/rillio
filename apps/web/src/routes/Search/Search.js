@@ -79,7 +79,7 @@ const Search = () => {
                             <div className={styles['message-container']}>
                                 <Image
                                     className={styles['image']}
-                                    src={require('/assets/images/empty.png')}
+                                    src={require('/assets/images/empty.svg')}
                                     alt={' '}
                                 />
                                 <div className={styles['message-label']}>{ t.string('STREMIO_TV_SEARCH_NO_ADDONS') }</div>

@@ -23,13 +23,13 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress
                 style={style}
                 src={logo}
                 alt={' '}
-                fallbackSrc={require('/assets/images/stremio_symbol.png')}
+                fallbackSrc={require('/assets/images/symbol.svg')}
             />
             <Image
                 className={classNames(styles['logo'], styles['background'])}
                 src={logo}
                 alt={' '}
-                fallbackSrc={require('/assets/images/stremio_symbol.png')}
+                fallbackSrc={require('/assets/images/symbol.svg')}
             />
         </div>
     );

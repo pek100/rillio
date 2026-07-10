@@ -19,7 +19,7 @@ const NotFound = () => {
             <div className={styles['not-found-content']}>
                 <Image
                     className={styles['not-found-image']}
-                    src={require('/assets/images/empty.png')}
+                    src={require('/assets/images/empty.svg')}
                     alt={' '}
                 />
                 <div className={styles['not-found-label']}>{t('PAGE_NOT_FOUND')}</div>

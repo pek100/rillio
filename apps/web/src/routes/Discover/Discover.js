@@ -154,14 +154,14 @@ const Discover = () => {
                         discover.catalog === null ?
                             <DelayedRenderer delay={500}>
                                 <div className={styles['message-container']}>
-                                    <Image className={styles['image']} src={require('/assets/images/empty.png')} alt={' '} />
+                                    <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
                                     <div className={styles['message-label']}>{t('NO_CATALOG_SELECTED')}</div>
                                 </div>
                             </DelayedRenderer>
                             :
                             discover.catalog.content.type === 'Err' ?
                                 <div className={styles['message-container']}>
-                                    <Image className={styles['image']} src={require('/assets/images/empty.png')} alt={' '} />
+                                    <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
                                     <div className={styles['message-label']}>{discover.catalog.content.content}</div>
                                 </div>
                                 :

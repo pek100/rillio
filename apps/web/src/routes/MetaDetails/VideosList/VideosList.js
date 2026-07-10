@@ -152,7 +152,7 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
                     metaItem.content.type === 'Err' || videosForSeason.length === 0 ?
                         <div className={styles['message-container']}>
                             <EpisodePicker className={styles['episode-picker']} onSubmit={onSeasonSearch} />
-                            <Image className={styles['image']} src={require('/assets/images/empty.png')} alt={' '} />
+                            <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
                             <div className={styles['label']}>{t('ERR_NO_VIDEOS_FOR_META')}</div>
                         </div>
                         :

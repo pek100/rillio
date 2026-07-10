@@ -22,7 +22,7 @@ const Error = ({ message }: Props) => {
         <div className={styles['error-container']}>
             <Image
                 className={styles['error-image']}
-                src={require('/assets/images/empty.png')}
+                src={require('/assets/images/empty.svg')}
                 alt={' '}
             />
             <div className={styles['info']}>
