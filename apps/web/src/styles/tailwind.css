@@ -9,7 +9,11 @@
 
 @source "../**/*.{js,jsx,ts,tsx,html}";
 
-@theme {
+/* `static` forces v4 to emit EVERY token to :root, even ones no scanned utility
+ * uses. Critical here because the legacy .less files reference tokens by
+ * var(--color-...) directly, and v4 does not scan .less — without `static` those
+ * vars are tree-shaken to empty (e.g. --color-fg-subtle -> black text on dark). */
+@theme static {
     /* Palette — semantic tokens only, single dark theme. */
     --color-bg: #020407;
     --color-surface: #0A1017;
