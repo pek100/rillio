@@ -77,7 +77,9 @@
     }
 
     // TOP — one section: the details on the left and the video on the right share
-    // the same band. The video's 16:9 sets the height; the details stretch to it.
+    // the same band, which is half the viewport tall. Both fill it, so the video
+    // no longer drives the height with its 16:9 (which would overflow 50vh at
+    // typical widths); the player letterboxes inside instead.
     .top {
         flex: none;
         align-self: stretch;
@@ -85,9 +87,12 @@
         flex-direction: row;
         align-items: stretch;
         gap: 2rem;
+        height: 50vh;
+        min-height: 22rem;
     }
 
     // No container: the details sit directly on the page, over the backdrop.
+    // Overflowing copy scrolls inside rather than growing the band.
     .meta-preview {
         flex: 0 0 clamp(20rem, 40%, 38rem);
         min-width: 0;
@@ -95,11 +100,12 @@
         align-self: stretch;
     }
 
-    // Centred vertically in the band rather than pinned to the top.
     .hero-media {
         flex: 1 1 0;
         min-width: 0;
-        align-self: center;
+        align-self: stretch;
+        height: 100%;
+        aspect-ratio: auto;
     }
 
     // Streams / episodes span the full width beneath the row.
@@ -157,11 +163,15 @@
 }
 
 // Stack the info card above the trailer once side-by-side gets cramped.
+// Stacked: the band grows with its content again, and the video goes back to
+// deriving its height from 16:9 rather than filling a fixed band.
 @media (max-width: 60rem) {
     .metadetails-container {
         .top {
             flex-direction: column;
             gap: 1.5rem;
+            height: auto;
+            min-height: 0;
         }
 
         .meta-preview {
@@ -172,6 +182,8 @@
         .hero-media {
             flex: none;
             align-self: stretch;
+            height: auto;
+            aspect-ratio: 16 / 9;
         }
     }
 }
