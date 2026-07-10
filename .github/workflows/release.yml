@@ -68,6 +68,28 @@ jobs:
       - name: Build web app
         run: pnpm --filter rillio run build
 
+      # Playback needs libmpv-2.dll next to the exe (loaded at runtime via
+      # libloading; see mpv.rs default_dll_path). Fetch an official shared build
+      # and inject it as a bundle resource here rather than in the committed
+      # config, so a normal `cargo build` (no DLL on disk) still works locally.
+      # NOTE: these builds are GPL; shipping the DLL carries the usual GPL source
+      # obligations. This step is unverified end-to-end, expect to adjust it.
+      - name: Fetch and bundle libmpv
+        shell: pwsh
+        run: |
+          $rel = Invoke-RestMethod "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest" -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}"; 'User-Agent' = 'rillio-ci' }
+          $asset = $rel.assets | Where-Object { $_.name -match '^mpv-dev-x86_64-\d' } | Select-Object -First 1
+          if (-not $asset) { throw "no mpv-dev-x86_64 asset in latest shinchiro release" }
+          Write-Host "downloading $($asset.name)"
+          Invoke-WebRequest $asset.browser_download_url -OutFile mpv-dev.7z
+          7z e mpv-dev.7z libmpv-2.dll -o"apps/desktop/src-tauri" -y
+          if (-not (Test-Path apps/desktop/src-tauri/libmpv-2.dll)) { throw "libmpv-2.dll not extracted" }
+          $cfgPath = "apps/desktop/src-tauri/tauri.conf.json"
+          $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+          $cfg.bundle | Add-Member -NotePropertyName resources -NotePropertyValue @('libmpv-2.dll') -Force
+          $cfg | ConvertTo-Json -Depth 30 | Set-Content $cfgPath -Encoding utf8
+          Write-Host "injected libmpv-2.dll into bundle.resources"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
