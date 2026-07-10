@@ -9,12 +9,16 @@
     align-items: center;
     justify-content: space-between;
     height: var(--horizontal-nav-bar-size);
-    padding-right: 1rem;
+    padding-right: 1.5rem;
     background-color: transparent;
     overflow: visible;
     padding-top: var(--safe-area-inset-top);
     box-sizing: content-box;
 
+    // Logo slot (only rendered when there is no back button — the detail/player
+    // routes all pass backButton, so in practice the back button takes this spot).
+    // Logo sizing is driven by the `h-8 w-auto` utilities on the <Logo/> element,
+    // matching TopNav exactly.
     .logo-container {
         flex: none;
         display: flex;
@@ -22,15 +26,6 @@
         justify-content: center;
         width: var(--vertical-nav-bar-size);
         height: var(--horizontal-nav-bar-size);
-
-        .logo {
-            flex: none;
-            width: 2.5rem;
-            height: 2.5rem;
-            object-position: center;
-            object-fit: contain;
-            opacity: 0.9;
-        }
     }
 
     .back-button-container {
@@ -40,18 +35,18 @@
     .title {
         flex: 4 0 0;
         padding: 0 1rem;
-        font-size: 1.2rem;
+        font-size: 1.125rem;
         font-style: normal;
         font-weight: 600;
         letter-spacing: 0.01rem;
         white-space: nowrap;
         text-overflow: ellipsis;
-        color: var(--primary-foreground-color);
+        color: var(--color-fg);
     }
 
     .search-bar {
-        height: 3.25rem;
-        width: 30rem;
+        height: 2.5rem;
+        width: 24rem;
     }
 
     .buttons-container {
@@ -67,45 +62,44 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 3.5rem;
+        height: 2.5rem;
         padding: 0 0.5rem;
-        opacity: 0.6;
         user-select: none;
 
         .icon {
             flex: none;
-            width: 3rem;
-            height: 1.5rem;
-            color: var(--primary-foreground-color);
-            opacity: 0.6;
+            width: 2rem;
+            height: 1rem;
+            color: var(--color-fg-muted);
         }
     }
 
+    // 40px circular controls with size-4 icons — matches TopNav. Bare over the
+    // video/backdrop by default; hover/active gets the app's translucent
+    // over-imagery fill (--overlay-color) and the icon brightens muted -> fg.
     .button-container {
         flex: none;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 3.5rem;
-        height: 3.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
         border-radius: 50%;
-        opacity: 0.6;
+        transition: background-color 150ms ease;
 
         .icon {
             flex: none;
-            width: 2rem;
-            height: 2rem;
-            color: var(--primary-foreground-color);
-            opacity: 0.6;
+            width: 1rem;
+            height: 1rem;
+            color: var(--color-fg-muted);
+            transition: color 150ms ease;
         }
 
         .active() {
             background-color: var(--overlay-color);
-            opacity: 1;
 
             .icon {
-                color: var(--primary-foreground-color);
-                opacity: 0.8;
+                color: var(--color-fg);
             }
         }
 
