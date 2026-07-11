@@ -366,7 +366,7 @@ unsafe fn node_to_json(node: &MpvNode) -> serde_json::Value {
 /// falling back to the crate dir during `cargo test`/`run`.
 pub fn default_dll_path() -> PathBuf {
     // Dev override: point at any libmpv-2.dll (e.g. an on-machine build).
-    if let Ok(p) = std::env::var("STREMIO_LIBMPV") {
+    if let Ok(p) = std::env::var("RILLIO_LIBMPV") {
         let p = PathBuf::from(p);
         if p.exists() {
             return p;
@@ -390,7 +390,7 @@ mod tests {
     /// Candidate libmpv locations for the dev machine: env override, our
     /// (possibly non-self-contained) copy, or a known on-machine libmpv.
     fn dev_dll() -> Option<PathBuf> {
-        if let Ok(p) = std::env::var("STREMIO_LIBMPV") {
+        if let Ok(p) = std::env::var("RILLIO_LIBMPV") {
             let p = PathBuf::from(p);
             if p.exists() {
                 return Some(p);
