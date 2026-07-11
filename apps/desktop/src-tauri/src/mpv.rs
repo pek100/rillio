@@ -1,4 +1,4 @@
-//! S3 — libmpv binding.
+//! S3 - libmpv binding.
 //!
 //! Dynamically loads `libmpv-2.dll` and calls the stable libmpv v2 client API
 //! via hand-declared FFI. This keeps the shell DLL-agnostic: it needs only a
@@ -22,13 +22,13 @@ type MpvSetOptionString = unsafe extern "C" fn(*mut c_void, *const c_char, *cons
 type MpvSetPropertyString = unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> c_int;
 type MpvCommand = unsafe extern "C" fn(*mut c_void, *const *const c_char) -> c_int;
 type MpvErrorString = unsafe extern "C" fn(c_int) -> *const c_char;
-// mpv_observe_property(handle, reply_userdata, name, format) — subscribe to a
+// mpv_observe_property(handle, reply_userdata, name, format) - subscribe to a
 // property; changes (and one initial value) arrive as PROPERTY_CHANGE events.
 type MpvObserveProperty = unsafe extern "C" fn(*mut c_void, u64, *const c_char, c_int) -> c_int;
-// mpv_wait_event(handle, timeout_s) — block for the next event on this handle.
+// mpv_wait_event(handle, timeout_s) - block for the next event on this handle.
 // The returned pointer is owned by mpv and valid until the next wait_event.
 type MpvWaitEvent = unsafe extern "C" fn(*mut c_void, f64) -> *mut MpvEventRaw;
-// mpv_request_log_messages(handle, min_level) — stream mpv's own log at
+// mpv_request_log_messages(handle, min_level) - stream mpv's own log at
 // `min_level` ("info", "v", "debug", …) as LOG_MESSAGE events.
 type MpvRequestLogMessages = unsafe extern "C" fn(*mut c_void, *const c_char) -> c_int;
 
@@ -58,7 +58,7 @@ struct MpvNode {
     format: c_int,
 }
 
-/// `mpv_node_list` — the backing store for NODE_ARRAY / NODE_MAP nodes.
+/// `mpv_node_list` - the backing store for NODE_ARRAY / NODE_MAP nodes.
 #[repr(C)]
 struct MpvNodeList {
     num: c_int,
@@ -66,7 +66,7 @@ struct MpvNodeList {
     keys: *mut *mut c_char,
 }
 
-/// `mpv_event_property` — payload of a PROPERTY_CHANGE event.
+/// `mpv_event_property` - payload of a PROPERTY_CHANGE event.
 #[repr(C)]
 struct MpvEventProperty {
     name: *const c_char,
@@ -74,14 +74,14 @@ struct MpvEventProperty {
     data: *mut c_void,
 }
 
-/// `mpv_event_end_file` — payload of an END_FILE event.
+/// `mpv_event_end_file` - payload of an END_FILE event.
 #[repr(C)]
 struct MpvEventEndFile {
     reason: c_int,
     error: c_int,
 }
 
-/// `mpv_event_log_message` — payload of a LOG_MESSAGE event.
+/// `mpv_event_log_message` - payload of a LOG_MESSAGE event.
 #[repr(C)]
 struct MpvEventLogMessage {
     prefix: *const c_char,
@@ -90,7 +90,7 @@ struct MpvEventLogMessage {
     log_level: c_int,
 }
 
-/// `mpv_event` — the fixed header every event shares.
+/// `mpv_event` - the fixed header every event shares.
 #[repr(C)]
 struct MpvEventRaw {
     event_id: c_int,
@@ -143,9 +143,11 @@ impl Mpv {
         // Ensure the DLL's own directory is searched for its dependencies (a
         // non-self-contained build sits next to its ffmpeg DLLs). A distribution
         // build ships a self-contained libmpv-2.dll and this is a no-op.
+        // APPEND (not prepend) the dir so the system directories keep precedence,
+        // prepending would let a planted DLL in this dir shadow a system one.
         if let Some(dir) = dll_path.parent() {
             let path = std::env::var("PATH").unwrap_or_default();
-            std::env::set_var("PATH", format!("{};{path}", dir.display()));
+            std::env::set_var("PATH", format!("{path};{}", dir.display()));
         }
         unsafe {
             let lib = Library::new(dll_path).map_err(|e| format!("load {dll_path:?}: {e}"))?;

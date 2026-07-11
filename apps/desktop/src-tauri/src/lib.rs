@@ -1,7 +1,7 @@
 //! Rillio desktop shell (Tauri v2).
 //!
 //! S0: a WebView2 window hosting the `apps/web` client.
-//! S1: the Rust streaming server runs in-process (no container/sidecar) — the
+//! S1: the Rust streaming server runs in-process (no container/sidecar) - the
 //! web client reaches it at http://127.0.0.1:11470 exactly as before.
 
 pub mod mpv;
@@ -32,7 +32,7 @@ pub(crate) fn mpv_embed_enabled() -> bool {
 /// plaintext DNS. `secure` mode = DoH only, no plaintext fallback. Override the
 /// resolver with `RILLIO_DOH_TEMPLATE=<url>`, or disable with `=off` (e.g. if a
 /// network blocks the DoH endpoint and breaks resolution). NOTE: DoH does not
-/// hide your IP from torrent peers (that needs a VPN/proxy) — see
+/// hide your IP from torrent peers (that needs a VPN/proxy) - see
 /// memory/compositing-dcomp-plan sibling notes.
 fn browser_args() -> String {
     let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
@@ -47,14 +47,71 @@ fn browser_args() -> String {
     }
 }
 
-/// Open a URL or file path in the OS default handler / native app (S2).
+/// Schemes the shell will hand to the OS default handler (S2). This is a strict
+/// allowlist: `open::that` is a shell-execute, so passing an arbitrary
+/// webview-supplied string would let addon-driven content launch local programs
+/// (`file:///C:/...exe`, a UNC `\\server\share\x.exe`, or any registered
+/// protocol handler like `ms-msdt:`). Only the schemes the web client's
+/// `openExternal` and custom-scheme navigations legitimately produce are
+/// allowed; everything else is refused.
+///
+/// Inventory (evidence): `apps/web` calls `platform.openExternal` with http/https
+/// (addon configure, addon directory, Trakt/Facebook/Apple login, password reset,
+/// calendar .ics, data export, stream download + subtitle URLs) and `webcal`
+/// (iOS calendar, Settings/General). `magnet:` and the external-player deep-link
+/// schemes come from `crates/core/src/deep_links` (ExternalPlayerLink /
+/// OpenPlayerLink): mpv, iina, infuse, vidhub, outplayer, moonplayer, VLC's
+/// x-callback and android `intent://`. `mailto:` is a standard safe handoff.
+/// (On the Windows shell only http/https/magnet are exercised today; the rest
+/// keep the cross-platform openExternal contract intact and fail closed.)
+fn is_allowed_external_scheme(scheme: &str) -> bool {
+    matches!(
+        scheme.to_ascii_lowercase().as_str(),
+        "http"
+            | "https"
+            | "magnet"
+            | "mailto"
+            | "webcal"
+            // external media players (crates/core deep_links)
+            | "mpv"
+            | "iina"
+            | "infuse"
+            | "open-vidhub"
+            | "outplayer"
+            | "moonplayer"
+            | "vlc-x-callback"
+            | "intent"
+    )
+}
+
+/// Validate a raw external-open URL: it must parse as an absolute URL and carry
+/// an allowed scheme. Fails CLOSED, a string that does not parse (schemeless /
+/// relative paths, a bare `C:\...` path, or a `\\server\share` UNC path) is
+/// refused rather than passed to the OS.
+fn validate_external_url(url: &str) -> Result<(), String> {
+    let parsed = tauri::Url::parse(url)
+        .map_err(|e| format!("open_external: refusing unparseable url {url:?}: {e}"))?;
+    if is_allowed_external_scheme(parsed.scheme()) {
+        Ok(())
+    } else {
+        Err(format!(
+            "open_external: refusing disallowed scheme {:?} ({url:?})",
+            parsed.scheme()
+        ))
+    }
+}
+
+/// Open a URL in the OS default handler / native app (S2).
 ///
 /// This is the desktop implementation of the web client's
 /// `platform.openExternal`. Running in the trusted shell, it opens the target
 /// directly (external player, torrent client, browser) instead of the browser's
-/// `window.open` + safety-warning redirect.
+/// `window.open` + safety-warning redirect. The scheme is checked against
+/// [`is_allowed_external_scheme`] first so hostile webview content cannot use
+/// this to shell-execute a local file or an arbitrary protocol handler.
 #[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
+    validate_external_url(&url)?;
     open::that(&url).map_err(|e| format!("open_external({url}): {e}"))
 }
 
@@ -181,6 +238,9 @@ fn clear_stale_webview_cache(identifier: String, current: String) {
         return;
     }
     let default_profile = base.join("EBWebView").join("Default");
+    // NOTE: this dir list is duplicated in CLAUDE.md's dev-loop cache-clear
+    // snippet ("Service Worker", "Cache", "Code Cache"); keep both in sync.
+    let mut all_cleared = true;
     for sub in ["Service Worker", "Cache", "Code Cache"] {
         let path = default_profile.join(sub);
         if !path.exists() {
@@ -201,8 +261,19 @@ fn clear_stale_webview_cache(identifier: String, current: String) {
         if removed && !path.exists() {
             tracing::info!("cache-clear: removed {}", path.display());
         } else {
+            all_cleared = false;
             tracing::warn!("cache-clear: could not remove {}", path.display());
         }
+    }
+    // Only advance the version marker once the stale caches are actually gone. If
+    // any removal failed, leave the marker unwritten so the next launch retries
+    // the clear, writing it now would strand a half-deleted cache serving the old
+    // bundle forever.
+    if !all_cleared {
+        tracing::warn!(
+            "cache-clear: INCOMPLETE for version {current}; leaving marker unwritten to retry next launch"
+        );
+        return;
     }
     let _ = std::fs::create_dir_all(&base);
     if let Err(e) = std::fs::write(&marker, &current) {
@@ -217,7 +288,7 @@ fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
     // `wid` renders to an invisible surface. Until that's solved properly, the
     // default is a non-transparent window + mpv in its own output window (which
     // works). See mpv_embed_enabled().
-    // RILLIO_START_URL overrides the initial page (debug hook — e.g. point it at
+    // RILLIO_START_URL overrides the initial page (debug hook - e.g. point it at
     // a DoH check page to verify DNS encryption is active).
     let start_url = std::env::var("RILLIO_START_URL")
         .ok()
@@ -239,11 +310,19 @@ fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
         .additional_browser_args(&browser_args())
         .on_navigation(|url| {
             match url.scheme() {
+                // In-WebView navigations (app pages, data/blob assets).
                 "http" | "https" | "tauri" | "data" | "blob" | "about" => true,
-                _ => {
-                    // External-player / torrent / other custom scheme.
-                    if let Err(e) = open::that(url.as_str()) {
-                        tracing::error!("failed to open external {url}: {e}");
+                // A custom-scheme link (external player, magnet, ...). Hand it to
+                // the OS ONLY if the scheme is allowlisted; otherwise block it so
+                // a file:/unknown-protocol link in addon content cannot
+                // shell-execute a local program. Never navigate the WebView to it.
+                scheme => {
+                    if is_allowed_external_scheme(scheme) {
+                        if let Err(e) = open::that(url.as_str()) {
+                            tracing::error!("failed to open external {url}: {e}");
+                        }
+                    } else {
+                        tracing::warn!("blocked navigation to disallowed scheme {scheme:?}: {url}");
                     }
                     false
                 }
@@ -357,9 +436,71 @@ fn start_streaming_server(app: &tauri::AppHandle) {
         tracing::error!("cannot create cache dir {cache_dir:?}: {e}");
     }
     let config = rillio_streaming_server::Config::local(cache_dir);
+    let app_handle = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = rillio_streaming_server::serve(config).await {
-            tracing::error!("embedded streaming server exited: {e}");
+            let msg = e.to_string();
+            tracing::error!("embedded streaming server exited: {msg}");
+            // Contract: the web app listens for the Tauri event
+            // "streaming-server-error" (payload: the error string) so it can toast
+            // that the local streaming server failed, e.g. a bind failure because
+            // port 11470 is already taken. Without this the failure is only logged
+            // and invisible to the user. The web-side listener is out of scope.
+            use tauri::Emitter;
+            let _ = app_handle.emit("streaming-server-error", msg);
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every scheme the web client's openExternal / custom-scheme navigations
+    /// legitimately produce must be accepted (parsed end-to-end).
+    #[test]
+    fn allows_legit_external_urls() {
+        for url in [
+            "http://127.0.0.1:11470/abc/0",
+            "https://www.strem.io/trakt/auth/x",
+            "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567",
+            "mailto:support@rillio.app",
+            "webcal://www.strem.io/calendar/x.ics",
+            "vlc-x-callback://x-callback-url/stream?url=http%3A%2F%2Fx",
+            "intent://x#Intent;scheme=https;end",
+        ] {
+            validate_external_url(url)
+                .unwrap_or_else(|e| panic!("{url} should be allowed: {e}"));
+        }
+    }
+
+    /// The S2 hole: file:, UNC / bare local paths, and unknown (possibly
+    /// registered) protocols must all be refused before reaching `open::that`.
+    #[test]
+    fn rejects_file_unc_and_unknown_urls() {
+        for bad in [
+            "",                                     // empty / unparseable
+            "file:///C:/Windows/System32/calc.exe", // file: scheme
+            "C:/Windows/System32/calc.exe",         // bare drive path (scheme "c")
+            "C:\\Windows\\System32\\calc.exe",
+            "\\\\server\\share\\evil.exe",          // UNC, no scheme -> parse fails
+            "//server/share",                       // schemeless / relative
+            "made-up-scheme://whatever",            // unknown protocol handler
+            "ms-msdt:/id",                          // classic Windows URL-handler RCE
+            "javascript:alert(1)",
+        ] {
+            assert!(validate_external_url(bad).is_err(), "should reject {bad:?}");
+        }
+    }
+
+    /// The scheme check is case-insensitive and denies by default.
+    #[test]
+    fn scheme_check_is_case_insensitive_and_denies_by_default() {
+        assert!(is_allowed_external_scheme("HTTPS"));
+        assert!(is_allowed_external_scheme("Magnet"));
+        assert!(is_allowed_external_scheme("mpv"));
+        assert!(!is_allowed_external_scheme(""));
+        assert!(!is_allowed_external_scheme("file"));
+        assert!(!is_allowed_external_scheme("smb"));
+    }
 }

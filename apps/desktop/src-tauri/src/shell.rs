@@ -1,4 +1,4 @@
-//! S3 part 3 — the shell ⇄ web-client player bridge.
+//! S3 part 3 - the shell ⇄ web-client player bridge.
 //!
 //! The web client (`packages/video/src/ShellVideo`) drives a native mpv over a
 //! tiny IPC: it sends `mpv-command` / `mpv-set-prop` / `mpv-observe-prop` and
@@ -8,7 +8,7 @@
 //! event `shell-signal`.
 //!
 //! Because mpv is a native HTTP client it fetches the streaming server's
-//! `/{infohash}/{idx}` URL directly — no browser CORS/Private-Network preflight,
+//! `/{infohash}/{idx}` URL directly - no browser CORS/Private-Network preflight,
 //! no HTML5 codec gate. That both starts the torrent download (our stream route
 //! auto-creates the torrent on first byte-range) and decodes every codec
 //! (HEVC/HDR/10-bit) that WebView2 cannot.
@@ -199,7 +199,7 @@ impl Controller {
         }
         // Stay alive across stop/eof so the same instance plays every title; the
         // web client sends `stop` then a later `loadfile`. No stray window at
-        // startup — mpv opens its output window only once a file plays.
+        // startup - mpv opens its output window only once a file plays.
         //
         // Best-effort: a minimal libmpv build may lack some of these options
         // (e.g. `osc` needs the Lua OSC). A missing option must not sink the
@@ -269,7 +269,13 @@ fn spawn_event_loop(ctrl: Arc<Controller>, app: AppHandle) {
                 }
                 MpvEvent::PropertyChange { name, value } => {
                     // Cache the latest value for the stats panel.
-                    ctrl.props.lock().unwrap().insert(name.clone(), value.clone());
+                    // Recover a poisoned lock rather than cascade-panic: the props
+                    // cache is non-critical stats, a panicked reader must not sink
+                    // the event loop.
+                    ctrl.props
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .insert(name.clone(), value.clone());
                     // High-signal, low-noise props at debug (skip the per-frame ones).
                     if !matches!(name.as_str(), "time-pos" | "demuxer-cache-time") {
                         tracing::debug!("mpv prop {name} = {value}");
@@ -288,7 +294,7 @@ fn spawn_event_loop(ctrl: Arc<Controller>, app: AppHandle) {
                     }
                     // Stats-only props (our extra observes) are read by the panel
                     // via `shell_mpv_stats`; don't forward them to the web player
-                    // — some update per-frame and would flood the UI event stream.
+                    // - some update per-frame and would flood the UI event stream.
                     let mut forward = !STATS_PROPS.contains(&name.as_str());
                     if forward {
                         if let Some(key) = HF_PROPS.iter().find(|k| **k == name.as_str()) {
@@ -415,7 +421,7 @@ pub fn shell_init(app: AppHandle, state: State<ShellState>) -> ShellInit {
 #[tauri::command]
 pub fn shell_mpv_stats(app: AppHandle, state: State<ShellState>) -> Value {
     match state.ensure(&app) {
-        Ok(ctrl) => Value::Object(ctrl.props.lock().unwrap().clone()),
+        Ok(ctrl) => Value::Object(ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clone()),
         Err(_) => Value::Object(serde_json::Map::new()),
     }
 }
@@ -445,7 +451,7 @@ pub fn shell_send(
             // Drop cached stats when playback stops so the panel doesn't show a
             // previous title's codec/bitrate.
             if refs.first() == Some(&"stop") {
-                ctrl.props.lock().unwrap().clear();
+                ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clear();
             }
             // Normalize `loadfile`. The web client appends a positional
             // `replace`/index/`start=+N` (resume time) form whose exact shape
@@ -489,7 +495,7 @@ pub fn shell_send(
         "mpv-observe-prop" => {
             let name = arg0.as_str().ok_or("mpv-observe-prop: expected a name")?;
             let ctrl = state.ensure(&app)?;
-            // ALWAYS observe — never de-dupe. The web client builds a fresh
+            // ALWAYS observe - never de-dupe. The web client builds a fresh
             // ShellVideo per playback and relies on mpv re-emitting each
             // property's initial value; `mpv-version` in particular gates the
             // `loadfile` (waitForMPVVersion). De-duping made the 2nd+ playback in
@@ -499,7 +505,7 @@ pub fn shell_send(
             // throttled downstream.)
             ctrl.mpv.observe_property(name)
         }
-        // GPU video processing (mpv shaders) — not wired yet; accept silently so
+        // GPU video processing (mpv shaders) - not wired yet; accept silently so
         // the web client's load sequence isn't interrupted.
         "mpv-set-gpu-video-processing" => Ok(()),
         // Fullscreen: the web player drives it through the shell when active
@@ -568,7 +574,7 @@ fn check_mpv_setprop(name: &str) -> Result<(), String> {
 /// local streaming server at http://127.0.0.1:11470/… or a direct addon URL).
 /// mpv would otherwise happily open a local path, `file://`, or one of its
 /// protocol handlers (`av://`, `edl://`, `memory://`, pipe/subprocess-style
-/// inputs) — data-exfil / code-execution vectors reachable from web content.
+/// inputs) - data-exfil / code-execution vectors reachable from web content.
 fn validate_stream_url(url: &str) -> Result<(), String> {
     let lower = url.trim().to_ascii_lowercase();
     if lower.starts_with("http://") || lower.starts_with("https://") {
