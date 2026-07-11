@@ -3805,7 +3805,7 @@ dependencies = [
 
 [[package]]
 name = "rillio-desktop"
-version = "0.1.0"
+version = "0.1.14"
 dependencies = [
  "libloading 0.8.9",
  "open",

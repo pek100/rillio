@@ -28,9 +28,6 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::mpv::{self, Mpv, MpvEvent};
 
-/// Version the shell reports to the web client (mirrors the streaming server).
-const SHELL_VERSION: &str = "5.0.0-rust";
-
 /// Lazily-created native player. Held in Tauri state; `None` until the web
 /// client first talks to the shell (on mount, via [`shell_init`]).
 #[derive(Default)]
@@ -405,7 +402,10 @@ pub fn shell_init(app: AppHandle, state: State<ShellState>) -> ShellInit {
             false
         }
     };
-    ShellInit { version: SHELL_VERSION.into(), gpu_video_processing: false, ok }
+    // Single source of truth: the app version from tauri.conf.json (also what the
+    // updater compares), not a hardcoded string.
+    let version = app.package_info().version.to_string();
+    ShellInit { version, gpu_video_processing: false, ok }
 }
 
 /// Snapshot of mpv's current media properties for the "Stats for nerds" panel:
