@@ -38,6 +38,13 @@ The desktop app is a **Tauri v2 shell** (`apps/desktop/src-tauri`) that:
   composited into the app window, for 4K HDR / Dolby Vision / HEVC decoding
   without the browser's codec limits.
 - Encrypts its DNS (DoH) and self-updates from signed GitHub Releases.
+- Registers the `stremio://` and `rillio://` URL schemes, so a deep link (a
+  content link, or an addon-install link from the community directory) opens the
+  app and routes to the right screen.
+- Sandboxes the WebView: a Content-Security-Policy plus an allowlist on the
+  native mpv IPC (only the commands and properties the client actually uses) keep
+  addon-driven content from reaching dangerous player commands or launching local
+  programs. A single-instance guard avoids two shells fighting over the port.
 
 The web client is shared. In a plain browser it decodes with `HTMLVideo` (the
 browser's decoder); in the desktop shell it uses `ShellVideo`, which drives the
@@ -54,6 +61,11 @@ Its defaults are privacy-conscious, not an anonymity guarantee: it opens no
 inbound listen port and no UPnP by default, so it isn't left accepting inbound
 connections. BitTorrent still exposes your IP to peers, so bring your own
 SOCKS5/VPN if you need that hidden.
+
+The loopback API is also guarded against other web origins: it checks the request
+Origin (rejecting arbitrary websites), keeps state-changing routes POST-only, and
+routes subtitle/proxy fetches through an SSRF guard, so a page you open in a
+browser cannot drive or read from your local server.
 
 It is a separate cargo workspace because it pulls a large native tree (librqbit,
 rustls, DHT) that needs `url >= 2.5`, which conflicts with the wasm crates'
@@ -102,6 +114,8 @@ cargo build --release              # rillio-desktop.exe, embeds apps/web/build
 ```
 
 Playback needs `libmpv-2.dll` beside the exe (or point `RILLIO_LIBMPV` at one).
+When running a dev build, set `RILLIO_STREAMING_CACHE_DIR` to a throwaway
+directory so it does not share (and evict torrents from) an installed app's cache.
 
 ## Releases
 
