@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Rillio, everything you watch in one place</title>
+<title>Rillio - everything you watch, in one quiet place</title>
 <meta name="description" content="Rillio brings movies, series and live TV together through open add-ons, with a native 4K player. Local-first, open source, and built to respect you." />
 <meta property="og:title" content="Rillio, everything you watch in one place" />
 <meta property="og:description" content="Everything you watch, in one quiet place. Free, open source, and yours." />
@@ -124,7 +124,40 @@
   }
   @keyframes rill-draw { to { stroke-dashoffset: 0; } }
   @media (prefers-reduced-motion: reduce) { .hero-rill path { animation: none; stroke-dashoffset: 0; } }
-  .hero .lede { max-width: 40rem; margin: 0 auto 2.4rem; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--fg-2); text-wrap: balance; }
+  .hero .lede { max-width: 40rem; margin: 0 auto 0.9rem; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--fg-2); text-wrap: balance; }
+  .hero .lede-strong { color: var(--fg); font-weight: 600; margin-bottom: 2.4rem; }
+
+  /* How it works: three numbered steps in one flat, hairline-divided row. */
+  .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--edge); border-bottom: 1px solid var(--edge); }
+  .step { padding: 2.2rem 2rem 2.2rem 0; }
+  .step + .step { border-left: 1px solid var(--edge); padding-left: 2rem; }
+  .step .num { font-weight: 900; color: var(--accent); font-size: 0.95rem; letter-spacing: 0.08em; }
+  .step h3 { font-size: 1.25rem; font-weight: 800; margin: 0.5rem 0 0.4rem; letter-spacing: -0.01em; }
+  .step p { color: var(--fg-2); font-size: 0.98rem; }
+  @media (max-width: 52rem) {
+    .steps { grid-template-columns: 1fr; }
+    .step { padding: 1.6rem 0; }
+    .step + .step { border-left: 0; border-top: 1px solid var(--edge); padding-left: 0; }
+  }
+
+  /* FAQ: flat divided disclosure rows, no boxes. */
+  .faq { border-top: 1px solid var(--edge); }
+  .faq details { border-bottom: 1px solid var(--edge); }
+  .faq summary {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1.4rem 0; cursor: pointer; list-style: none;
+    font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em;
+    transition: color 0.15s var(--ease);
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: ''; flex: none; width: 0.6rem; height: 0.6rem;
+    border-right: 2px solid var(--fg-3); border-bottom: 2px solid var(--fg-3);
+    transform: rotate(45deg); transition: transform 0.2s var(--ease);
+  }
+  .faq details[open] summary::after { transform: rotate(225deg); }
+  .faq details[open] summary { color: var(--accent); }
+  .faq .a { padding: 0 0 1.5rem; max-width: 46rem; color: var(--fg-2); font-size: 1.02rem; }
   .cta-row { display: flex; gap: 0.9rem; justify-content: center; flex-wrap: wrap; }
   .cta-note { margin-top: 1.25rem; font-size: 0.9rem; color: var(--fg-3); }
 
@@ -248,7 +281,8 @@
     <svg class="hero-rill reveal" viewBox="0 0 260 24" aria-hidden="true" style="transition-delay:0.14s">
       <path d="M4 14 C58 4, 92 22, 130 12 S 208 4, 256 12" pathLength="1"/>
     </svg>
-    <p class="lede reveal" style="transition-delay:0.16s">Rillio brings movies, series and live TV together through open add-ons and plays them in a native 4K player. Your library lives on your device, and it stays yours.</p>
+    <p class="lede reveal" style="transition-delay:0.16s">Movies, series and live TV, brought together by add-ons you choose and played in a native 4K player.</p>
+    <p class="lede lede-strong reveal" style="transition-delay:0.19s">Your library lives on your device, and it stays yours.</p>
     <div class="cta-row reveal" style="transition-delay:0.22s">
       <a class="btn btn-primary" href="https://github.com/pek100/rillio/releases/latest/download/RillioSetup.exe">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -270,6 +304,26 @@
     </div>
   </section>
 
+  <section class="wrap">
+    <div class="steps reveal">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>Install Rillio</h3>
+        <p>One signed installer, free and open source. No account, no setup wizard.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>Plug in add-ons</h3>
+        <p>Rillio ships empty. Choose the catalogs and sources you want from the community's add-ons, or write your own.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>Press play</h3>
+        <p>Discover, organize and watch in one library that lives on your device.</p>
+      </div>
+    </div>
+  </section>
+
   <section id="features">
     <div class="wrap">
       <div class="section-head reveal">
@@ -280,9 +334,9 @@
         <div class="feature-row reveal">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
-            <h3>Everything in one place</h3>
+            <h3>Open add-ons</h3>
           </div>
-          <p>Add-ons pull catalogs, subtitles and streams from across the web into a single, tidy library. You choose what to plug in, and nothing is bundled you did not ask for.</p>
+          <p>Catalogs, subtitles and streams come from third-party add-ons you choose to install. Nothing is bundled, and Rillio itself hosts no content, it is the player and the shelf.</p>
         </div>
         <div class="feature-row reveal">
           <div class="lead">
@@ -308,9 +362,9 @@
         <div class="feature-row reveal">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
-            <h3>Pick up anywhere</h3>
+            <h3>Your account is a code</h3>
           </div>
-          <p>Your library and watch progress can follow you across devices when you choose to sync them, and stay put on your device when you do not.</p>
+          <p>The whole library exports as a single code you can copy or scan. Paste it on another device and keep watching, with no cloud in between.</p>
         </div>
       </div>
     </div>
@@ -319,8 +373,8 @@
   <section id="privacy" class="privacy">
     <div class="wrap">
       <div class="section-head reveal">
-        <h2>Yours, and quiet by default</h2>
-        <p>Rillio does not track you, and it does not open your machine up to the network. Here is what that means, and where it stops.</p>
+        <h2>Your watchlist is not a product</h2>
+        <p>No tracking, no ads, no data business. Here is what that means in practice, and where it stops.</p>
       </div>
       <div class="privacy-list reveal">
         <div class="privacy-item">
@@ -333,7 +387,7 @@
         </div>
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <div><h3>Quiet networking</h3><p>The torrent engine does not open inbound ports or forward them through your router, so your machine is not left listening for connections.</p></div>
+          <div><h3>No open ports</h3><p>Rillio does not open inbound ports or forward them through your router, so your machine is never left listening for connections.</p></div>
         </div>
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -348,15 +402,41 @@
           <div><h3>Signed updates</h3><p>Every update is cryptographically signed and verified before it installs.</p></div>
         </div>
       </div>
-      <p class="privacy-note reveal"><b>Where it stops.</b> Streaming over BitTorrent means other peers can see your IP address. Rillio does not hide that, and honestly no app can without a VPN. If it matters to you, route Rillio through your own VPN or SOCKS5 proxy.</p>
+      <p class="privacy-note reveal"><b>Where it stops.</b> Some add-ons stream peer-to-peer, and peers on those networks can see your IP address. Rillio does not hide that, and honestly no app can without a VPN. If it matters to you, route Rillio through your own VPN or SOCKS5 proxy.</p>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2>Questions, answered plainly</h2>
+      </div>
+      <div class="faq reveal">
+        <details>
+          <summary>Do I need an account?</summary>
+          <p class="a">No. Rillio works fully anonymously from the first launch. Your library, history and settings live in the app on your device. If you ever want them on another machine, export them as a sync code and paste it there.</p>
+        </details>
+        <details>
+          <summary>Where does the content come from?</summary>
+          <p class="a">Rillio ships empty. It is a player and an organizer; catalogs and streams come from third-party add-ons that you choose to install. Rillio does not host, index or provide any media, and no add-ons are bundled. What you access through add-ons is your choice and your responsibility, so stick to sources you have the right to use.</p>
+        </details>
+        <details>
+          <summary>Can I bring my Stremio library?</summary>
+          <p class="a">Yes, with one sign-in. Rillio pulls your library and add-ons, stores them locally on your device, and disconnects. Your Stremio account is left exactly as it was.</p>
+        </details>
+        <details>
+          <summary>Is it really free?</summary>
+          <p class="a">Yes. Rillio is free software under the GPL, with no tiers, no ads and no data business. Every line of it is on GitHub for you to read, build and verify.</p>
+        </details>
+      </div>
     </div>
   </section>
 
   <section class="final">
     <div class="wrap">
       <div class="box reveal">
-        <h2>Start watching, quietly.</h2>
-        <p>Free, open source, and yours from the first launch.</p>
+        <h2>Ready when you are.</h2>
+        <p>Free, open source, and installed in under a minute.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/pek100/rillio/releases/latest/download/RillioSetup.exe">Download for Windows</a>
         </div>
@@ -376,7 +456,7 @@
       &nbsp;&middot;&nbsp;
       <a href="https://github.com/pek100/rillio/releases/latest/download/RillioSetup.exe">Download</a>
       &nbsp;&middot;&nbsp;
-      <span>Free software under the GPL</span>
+      <span>Free software under the GPL. Rillio hosts no content.</span>
     </span>
   </div>
 </footer>
