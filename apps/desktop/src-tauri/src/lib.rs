@@ -18,10 +18,10 @@ struct MpvState(Mutex<Option<mpv::Mpv>>);
 /// Whether to embed mpv inside the app window (S4 compositing: video renders
 /// into the main window behind the transparent WebView, controls overlaid) vs a
 /// separate mpv output window. Embedded is the default; opt out with
-/// `STREMIO_EMBED_MPV=0` (e.g. if a GPU/driver mishandles the transparent
+/// `RILLIO_EMBED_MPV=0` (e.g. if a GPU/driver mishandles the transparent
 /// overlay) to get a separate mpv window.
 pub(crate) fn mpv_embed_enabled() -> bool {
-    !matches!(std::env::var("STREMIO_EMBED_MPV").as_deref(), Ok("0") | Ok("false"))
+    !matches!(std::env::var("RILLIO_EMBED_MPV").as_deref(), Ok("0") | Ok("false"))
 }
 
 /// Chromium/WebView2 command-line switches for the main window.
@@ -30,13 +30,13 @@ pub(crate) fn mpv_embed_enabled() -> bool {
 /// them, then turn on DNS-over-HTTPS so the web UI's hostname lookups (addons,
 /// image/subtitle CDNs, the update server) are encrypted instead of going out as
 /// plaintext DNS. `secure` mode = DoH only, no plaintext fallback. Override the
-/// resolver with `STREMIO_DOH_TEMPLATE=<url>`, or disable with `=off` (e.g. if a
+/// resolver with `RILLIO_DOH_TEMPLATE=<url>`, or disable with `=off` (e.g. if a
 /// network blocks the DoH endpoint and breaks resolution). NOTE: DoH does not
 /// hide your IP from torrent peers (that needs a VPN/proxy) — see
 /// memory/compositing-dcomp-plan sibling notes.
 fn browser_args() -> String {
     let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
-    match std::env::var("STREMIO_DOH_TEMPLATE") {
+    match std::env::var("RILLIO_DOH_TEMPLATE") {
         Ok(v) if v == "0" || v.eq_ignore_ascii_case("off") => base.to_string(),
         Ok(v) if !v.trim().is_empty() => {
             format!("{base} --dns-over-https-mode=secure --dns-over-https-templates={}", v.trim())
@@ -85,9 +85,9 @@ pub fn run() {
             start_streaming_server(app.handle());
             let window = build_main_window(app)?;
             spawn_update_check(app.handle().clone());
-            // S3 part-2 render proof: STREMIO_MPV_TEST=<url|"test"> embeds mpv in
+            // S3 part-2 render proof: RILLIO_MPV_TEST=<url|"test"> embeds mpv in
             // the window and plays it. "test" = a generated color pattern.
-            if let Ok(src) = std::env::var("STREMIO_MPV_TEST") {
+            if let Ok(src) = std::env::var("RILLIO_MPV_TEST") {
                 if let Err(e) = start_mpv_embedded(app.handle(), &window, &src) {
                     tracing::error!("mpv embed test failed: {e}");
                 }
@@ -200,15 +200,15 @@ fn clear_stale_webview_cache(identifier: String, current: String) {
 }
 
 fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
-    // In-window mpv compositing (S4) is opt-in behind STREMIO_EMBED_MPV: on
+    // In-window mpv compositing (S4) is opt-in behind RILLIO_EMBED_MPV: on
     // Windows a transparent (layered) top-level window does NOT display child
     // windows that render with the GPU, so mpv's gpu-next output embedded via
     // `wid` renders to an invisible surface. Until that's solved properly, the
     // default is a non-transparent window + mpv in its own output window (which
     // works). See mpv_embed_enabled().
-    // STREMIO_START_URL overrides the initial page (debug hook — e.g. point it at
+    // RILLIO_START_URL overrides the initial page (debug hook — e.g. point it at
     // a DoH check page to verify DNS encryption is active).
-    let start_url = std::env::var("STREMIO_START_URL")
+    let start_url = std::env::var("RILLIO_START_URL")
         .ok()
         .and_then(|u| tauri::Url::parse(&u).ok())
         .map(tauri::WebviewUrl::External)

@@ -2,8 +2,8 @@
 //! instead of this binary.
 //!
 //! Env:
-//!   STREMIO_SERVER_APP_PATH  cache/app dir (default: ./.stremio-server-data)
-//!   STREMIO_SERVER_PORT      listen port   (default: 11470)
+//!   RILLIO_SERVER_APP_PATH  cache/app dir (default: ./.stremio-server-data)
+//!   RILLIO_SERVER_PORT      listen port   (default: 11470)
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -19,13 +19,13 @@ async fn main() -> std::io::Result<()> {
         )
         .init();
 
-    let app_path = std::env::var("STREMIO_SERVER_APP_PATH")
+    let app_path = std::env::var("RILLIO_SERVER_APP_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("./.stremio-server-data"));
     std::fs::create_dir_all(&app_path)?;
 
     let mut config = Config::local(app_path);
-    if let Ok(port) = std::env::var("STREMIO_SERVER_PORT") {
+    if let Ok(port) = std::env::var("RILLIO_SERVER_PORT") {
         if let Ok(port) = port.parse::<u16>() {
             config.bind = SocketAddr::from(([127, 0, 0, 1], port));
             config.base_url = url::Url::parse(&format!("http://127.0.0.1:{port}"))

@@ -119,7 +119,7 @@ impl ShellState {
 }
 
 /// The main window's native handle as an mpv `wid`, if in-window embedding is
-/// enabled (Windows + `STREMIO_EMBED_MPV`). Otherwise `None` → mpv uses its own
+/// enabled (Windows + `RILLIO_EMBED_MPV`). Otherwise `None` → mpv uses its own
 /// output window (the working default; see `lib::mpv_embed_enabled`).
 fn main_window_wid(app: &AppHandle) -> Option<isize> {
     #[cfg(windows)]
@@ -185,8 +185,8 @@ impl Controller {
         }
         mpv.initialize()?;
         // Only surface mpv's own errors by default (verbose "v" floods the event
-        // loop and lags the UI). Opt into verbose with STREMIO_MPV_VERBOSE.
-        let log_level = if std::env::var("STREMIO_MPV_VERBOSE").is_ok() { "v" } else { "error" };
+        // loop and lags the UI). Opt into verbose with RILLIO_MPV_VERBOSE.
+        let log_level = if std::env::var("RILLIO_MPV_VERBOSE").is_ok() { "v" } else { "error" };
         if let Err(e) = mpv.request_log_messages(log_level) {
             tracing::warn!("mpv: request_log_messages failed: {e}");
         }

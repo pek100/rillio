@@ -2,9 +2,9 @@
 //! the whole server. Quiet by default: DHT + injected trackers for peer
 //! discovery and batched disk writes, but NO inbound listen port and NO UPnP —
 //! we connect outbound to peers without advertising a reachable port, so we are
-//! not a discoverable seeder. `STREMIO_TORRENT_LISTEN=1` opts into the louder,
+//! not a discoverable seeder. `RILLIO_TORRENT_LISTEN=1` opts into the louder,
 //! marginally-faster-on-rare-titles inbound behavior. A bring-your-own SOCKS5
-//! proxy (STREMIO_SOCKS_PROXY) hides the client IP from peers and keeps the
+//! proxy (RILLIO_SOCKS_PROXY) hides the client IP from peers and keeps the
 //! inbound port off (no real-IP leak past the proxy). See [`Engine::new`].
 
 use std::path::{Path, PathBuf};
@@ -136,10 +136,10 @@ impl Engine {
         let cache_root = storage::absolutize(&cache_dir)?;
 
         // Bring-your-own SOCKS5 proxy (privacy): peers see the proxy's IP, not
-        // yours. Off unless STREMIO_SOCKS_PROXY is set. NOTE: we never ship a
+        // yours. Off unless RILLIO_SOCKS_PROXY is set. NOTE: we never ship a
         // curated proxy list — a stranger's free proxy sees your IP + all traffic
         // and often can't carry UDP (breaks DHT/uTP). Trust is the user's to bring.
-        let socks_proxy = std::env::var("STREMIO_SOCKS_PROXY")
+        let socks_proxy = std::env::var("RILLIO_SOCKS_PROXY")
             .ok()
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
@@ -152,12 +152,12 @@ impl Engine {
         // already multi-source), so the download-speed cost of staying quiet is
         // small while the exposure saved is large. OFF by default.
         //
-        // Resolved as: STREMIO_TORRENT_LISTEN env (explicit on/off, a dev escape
+        // Resolved as: RILLIO_TORRENT_LISTEN env (explicit on/off, a dev escape
         // hatch) ⇒ else the persisted "faster downloads" toggle from the cache
         // root ⇒ else off. A SOCKS5 proxy only tunnels OUTBOUND, so a
         // real-interface listener would leak the real IP past it — the proxy keeps
         // the listener off regardless of the above.
-        let listen_requested = match std::env::var("STREMIO_TORRENT_LISTEN").as_deref() {
+        let listen_requested = match std::env::var("RILLIO_TORRENT_LISTEN").as_deref() {
             Ok("1") | Ok("true") => true,
             Ok("0") | Ok("false") => false,
             _ => read_listen_pref(&cache_dir),
@@ -190,8 +190,8 @@ impl Engine {
             // upstream delays the TCP ACKs for your downloads, so capping upload
             // can raise DOWNLOAD throughput. Download cap is there for parity.
             ratelimits: librqbit::limits::LimitsConfig {
-                upload_bps: rate_limit_from_env("STREMIO_UPLOAD_LIMIT_KBPS"),
-                download_bps: rate_limit_from_env("STREMIO_DOWNLOAD_LIMIT_KBPS"),
+                upload_bps: rate_limit_from_env("RILLIO_UPLOAD_LIMIT_KBPS"),
+                download_bps: rate_limit_from_env("RILLIO_DOWNLOAD_LIMIT_KBPS"),
             },
             // Persist torrent state + fast-resume so a restart RESUMES instantly
             // instead of re-hashing the whole file (~a minute for a 31 GiB title).

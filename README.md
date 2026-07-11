@@ -101,7 +101,7 @@ cd apps/desktop/src-tauri
 cargo build --release              # rillio-desktop.exe, embeds apps/web/build
 ```
 
-Playback needs `libmpv-2.dll` beside the exe (or point `STREMIO_LIBMPV` at one).
+Playback needs `libmpv-2.dll` beside the exe (or point `RILLIO_LIBMPV` at one).
 
 ## Releases
 
