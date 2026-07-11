@@ -56,6 +56,17 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      # Cache the cargo registry + each workspace's target dir so a release does
+      # not recompile librqbit/tauri/reqwest from scratch every run (that is the
+      # bulk of the ~14 min). The wasm core (root) and the desktop shell are
+      # separate cargo workspaces; the streaming server compiles into the desktop
+      # target as a path dep, so both roots cover everything.
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: |
+            .
+            apps/desktop/src-tauri
+
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
         with:
           # Pin the wasm-pack version, not `latest`. `latest` is non-deterministic
