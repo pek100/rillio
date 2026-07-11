@@ -42,7 +42,14 @@ impl Config {
             base_url,
             cache_root: app_path.clone(),
             app_path,
-            cache_size: Some(2_147_483_648.0),
+            // Unlimited by product decision (the cache is transient and the user
+            // was never warned before content is deleted). The eviction machinery
+            // exists and is enforced whenever a FINITE cacheSize is configured
+            // (see `serve`/`Engine::enforce_cache_cap`), but the default must not
+            // silently delete downloaded content. `None` => `/settings` reports the
+            // "∞" selection. Wiring the user's Settings choice through to a finite
+            // cap here is the follow-up.
+            cache_size: None,
             server_version: SERVER_VERSION.to_owned(),
             proxy_allow_private_hosts: Vec::new(),
         }

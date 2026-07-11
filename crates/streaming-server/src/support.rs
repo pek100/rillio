@@ -12,8 +12,21 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
 use serde_json::json;
+use url::Url;
+
+use crate::config::Config;
+use crate::ssrf::{self, Policy};
 
 const CHUNK: u64 = 65_536;
+
+/// SSRF policy for the support routes: block private/internal ranges, but allow
+/// the server's OWN loopback socket. Their `videoUrl=` / `from=` / `subsUrl=`
+/// legitimately point back at our torrent or `/proxy` routes on 127.0.0.1:<port>,
+/// yet must not be turned into a reach into other local services (169.254.169.254,
+/// a router admin, another localhost daemon).
+fn support_policy(cfg: &Config) -> Policy {
+    Policy::AllowSelf { self_port: cfg.bind.port() }
+}
 
 // ---------------------------------------------------------------------------
 // /opensubHash
@@ -27,14 +40,14 @@ pub(crate) struct HashQuery {
 
 /// `GET /opensubHash?videoUrl=…` → `{error, result:{hash,size}}`.
 ///
-/// No SSRF guard here (unlike `/proxy`): the videoUrl legitimately points back
-/// at this server's own loopback torrent route, and the handler only HEADs +
-/// reads 128 KiB and returns a hash — no header injection, no body passthrough.
+/// The `videoUrl` legitimately points back at this server's own loopback torrent
+/// route, so the SSRF guard here allows self-loopback ([`support_policy`]) while
+/// still blocking every other private/internal destination.
 pub(crate) async fn opensub_hash(
-    State(client): State<reqwest::Client>,
+    State(cfg): State<Config>,
     Query(q): Query<HashQuery>,
 ) -> Response {
-    match compute_osdb_hash(&client, &q.video_url).await {
+    match compute_osdb_hash(&cfg, &q.video_url).await {
         Ok((hash, size)) => Json(json!({"error": null, "result": {"hash": hash, "size": size}}))
             .into_response(),
         Err(e) => (
@@ -45,11 +58,19 @@ pub(crate) async fn opensub_hash(
     }
 }
 
-async fn compute_osdb_hash(client: &reqwest::Client, url: &str) -> Result<(String, u64), String> {
-    // HEAD, following a few redirects manually (shared client has redirects off).
+async fn compute_osdb_hash(cfg: &Config, url: &str) -> Result<(String, u64), String> {
+    // HEAD, following a few redirects manually (each hop re-vetted + pinned; our
+    // clients have redirects off). The client pinned to the FINAL url is reused
+    // for the ranged reads below.
+    let policy = support_policy(cfg);
     let mut current = url.to_owned();
+    let mut pinned = None;
     let mut size = None;
     for _ in 0..5 {
+        let parsed = Url::parse(&current).map_err(|e| e.to_string())?;
+        let client = ssrf::vet_and_pin(cfg, &parsed, policy)
+            .await
+            .map_err(|s| format!("blocked destination: {s}"))?;
         let resp = client.head(&current).send().await.map_err(|e| e.to_string())?;
         if resp.status().is_redirection() {
             if let Some(loc) = resp.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()) {
@@ -65,15 +86,17 @@ async fn compute_osdb_hash(client: &reqwest::Client, url: &str) -> Result<(Strin
             .get(header::CONTENT_LENGTH)
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u64>().ok());
+        pinned = Some(client);
         break;
     }
     let size = size.ok_or_else(|| "missing content-length".to_owned())?;
+    let client = pinned.ok_or_else(|| "too many redirects".to_owned())?;
     if size < CHUNK {
         return Err("file too small for hash".to_owned());
     }
 
-    let head = ranged_get(client, &current, 0, CHUNK - 1).await?;
-    let tail = ranged_get(client, &current, size - CHUNK, size - 1).await?;
+    let head = ranged_get(&client, &current, 0, CHUNK - 1).await?;
+    let tail = ranged_get(&client, &current, size - CHUNK, size - 1).await?;
     if head.len() as u64 != CHUNK || tail.len() as u64 != CHUNK {
         return Err("short read".to_owned());
     }
@@ -127,28 +150,28 @@ pub(crate) struct SubtitlesTracksQuery {
 
 /// `GET /subtitles.vtt?from=…&offset=…` — re-serialize source cues as WEBVTT.
 pub(crate) async fn subtitles_vtt(
-    client: State<reqwest::Client>,
+    cfg: State<Config>,
     q: Query<SubtitlesQuery>,
 ) -> Response {
-    subtitles_inner(client, q, true).await
+    subtitles_inner(cfg, q, true).await
 }
 
 /// `GET /subtitles.srt?from=…&offset=…` — re-serialize source cues as SRT.
 pub(crate) async fn subtitles_srt(
-    client: State<reqwest::Client>,
+    cfg: State<Config>,
     q: Query<SubtitlesQuery>,
 ) -> Response {
-    subtitles_inner(client, q, false).await
+    subtitles_inner(cfg, q, false).await
 }
 
 /// M3b supports SRT sources (the dominant case); a non-SRT source 500s and the
 /// player falls back to the raw URL (withHTMLSubtitles.js:452-460).
 async fn subtitles_inner(
-    State(client): State<reqwest::Client>,
+    State(cfg): State<Config>,
     Query(q): Query<SubtitlesQuery>,
     is_vtt: bool,
 ) -> Response {
-    let text = match fetch_text(&client, &q.from).await {
+    let text = match fetch_text(&cfg, &q.from).await {
         Ok(t) => t,
         Err(_) => return err500(),
     };
@@ -163,10 +186,10 @@ async fn subtitles_inner(
 
 /// `GET /subtitlesTracks?subsUrl=…` → `{error, result:[cues]}` (SRT source).
 pub(crate) async fn subtitles_tracks(
-    State(client): State<reqwest::Client>,
+    State(cfg): State<Config>,
     Query(q): Query<SubtitlesTracksQuery>,
 ) -> Response {
-    let text = match fetch_text(&client, &q.subs_url).await {
+    let text = match fetch_text(&cfg, &q.subs_url).await {
         Ok(t) => t,
         Err(_) => return err500(),
     };
@@ -194,7 +217,11 @@ pub(crate) async fn yt(Path(_id): Path<String>) -> Response {
     StatusCode::FORBIDDEN.into_response()
 }
 
-async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
+async fn fetch_text(cfg: &Config, url: &str) -> Result<String, String> {
+    let parsed = Url::parse(url).map_err(|e| e.to_string())?;
+    let client = ssrf::vet_and_pin(cfg, &parsed, support_policy(cfg))
+        .await
+        .map_err(|s| format!("blocked destination: {s}"))?;
     let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
     if !resp.status().is_success() {
         return Err(format!("fetch {}", resp.status()));

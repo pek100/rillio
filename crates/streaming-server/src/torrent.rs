@@ -85,6 +85,8 @@ pub(crate) async fn create_blob(
             return err500();
         }
     };
+    // Freshly added: mark active so the sweeper doesn't evict it before first play.
+    engine.touch(&Engine::info_hash_hex(&handle));
     let stats = engine.statistics(&handle, cache_path(&handle), default_peer_search(&handle), None);
     Json(CreateResponse {
         statistics: stats,
@@ -113,6 +115,7 @@ pub(crate) async fn create_magnet(
             return err500();
         }
     };
+    engine.touch(&info_hash);
 
     let files = Engine::files(&handle);
     let guessed = resolve_index(&files, &body);

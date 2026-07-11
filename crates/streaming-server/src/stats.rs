@@ -17,9 +17,12 @@ pub(crate) async fn stats_file(
     State(engine): State<Engine>,
     Path((info_hash, idx)): Path<(String, String)>,
 ) -> Response {
-    let Some(handle) = engine.get(&info_hash.to_lowercase()) else {
+    let info_hash = info_hash.to_lowercase();
+    let Some(handle) = engine.get(&info_hash) else {
         return Json(Value::Null).into_response();
     };
+    // Polled ~1×/s during playback: keeps the active torrent fresh for the sweeper.
+    engine.touch(&info_hash);
     let idx = idx.parse::<usize>().ok();
     Json(statistics(&engine, &handle, idx)).into_response()
 }
@@ -30,9 +33,11 @@ pub(crate) async fn stats_torrent(
     State(engine): State<Engine>,
     Path(info_hash): Path<String>,
 ) -> Response {
-    let Some(handle) = engine.get(&info_hash.to_lowercase()) else {
+    let info_hash = info_hash.to_lowercase();
+    let Some(handle) = engine.get(&info_hash) else {
         return Json(Value::Null).into_response();
     };
+    engine.touch(&info_hash);
     Json(statistics(&engine, &handle, None)).into_response()
 }
 

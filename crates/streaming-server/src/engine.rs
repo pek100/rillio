@@ -7,9 +7,10 @@
 //! proxy (STREMIO_SOCKS_PROXY) hides the client IP from peers and keeps the
 //! inbound port off (no real-IP leak past the proxy). See [`Engine::new`].
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use librqbit::{AddTorrent, ManagedTorrent, Session, SessionOptions, SessionPersistenceConfig};
@@ -122,6 +123,11 @@ pub struct Engine {
     session: Arc<Session>,
     /// Absolute cache root; torrents whose files would escape it are refused.
     cache_root: Arc<PathBuf>,
+    /// Last time each torrent (by lowercase hex infohash) was streamed or queried.
+    /// Drives cache-cap eviction: least-recently-used torrents go first, and a
+    /// recently-touched (i.e. currently-playing) one is protected. See
+    /// [`Engine::touch`] and [`Engine::enforce_cache_cap`].
+    last_access: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl Engine {
@@ -208,7 +214,77 @@ impl Engine {
             ..Default::default()
         };
         let session = Session::new_with_opts(cache_dir, opts).await?;
-        Ok(Self { session, cache_root: Arc::new(cache_root) })
+        Ok(Self {
+            session,
+            cache_root: Arc::new(cache_root),
+            last_access: Arc::new(Mutex::new(HashMap::new())),
+        })
+    }
+
+    /// Record that `info_hash` (lowercase hex) was just streamed/queried. Called
+    /// from the stream, stats and create routes so the cache sweeper can tell an
+    /// actively-used torrent from a stale one.
+    pub fn touch(&self, info_hash: &str) {
+        if let Ok(mut m) = self.last_access.lock() {
+            m.insert(info_hash.to_owned(), Instant::now());
+        }
+    }
+
+    /// Approximate on-disk cache weight: bytes downloaded (and thus written to the
+    /// cache root) across all managed torrents.
+    pub fn cache_bytes(&self) -> u64 {
+        self.session
+            .with_torrents(|it| it.map(|(_, h)| h.stats().progress_bytes).sum())
+    }
+
+    /// Enforce a `cap`-byte cache by evicting least-recently-used torrents (which
+    /// deletes their cached files) until under the cap. A torrent touched within
+    /// `grace` is never evicted, so the currently-playing title is safe. Loud: logs
+    /// every eviction and warns if it cannot reach the cap (only active torrents
+    /// remain). Adds are never refused by size — the bound is applied here.
+    pub async fn enforce_cache_cap(&self, cap: u64, grace: Duration) {
+        let mut used = self.cache_bytes();
+        if used <= cap {
+            return;
+        }
+
+        let now = Instant::now();
+        let last = self.last_access.lock().map(|m| m.clone()).unwrap_or_default();
+        // (infohash, bytes, idle-duration). Unknown touch => most idle (evict first).
+        let mut candidates: Vec<(String, u64, Duration)> = self
+            .all()
+            .iter()
+            .map(|h| {
+                let ih = Self::info_hash_hex(h);
+                let bytes = h.stats().progress_bytes;
+                let idle = last.get(&ih).map(|t| now.duration_since(*t)).unwrap_or(Duration::MAX);
+                (ih, bytes, idle)
+            })
+            // Protect anything touched within the grace window (active playback).
+            .filter(|(_, _, idle)| *idle >= grace)
+            .collect();
+        // Most idle first.
+        candidates.sort_by(|a, b| b.2.cmp(&a.2));
+
+        tracing::warn!("cache-cap: usage ~{used} over cap {cap}; evicting idle torrents");
+        for (ih, bytes, _) in candidates {
+            if used <= cap {
+                break;
+            }
+            if self.remove(&ih).await {
+                if let Ok(mut m) = self.last_access.lock() {
+                    m.remove(&ih);
+                }
+                used = used.saturating_sub(bytes);
+                tracing::warn!("cache-cap: evicted {ih} (~{bytes} bytes), usage now ~{used}/{cap}");
+            }
+        }
+        if used > cap {
+            tracing::warn!(
+                "cache-cap: still ~{used} bytes over {cap} after evicting idle torrents \
+                 (active torrents are protected)"
+            );
+        }
     }
 
     /// Refuse a torrent whose files would resolve outside the cache root. A

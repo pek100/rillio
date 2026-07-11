@@ -13,8 +13,6 @@
 //! - Playlists are buffered then rewritten (they are small) rather than streamed
 //!   line-by-line; output is equivalent. Non-playlist bodies stream through.
 
-use std::net::IpAddr;
-
 use axum::body::Body;
 use axum::extract::{OriginalUri, Path, State};
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
@@ -23,6 +21,7 @@ use futures_util::StreamExt;
 use url::Url;
 
 use crate::config::Config;
+use crate::ssrf::{self, Policy};
 
 /// Client request headers allowed to cross to the origin (server.js:71803).
 const REQ_ALLOW: &[&str] = &[
@@ -123,7 +122,6 @@ fn err(status: StatusCode) -> Response {
 
 /// `ALL /proxy/{opts}/{*path}` — with a trailing path.
 pub(crate) async fn proxy_with_path(
-    client: State<reqwest::Client>,
     cfg: State<Config>,
     method: Method,
     uri: OriginalUri,
@@ -131,12 +129,11 @@ pub(crate) async fn proxy_with_path(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
-    handle(client.0, cfg.0, method, uri, opts, tail, headers, body).await
+    handle(cfg.0, method, uri, opts, tail, headers, body).await
 }
 
 /// `ALL /proxy/{opts}` — no trailing path (target is the origin root).
 pub(crate) async fn proxy_root(
-    client: State<reqwest::Client>,
     cfg: State<Config>,
     method: Method,
     uri: OriginalUri,
@@ -144,12 +141,11 @@ pub(crate) async fn proxy_root(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
-    handle(client.0, cfg.0, method, uri, opts, String::new(), headers, body).await
+    handle(cfg.0, method, uri, opts, String::new(), headers, body).await
 }
 
 #[allow(clippy::too_many_arguments)]
 async fn handle(
-    client: reqwest::Client,
     cfg: Config,
     method: Method,
     OriginalUri(original): OriginalUri,
@@ -171,7 +167,7 @@ async fn handle(
     // Collect the request body once (proxied verbatim for non-GET).
     let body_bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap_or_default();
 
-    let fetched = fetch_following_redirects(&client, &cfg, &method, target, &headers, &opts, body_bytes).await;
+    let fetched = fetch_following_redirects(&cfg, &method, target, &headers, &opts, body_bytes).await;
     let (resp, final_url) = match fetched {
         Ok(v) => v,
         Err(status) => return err(status),
@@ -202,10 +198,11 @@ async fn handle(
     (status, out, Body::from_stream(stream)).into_response()
 }
 
-/// Fetch `target`, following ≤5 redirects manually, re-checking SSRF on each hop
-/// and re-applying injected `h` headers + `Host` per hop.
+/// Fetch `target`, following ≤5 redirects manually, re-vetting SSRF on each hop
+/// and re-applying injected `h` headers + `Host` per hop. Each hop uses a client
+/// pinned to the hop's vetted IP (resolve-then-connect), so a rebinding DNS answer
+/// cannot slip a private address past the check.
 async fn fetch_following_redirects(
-    client: &reqwest::Client,
     cfg: &Config,
     method: &Method,
     mut target: Url,
@@ -215,10 +212,9 @@ async fn fetch_following_redirects(
 ) -> Result<(reqwest::Response, Url), StatusCode> {
     let mut hops = 0u32;
     loop {
-        if !matches!(target.scheme(), "http" | "https") {
-            return Err(StatusCode::BAD_REQUEST);
-        }
-        ssrf_guard(cfg, &target).await?;
+        // Vet the destination and pin the connection to it. The proxy never talks
+        // to private/loopback ranges (Strict), unlike the subtitle routes.
+        let client = ssrf::vet_and_pin(cfg, &target, Policy::Strict).await?;
 
         let mut req_headers = filtered_headers(client_headers, REQ_ALLOW);
         if let Some(host) = target.host_str() {
@@ -399,7 +395,7 @@ fn path_and_query(u: &Url) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Headers + SSRF
+// Headers
 // ---------------------------------------------------------------------------
 
 fn filtered_headers(headers: &HeaderMap, allow: &[&str]) -> HeaderMap {
@@ -433,54 +429,6 @@ fn to_reqwest_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
         }
     }
     out
-}
-
-/// Reject destinations resolving to private/loopback/link-local/CGNAT ranges,
-/// unless the exact host is on the opt-in allowlist. Re-run on every hop.
-async fn ssrf_guard(cfg: &Config, target: &Url) -> Result<(), StatusCode> {
-    let host = target.host_str().ok_or(StatusCode::BAD_REQUEST)?;
-    if cfg.proxy_allow_private_hosts.iter().any(|h| h == host) {
-        return Ok(());
-    }
-    let port = target.port_or_known_default().unwrap_or(80);
-    let addrs = tokio::net::lookup_host((host, port))
-        .await
-        .map_err(|_| StatusCode::BAD_GATEWAY)?;
-    let mut any = false;
-    for addr in addrs {
-        any = true;
-        if is_blocked_ip(addr.ip()) {
-            return Err(StatusCode::FORBIDDEN);
-        }
-    }
-    if !any {
-        return Err(StatusCode::BAD_GATEWAY);
-    }
-    Ok(())
-}
-
-fn is_blocked_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(v4) => {
-            v4.is_loopback()
-                || v4.is_private()
-                || v4.is_link_local()
-                || v4.is_unspecified()
-                || v4.is_broadcast()
-                // CGNAT 100.64.0.0/10
-                || (v4.octets()[0] == 100 && (v4.octets()[1] & 0xC0) == 0x40)
-        }
-        IpAddr::V6(v6) => {
-            v6.is_loopback()
-                || v6.is_unspecified()
-                // unique-local fc00::/7
-                || (v6.segments()[0] & 0xFE00) == 0xFC00
-                // link-local fe80::/10
-                || (v6.segments()[0] & 0xFFC0) == 0xFE80
-                // IPv4-mapped: unwrap and re-check
-                || v6.to_ipv4_mapped().map(|m| is_blocked_ip(IpAddr::V4(m))).unwrap_or(false)
-        }
-    }
 }
 
 #[cfg(test)]
@@ -564,21 +512,5 @@ mod tests {
         assert!(got.contains("\r\n"), "CRLF preserved");
         assert!(got.contains("/proxy/d=https%3A%2F%2Fcdn.example.com/v/720.m3u8"));
         assert!(got.contains("\nseg.ts\r\n") || got.ends_with("seg.ts\r\n"));
-    }
-
-    #[test]
-    fn ssrf_blocks_private_and_loopback() {
-        assert!(is_blocked_ip("127.0.0.1".parse().unwrap()));
-        assert!(is_blocked_ip("10.0.0.5".parse().unwrap()));
-        assert!(is_blocked_ip("192.168.1.1".parse().unwrap()));
-        assert!(is_blocked_ip("169.254.169.254".parse().unwrap())); // cloud metadata
-        assert!(is_blocked_ip("172.16.0.1".parse().unwrap()));
-        assert!(is_blocked_ip("100.64.0.1".parse().unwrap())); // CGNAT
-        assert!(is_blocked_ip("::1".parse().unwrap()));
-        assert!(is_blocked_ip("fe80::1".parse().unwrap()));
-        assert!(is_blocked_ip("fc00::1".parse().unwrap()));
-        // public addresses pass
-        assert!(!is_blocked_ip("8.8.8.8".parse().unwrap()));
-        assert!(!is_blocked_ip("1.1.1.1".parse().unwrap()));
     }
 }

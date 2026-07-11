@@ -92,6 +92,8 @@ async fn handle_stream(
             return err500();
         }
     };
+    // Mark active so the cache sweeper never evicts the title being played.
+    engine.touch(&info_hash);
     let files = Engine::files(&handle);
     if files.is_empty() {
         tracing::error!("stream {info_hash}: metadata not resolved (no files)");

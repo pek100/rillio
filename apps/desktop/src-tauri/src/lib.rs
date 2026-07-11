@@ -331,11 +331,17 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 /// Spawn the embedded streaming server on Tauri's async (tokio) runtime. It
 /// binds 127.0.0.1:11470 and owns the torrent cache under the app data dir.
 fn start_streaming_server(app: &tauri::AppHandle) {
-    let cache_dir = app
-        .path()
-        .app_data_dir()
-        .unwrap_or_else(|_| std::env::temp_dir())
-        .join("streaming-server");
+    // STREMIO_STREAMING_CACHE_DIR overrides the cache/session root. Use it to run
+    // a dev build against an ISOLATED cache so it never opens (or evicts from) the
+    // installed app's real torrent cache. Unset in production => the app data dir.
+    let cache_dir = match std::env::var_os("STREMIO_STREAMING_CACHE_DIR") {
+        Some(dir) => std::path::PathBuf::from(dir),
+        None => app
+            .path()
+            .app_data_dir()
+            .unwrap_or_else(|_| std::env::temp_dir())
+            .join("streaming-server"),
+    };
     if let Err(e) = std::fs::create_dir_all(&cache_dir) {
         tracing::error!("cannot create cache dir {cache_dir:?}: {e}");
     }

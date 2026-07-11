@@ -11,6 +11,8 @@ mod hlsv2;
 mod local_addon;
 mod proxy;
 mod routes;
+mod security;
+mod ssrf;
 mod stats;
 mod stream;
 mod support;
@@ -24,20 +26,20 @@ pub mod types;
 pub use config::Config;
 pub use engine::Engine;
 
+use std::time::Duration;
+
 use axum::extract::FromRef;
 use axum::routing::{any, get, on, post, MethodFilter};
 use axum::Router;
-use tower_http::cors::CorsLayer;
 
 /// Shared router state. `FromRef` lets control-plane handlers extract
 /// `State<Config>` and torrent handlers extract `State<Engine>` from the same
-/// state without either knowing about the other.
+/// state without either knowing about the other. Outbound HTTP clients are built
+/// per-request, pinned to a vetted IP (see [`ssrf`]), so no client lives here.
 #[derive(Clone)]
 pub struct AppState {
     pub config: Config,
     pub engine: Engine,
-    /// Shared outbound HTTP client for `/proxy` (manual redirects; TLS verified).
-    pub http: reqwest::Client,
 }
 
 impl FromRef<AppState> for Config {
@@ -50,24 +52,16 @@ impl FromRef<AppState> for Engine {
         s.engine.clone()
     }
 }
-impl FromRef<AppState> for reqwest::Client {
-    fn from_ref(s: &AppState) -> reqwest::Client {
-        s.http.clone()
-    }
-}
 
 /// Build the streaming-server router.
 ///
-/// CORS is permissive (`Access-Control-Allow-Origin: *`) to match the
-/// container's `NO_CORS=1` behavior — safe only because the socket is expected
-/// to bind loopback. Do not bind this to a public interface.
+/// The socket binds loopback, but that alone does not stop other browsers on the
+/// machine from reaching it, so the web-origin trust boundary is enforced here:
+/// an Origin allowlist (see [`security`]) rejects real websites while allowing the
+/// Tauri webview and no-Origin media/native loads, and every state-changing route
+/// is POST-only. Do not bind this to a public interface.
 pub fn router(config: Config, engine: Engine) -> Router {
-    // Manual redirect handling so the proxy's SSRF guard runs on every hop.
-    let http = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .expect("reqwest client");
-    let state = AppState { config, engine, http };
+    let state = AppState { config, engine };
     Router::new()
         // M0 control plane
         .route("/settings", get(routes::get_settings).post(routes::post_settings))
@@ -84,14 +78,13 @@ pub fn router(config: Config, engine: Engine) -> Router {
         .route("/heartbeat", get(routes::heartbeat))
         .route("/", get(routes::root))
         .route("/favicon.ico", get(routes::favicon))
-        // M1 torrent engine
-        .route("/create", post(torrent::create_blob).get(torrent::create_blob))
-        .route(
-            "/{info_hash}/create",
-            post(torrent::create_magnet).get(torrent::create_magnet),
-        )
-        .route("/removeAll", get(torrent::remove_all))
-        .route("/{info_hash}/remove", get(torrent::remove))
+        // M1 torrent engine. POST-only: these mutate state, so they must not be
+        // reachable from a foreign page's `<img src>` / navigation (a GET with no
+        // Origin). The web client + core already POST create; nothing issues remove.
+        .route("/create", post(torrent::create_blob))
+        .route("/{info_hash}/create", post(torrent::create_magnet))
+        .route("/removeAll", post(torrent::remove_all))
+        .route("/{info_hash}/remove", post(torrent::remove))
         // M2 stats family (static segments; win over the {idx} stream param).
         .route("/stats.json", get(stats::stats_aggregate))
         .route("/{info_hash}/stats.json", get(stats::stats_torrent))
@@ -124,21 +117,28 @@ pub fn router(config: Config, engine: Engine) -> Router {
             "/{info_hash}/{idx}/{*rest}",
             on(MethodFilter::GET.or(MethodFilter::HEAD), stream::stream_rest),
         )
+        // Innermost: request logging. Middle: CORS (echoes ACAO for the allowlisted
+        // webview + answers its Private Network Access preflight). Outermost: the
+        // origin guard, so a foreign Origin is rejected before CORS or any handler.
         .layer(axum::middleware::from_fn(log_request))
-        // Permissive CORS + Private Network Access: a WebView/browser page served
-        // from a non-loopback-classified origin (e.g. tauri.localhost) fetching
-        // this loopback server triggers Chromium's PNA preflight, which requires
-        // `Access-Control-Allow-Private-Network: true`. Without it the fetch is
-        // blocked before it reaches us. Safe because we bind loopback only.
-        .layer(CorsLayer::permissive().allow_private_network(true))
+        .layer(security::cors_layer())
+        .layer(axum::middleware::from_fn(security::origin_guard))
         .with_state(state)
 }
 
-/// Log every incoming request (method + path). Diagnostic; cheap enough to keep.
+/// Log every incoming request (method + path + Origin). Diagnostic; cheap enough
+/// to keep. The Origin is logged so the trusted webview origin can be confirmed
+/// against the allowlist in [`security`] without guessing.
 async fn log_request(req: axum::extract::Request, next: axum::middleware::Next) -> axum::response::Response {
     let method = req.method().clone();
     let uri = req.uri().clone();
-    tracing::debug!("REQ {method} {uri}");
+    let origin = req
+        .headers()
+        .get(axum::http::header::ORIGIN)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("<none>")
+        .to_owned();
+    tracing::debug!("REQ {method} {uri} Origin={origin}");
     next.run(req).await
 }
 
@@ -150,8 +150,36 @@ pub async fn serve(config: Config) -> std::io::Result<()> {
     let engine = Engine::new(config.cache_root.clone())
         .await
         .map_err(|e| std::io::Error::other(e.to_string()))?;
+    spawn_cache_sweeper(&config, engine.clone());
     let app = router(config, engine);
     let listener = tokio::net::TcpListener::bind(bind).await?;
     tracing::info!(%bind, "streaming server listening");
     axum::serve(listener, app).await
+}
+
+/// How often the cache sweeper checks disk usage.
+const CACHE_SWEEP_INTERVAL: Duration = Duration::from_secs(30);
+/// A torrent touched (streamed/queried) within this window is never evicted, so
+/// whatever is currently playing is protected from the cache cap.
+const CACHE_EVICT_GRACE: Duration = Duration::from_secs(120);
+
+/// Enforce `config.cache_size` (S7): periodically evict the least-recently-used
+/// idle torrents when the cache exceeds the cap. `None` cacheSize = unlimited (no
+/// sweeper). A streaming server plays a *window* of a torrent, so adds are never
+/// refused by size (see `tests/confinement.rs`); the bound is applied here, after
+/// the fact, by eviction rather than refusal.
+fn spawn_cache_sweeper(config: &Config, engine: Engine) {
+    let Some(cap) = config.cache_size else {
+        tracing::info!("cache-cap: unlimited (no cacheSize); disk growth is unbounded");
+        return;
+    };
+    let cap = cap.max(0.0) as u64;
+    tracing::info!("cache-cap: enforcing ~{cap} bytes by evicting idle torrents");
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(CACHE_SWEEP_INTERVAL);
+        loop {
+            tick.tick().await;
+            engine.enforce_cache_cap(cap, CACHE_EVICT_GRACE).await;
+        }
+    });
 }

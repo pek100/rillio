@@ -2,7 +2,6 @@
 
 use std::net::SocketAddr;
 
-use axum::extract::State;
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
@@ -46,6 +45,28 @@ async fn spawn_origin() -> u16 {
 }
 
 async fn spawn_server(tag: &str) -> String {
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))
+        .await
+        .unwrap();
+    let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let dir = std::env::temp_dir().join(format!("stremio-support-{tag}"));
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+    let engine = Engine::new(dir.clone()).await.unwrap();
+    // The subtitle/opensub SSRF guard blocks loopback by default; these tests
+    // point `from`/`videoUrl` at a hermetic loopback mock on a random port (not
+    // the server's own port), so allow-list 127.0.0.1 exactly as proxy_e2e does.
+    // The guard's default-block behavior is covered separately below.
+    let mut config = Config::local(dir);
+    config.proxy_allow_private_hosts = vec!["127.0.0.1".to_owned()];
+    let app = router(config, engine);
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    base
+}
+
+/// A server WITHOUT the loopback allow-list, to prove the SSRF guard blocks a
+/// subtitle `from=` that points at a non-self loopback service.
+async fn spawn_guarded_server(tag: &str) -> String {
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))
         .await
         .unwrap();
@@ -110,6 +131,22 @@ async fn subtitles_srt_offset() {
     assert!(!body.starts_with("WEBVTT"));
     // comma separator + shifted +1s
     assert!(body.contains("00:00:02,000 --> 00:00:05,000"));
+}
+
+#[tokio::test]
+async fn subtitles_from_loopback_is_blocked_by_ssrf_guard() {
+    // A malicious addon/subtitle URL that points at a local service (here the mock
+    // origin, standing in for 169.254.169.254 / a router admin / another daemon)
+    // must be refused. Without the loopback allow-list, fetch fails the guard and
+    // the route 500s (the player then falls back to the raw URL) — the internal
+    // service is never reached and its body never returned.
+    let origin = spawn_origin().await;
+    let server = spawn_guarded_server("ssrf").await;
+    let src = format!("http://127.0.0.1:{origin}/sub.srt");
+    let resp = reqwest::get(format!("{server}/subtitles.vtt?from={}", enc(&src)))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 500);
 }
 
 #[tokio::test]
