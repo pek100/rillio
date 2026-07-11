@@ -105,6 +105,26 @@ const ServicesToaster = () => {
         return () => { cancelled = true; if (typeof unlisten === 'function') unlisten(); };
     }, []);
 
+    // The native shell emits `streaming-server-error` if the in-process streaming
+    // server fails to start (e.g. port 11470 already held by another instance).
+    // Surface it so a dead backend is not silent. No-op outside the Tauri shell.
+    React.useEffect(() => {
+        const TAURI = getTauri();
+        if (!TAURI?.event?.listen) return;
+        let unlisten;
+        let cancelled = false;
+        TAURI.event.listen('streaming-server-error', (event) => {
+            const detail = typeof event?.payload === 'string' ? event.payload : null;
+            toast.show({
+                type: 'error',
+                title: 'Streaming server failed to start',
+                message: detail || 'Streams may not load. Another instance may already be using the port.',
+                timeout: 10000,
+            });
+        }).then((un) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
+        return () => { cancelled = true; if (typeof unlisten === 'function') unlisten(); };
+    }, []);
+
     return null;
 };
 
