@@ -1,4 +1,4 @@
-//! M2 — the `stats.json` family. Each returns `null` when the engine is not
+//! M2 - the `stats.json` family. Each returns `null` when the engine is not
 //! managed (getStatistics returns null for an absent engine, server.js:18295);
 //! these routes never auto-create.
 
@@ -11,7 +11,7 @@ use serde_json::{Map, Value};
 use crate::engine::{Engine, Handle};
 use crate::torrent::{cache_path, default_peer_search};
 
-/// `GET /:ih/:idx/stats.json` — per-file stats. Core deserializes this into
+/// `GET /:ih/:idx/stats.json` - per-file stats. Core deserializes this into
 /// `Option<Statistics>`; `null` ⇒ None. `idx` is a resolved file index (core
 /// never sends -1 here).
 pub(crate) async fn stats_file(
@@ -40,7 +40,7 @@ pub(crate) async fn stats_file(
     Json(statistics(&engine, &handle, Some(idx))).into_response()
 }
 
-/// `GET /:ih/stats.json` — torrent-level stats (video's filename/OpenSubtitles
+/// `GET /:ih/stats.json` - torrent-level stats (video's filename/OpenSubtitles
 /// resolver reads this; core does not).
 pub(crate) async fn stats_torrent(
     State(engine): State<Engine>,
@@ -54,7 +54,7 @@ pub(crate) async fn stats_torrent(
     Json(statistics(&engine, &handle, None)).into_response()
 }
 
-/// `GET /stats.json` — aggregate over all engines (debug; no consumer). `{}`
+/// `GET /stats.json` - aggregate over all engines (debug; no consumer). `{}`
 /// when empty; `?sys=1` is intentionally NOT implemented (host-info leak).
 pub(crate) async fn stats_aggregate(State(engine): State<Engine>) -> Response {
     let mut out = Map::new();

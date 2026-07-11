@@ -1,4 +1,4 @@
-//! M4 — /local-addon transport serves the manifest and empty resource responses.
+//! M4 - /local-addon transport serves the manifest and empty resource responses.
 
 use std::net::SocketAddr;
 

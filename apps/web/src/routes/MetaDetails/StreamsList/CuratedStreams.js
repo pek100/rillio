@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2024 Smart code 203358507
-
 // The curated streams view: instead of a wall of near-identical torrent rows, a
 // horizontal carousel with the single best pick per quality tier (4K HDR / 1080p
 // HDR / 4K / 1080p), a small preset switch (Auto / Quality / Speed), and a small

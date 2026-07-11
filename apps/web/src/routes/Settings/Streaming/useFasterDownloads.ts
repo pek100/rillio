@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2025 Smart code 203358507
-
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from 'rillio/common';

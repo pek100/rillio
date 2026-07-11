@@ -5,7 +5,7 @@
 //! and for the oracle-diff tests.
 //!
 //! Milestone status lives in `docs/streaming-server-rust/` and
-//! `checklists/streaming-server-rust.md`. This is **M0** — the control plane.
+//! `checklists/streaming-server-rust.md`. This is **M0** - the control plane.
 
 mod hlsv2;
 mod local_addon;
@@ -99,11 +99,11 @@ pub fn router(config: Config, engine: Engine) -> Router {
         .route("/subtitlesTracks", get(support::subtitles_tracks))
         .route("/tracks/{url}", get(support::tracks))
         .route("/yt/{id}", get(support::yt))
-        // /hlsv2/probe — report direct-playable so the player uses the direct
+        // /hlsv2/probe - report direct-playable so the player uses the direct
         // stream URL (mpv shell: no server transcode). Rest of /hlsv2 deferred.
         .route("/hlsv2/probe", get(hlsv2::probe))
         // M4 local-files addon transport (manifest so core recognizes it;
-        // resources return empty — full indexing deferred).
+        // resources return empty - full indexing deferred).
         .route("/local-addon/manifest.json", get(local_addon::local_manifest))
         .route("/local-addon/{resource}/{type}/{*rest}", get(local_addon::local_resource))
         // The media stream. GET+HEAD are handled explicitly (HEAD must not open

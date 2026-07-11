@@ -10,7 +10,7 @@ members = [
 # The streaming server is native-only and pulls a large tree (librqbit, rustls,
 # ring, DHT) that requires url >=2.5, which conflicts with the wasm crates'
 # url 2.4.* pin. It is its own workspace so the two dependency graphs never
-# share a lockfile — the wasm build stays clean. Build it from its own dir.
+# share a lockfile, the wasm build stays clean. Build it from its own dir.
 exclude = [
     "crates/streaming-server",
 ]

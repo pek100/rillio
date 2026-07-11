@@ -15,7 +15,7 @@
     padding-top: var(--safe-area-inset-top);
     box-sizing: content-box;
 
-    // Logo slot (only rendered when there is no back button — the detail/player
+    // Logo slot (only rendered when there is no back button, the detail/player
     // routes all pass backButton, so in practice the back button takes this spot).
     // Logo sizing is driven by the `h-8 w-auto` utilities on the <Logo/> element,
     // matching TopNav exactly.
@@ -74,7 +74,7 @@
         }
     }
 
-    // 40px circular controls with size-4 icons — matches TopNav. Bare over the
+    // 40px circular controls with size-4 icons, matches TopNav. Bare over the
     // video/backdrop by default; hover/active gets the app's translucent
     // over-imagery fill (--overlay-color) and the icon brightens muted -> fg.
     .button-container {

@@ -63,14 +63,14 @@ pub async fn get_settings(State(cfg): State<Config>) -> Json<SettingsResponse> {
     })
 }
 
-/// POST `/settings` — the client persists user changes here. M0 acknowledges
+/// POST `/settings` - the client persists user changes here. M0 acknowledges
 /// without storing; real persistence lands with the engine (M1/M2) that
 /// actually consumes cacheSize/limits.
 pub async fn post_settings() -> Json<Success> {
     Json(Success::ok())
 }
 
-/// GET `/torrent-settings` — the persisted "faster downloads" (inbound listen
+/// GET `/torrent-settings` - the persisted "faster downloads" (inbound listen
 /// port + UPnP) preference. Rillio-specific; the UI reflects this toggle and
 /// notes that a change applies on the next app start.
 pub async fn get_torrent_settings(State(cfg): State<Config>) -> Json<TorrentSettings> {
@@ -79,7 +79,7 @@ pub async fn get_torrent_settings(State(cfg): State<Config>) -> Json<TorrentSett
     })
 }
 
-/// POST `/torrent-settings` — persist the toggle. Written to the cache root the
+/// POST `/torrent-settings` - persist the toggle. Written to the cache root the
 /// engine reads at startup; it does NOT reconfigure the live session (librqbit
 /// fixes the listener at construction), so it takes effect on the next launch.
 pub async fn post_torrent_settings(
@@ -111,7 +111,7 @@ pub async fn device_info() -> Json<DeviceInfo> {
     })
 }
 
-/// `GET /casting` — core probes this on load and tolerates failure. An empty
+/// `GET /casting` - core probes this on load and tolerates failure. An empty
 /// list is the safe stub. (Our reference container returns 404 only because it
 /// runs with CASTING_DISABLED=1; core handles both.)
 pub async fn casting() -> Json<Vec<serde_json::Value>> {

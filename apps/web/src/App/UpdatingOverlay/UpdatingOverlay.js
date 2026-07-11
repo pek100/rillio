@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2023 Smart code 203358507
-
 const React = require('react');
 const { default: Logo } = require('rillio/common/Logo/Logo');
 const { getTauri } = require('rillio/common/Platform/shell/isShell');

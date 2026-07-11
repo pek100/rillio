@@ -1,4 +1,4 @@
-//! M2 — stats.json routes: null-when-absent, and real per-file fields after a
+//! M2 - stats.json routes: null-when-absent, and real per-file fields after a
 //! torrent is added (metadata only; peer-dependent fields are 0 without network).
 
 use std::net::SocketAddr;

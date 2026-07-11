@@ -1,11 +1,11 @@
-//! `/hlsv2/probe` — playability probe (partial M6).
+//! `/hlsv2/probe` - playability probe (partial M6).
 //!
 //! This is an mpv-based shell: mpv decodes every codec, so we never transcode.
 //! The web client's `canPlayStream` (packages/video withStreamingServer.js:360)
 //! probes `/hlsv2/probe` to decide direct-play vs transcode; if the probe fails
 //! it routes to the transcode path (`/hlsv2/master.m3u8`), which we do not
 //! implement. So the probe reports the media as **directly playable**, routing
-//! the player to the direct stream URL `/{ih}/{idx}` — which auto-creates the
+//! the player to the direct stream URL `/{ih}/{idx}` - which auto-creates the
 //! torrent and starts the download. Real ffprobe-based probing and the transcode
 //! pipeline remain deferred (mpv makes them unnecessary for the desktop shell).
 

@@ -1,4 +1,4 @@
-//! M1.3 — the media stream: `GET`/`HEAD` `/:ih/:idx` (+ `/:ih/:idx/*`).
+//! M1.3 - the media stream: `GET`/`HEAD` `/:ih/:idx` (+ `/:ih/:idx/*`).
 //!
 //! Reproduces the blob's non-standard Range contract exactly (server.js
 //! 18203-18272): first-range-only, NO 416 (unsatisfiable falls through to 200),
@@ -17,7 +17,7 @@ use tokio_util::io::ReaderStream;
 use crate::engine::{Engine, Handle};
 use crate::torrent;
 
-/// `contentFeatures.dlna.org` — byte-for-byte from server.js:18291, including
+/// `contentFeatures.dlna.org` - byte-for-byte from server.js:18291, including
 /// the embedded space after `017000` (a blob bug we reproduce for parity).
 const DLNA_CONTENT_FEATURES: &str =
     "DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=017000 00000000000000000000000000";
@@ -33,7 +33,7 @@ pub(crate) async fn stream(
     handle_stream(state, method, info_hash, idx, query, headers).await
 }
 
-/// `/{info_hash}/{idx}/{*rest}` — trailing path (players append the filename);
+/// `/{info_hash}/{idx}/{*rest}` - trailing path (players append the filename);
 /// it does not change file resolution.
 pub(crate) async fn stream_rest(
     state: State<Engine>,
@@ -83,7 +83,7 @@ async fn handle_stream(
     let flags = parse_flags(&query);
 
     // Idempotent get-or-create; needs metadata for file resolution. Reuses the
-    // live handle if already managed (never re-adds — that would reset a playing
+    // live handle if already managed (never re-adds - that would reset a playing
     // torrent to `initializing` and 500 concurrent reads).
     let handle = match engine.get_or_create(&info_hash).await {
         Ok(h) => h,

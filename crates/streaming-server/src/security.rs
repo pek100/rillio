@@ -1,7 +1,7 @@
 //! Web-origin trust boundary for the loopback control/stream API.
 //!
-//! Binding to loopback does NOT stop other software on the machine — chiefly any
-//! website open in any browser — from reaching `http://127.0.0.1:11470`. Chromium
+//! Binding to loopback does NOT stop other software on the machine - chiefly any
+//! website open in any browser - from reaching `http://127.0.0.1:11470`. Chromium
 //! sends the page's true `Origin` on every cross-origin `fetch`/`XHR`/form POST
 //! and a page can NEVER forge that header, so an Origin allowlist cleanly
 //! separates our trusted desktop WebView from real websites:
@@ -28,7 +28,7 @@ use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer};
 /// Origins the desktop shell's WebView is served from. On Windows the Tauri v2
 /// custom protocol serves the bundled `apps/web` build from `http://tauri.localhost`;
 /// the https/`tauri://` variants are listed too so a wry/WebView2 scheme change
-/// cannot silently break playback. All three are the trusted shell — never a real
+/// cannot silently break playback. All three are the trusted shell - never a real
 /// website. Extend for dev (a webpack origin, e.g. `http://localhost:8080`) with
 /// the `RILLIO_ALLOWED_ORIGIN` env var.
 const WEBVIEW_ORIGINS: &[&str] = &[

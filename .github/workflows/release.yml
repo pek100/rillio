@@ -1,7 +1,7 @@
 # Build, sign, and publish a Rillio desktop release + the updater manifest.
 #
 # Trigger: push a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`),
-# or run manually. Do NOT trigger on every push — that would ship an update per
+# or run manually. Do NOT trigger on every push, that would ship an update per
 # commit.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
@@ -13,7 +13,7 @@
 #
 # tauri-action builds the installer, signs it + the update artifact, uploads them
 # and a generated `latest.json` to a GitHub Release (created as a draft so you can
-# review before publishing — the updater resolves `releases/latest/...` only once
+# review before publishing, the updater resolves `releases/latest/...` only once
 # the release is published).
 #
 # NOTE: playback needs libmpv-2.dll at runtime. It is gitignored; the "Fetch and

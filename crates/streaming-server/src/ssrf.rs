@@ -27,7 +27,7 @@ pub(crate) enum Policy {
     /// Block every private / loopback / link-local destination (the media proxy).
     Strict,
     /// Block private ranges, but allow loopback (`127.0.0.0/8`, `::1`) when the
-    /// target port is the server's OWN port — the subtitle / opensub routes,
+    /// target port is the server's OWN port - the subtitle / opensub routes,
     /// whose `from=` / `videoUrl=` legitimately re-enter our own routes.
     AllowSelf { self_port: u16 },
 }

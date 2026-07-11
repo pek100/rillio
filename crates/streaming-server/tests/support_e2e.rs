@@ -1,4 +1,4 @@
-//! M3b — support routes end-to-end against a hermetic local origin (no net).
+//! M3b - support routes end-to-end against a hermetic local origin (no net).
 
 use std::net::SocketAddr;
 
@@ -138,7 +138,7 @@ async fn subtitles_from_loopback_is_blocked_by_ssrf_guard() {
     // A malicious addon/subtitle URL that points at a local service (here the mock
     // origin, standing in for 169.254.169.254 / a router admin / another daemon)
     // must be refused. Without the loopback allow-list, fetch fails the guard and
-    // the route 500s (the player then falls back to the raw URL) — the internal
+    // the route 500s (the player then falls back to the raw URL) - the internal
     // service is never reached and its body never returned.
     let origin = spawn_origin().await;
     let server = spawn_guarded_server("ssrf").await;

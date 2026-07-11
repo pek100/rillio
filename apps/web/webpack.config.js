@@ -16,7 +16,7 @@ const COMMIT_HASH = execSync('git rev-parse HEAD').toString().trim();
 
 // Wrap ONLY App/styles.less's output in `@layer legacy` so Tailwind v4 utilities
 // (in @layer utilities) win over its universal `* { }` reset. Component-level Less
-// stays unlayered/untouched — it only ever targets its own legacy elements, never
+// stays unlayered/untouched, it only ever targets its own legacy elements, never
 // the new Tailwind components, so there is nothing for utilities to lose to there.
 const wrapLegacyLayer = () => ({
     postcssPlugin: 'wrap-legacy-layer',

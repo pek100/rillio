@@ -641,7 +641,7 @@
 	"SETTINGS_FASTER_DOWNLOADS": "Faster downloads",
 	"SETTINGS_FASTER_DOWNLOADS_ON": "Faster downloads on",
 	"SETTINGS_FASTER_DOWNLOADS_OFF": "Faster downloads off",
-	"SETTINGS_FASTER_DOWNLOADS_RESTART": "Restart Rillio to apply. More peers, but you're more visible to them — best used with a VPN.",
+	"SETTINGS_FASTER_DOWNLOADS_RESTART": "Restart Rillio to apply. More peers, but you're more visible to them, best used with a VPN.",
 	"SETTINGS_FASTER_DOWNLOADS_FAILED": "Couldn't reach the streaming server",
 	"SETTINGS_SERVER_RUN_IN_BACKGROUND": "Run in the background",
 	"SETTINGS_HTTPS_ENDPOINT": "Streaming HTTPS endpoint: ",

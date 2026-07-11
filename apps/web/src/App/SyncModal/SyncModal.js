@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2024 Smart code 203358507
-
 // Local-account Sync modal, opened from the account menu via a window event
 // (OPEN_SYNC_EVENT). Two jobs, no server of our own:
 //   Backup & restore - export the whole local account as one compact code (+ a QR

@@ -1,4 +1,4 @@
-//! M1.5 — ConfinedStorage end-to-end: a quota-exceeding torrent is refused, and
+//! M1.5 - ConfinedStorage end-to-end: a quota-exceeding torrent is refused, and
 //! a path-traversal torrent is rejected. Synthetic torrents, no network.
 
 use std::net::SocketAddr;

@@ -1,12 +1,12 @@
-//! M1.5 — cache confinement (path-traversal guard).
+//! M1.5 - cache confinement (path-traversal guard).
 //!
 //! The threat this closes: a malicious `.torrent` writing files *outside* the
-//! cache (e.g. dropping into the Startup folder) — the way a download could
+//! cache (e.g. dropping into the Startup folder) - the way a download could
 //! contaminate the system without the user executing anything.
 //!
 //! We no longer wrap librqbit's storage factory. That wrapper blocked
 //! librqbit's fast-resume (its JSON persistence store requires the *exact*
-//! `FilesystemStorageFactory` type — a wrapper fails its `TypeId` check — so
+//! `FilesystemStorageFactory` type - a wrapper fails its `TypeId` check - so
 //! every restart re-hashed the whole file). Instead we keep the check as a
 //! pre-add assertion ([`assert_confined`]) and rely on librqbit-core, which
 //! already rejects `..` and path separators inside filename components at parse

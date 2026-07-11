@@ -1,4 +1,4 @@
-//! M1.1 — the librqbit Session actually bootstraps (not just compiles).
+//! M1.1 - the librqbit Session actually bootstraps (not just compiles).
 
 use rillio_streaming_server::engine::Engine;
 

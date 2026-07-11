@@ -16,9 +16,9 @@ type GamepadProviderProps = {
 
 const detectControllerType = (gamepad: Gamepad): ControllerType => {
     const id = gamepad.id.toLowerCase();
-    // Sony vendor id 054c — DualShock / DualSense / generic PlayStation
+    // Sony vendor id 054c (DualShock / DualSense / generic PlayStation)
     if (/sony|playstation|dualsense|dualshock|054c/.test(id)) return 'playstation';
-    // Microsoft vendor id 045e — Xbox / XInput
+    // Microsoft vendor id 045e (Xbox / XInput)
     if (/xbox|microsoft|xinput|045e/.test(id)) return 'xbox';
     // Browser "Standard Gamepad" mapping mirrors the Xbox layout
     if (gamepad.mapping === 'standard') return 'xbox';

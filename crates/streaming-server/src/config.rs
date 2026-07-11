@@ -7,7 +7,7 @@ use url::Url;
 ///
 /// `base_url` is what the server advertises to clients (it appears in
 /// `/settings.baseUrl` and the `remoteHttps` option list). It is distinct from
-/// `bind`, which is only where the socket listens — behind the container these
+/// `bind`, which is only where the socket listens - behind the container these
 /// differed (bind `0.0.0.0:11470`, advertised the bridge IP).
 #[derive(Clone, Debug)]
 pub struct Config {

@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2026 Smart code 203358507
-
 import React from 'react';
 import classnames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +17,7 @@ type Props = {
 
 // The board's hero: the active title's backdrop fills the banner as ambience
 // (cover + scrim, so odd crops never matter), the copy sits on the left, and the
-// right side is a 3D poster coverflow — every item's poster fans out in
+// right side is a 3D poster coverflow, every item's poster fans out in
 // perspective, the front card is the active one, side cards click to select.
 // Rotates every 7s, pauses on hover.
 const HeroCarousel = ({ className, items }: Props) => {

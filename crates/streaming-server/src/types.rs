@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// `GET /settings` — the master endpoint. If core cannot deserialize this, its
+/// `GET /settings` - the master endpoint. If core cannot deserialize this, its
 /// whole streaming-server model cascades to "server down"
 /// (streaming_server.rs:293-315), so every required field must be present.
 #[derive(Serialize)]
@@ -65,7 +65,7 @@ pub struct SettingsValues {
     pub proxy_streams_enabled: bool,
 }
 
-/// `GET /network-info` — `{availableInterfaces:[...]}` (non-internal IPv4).
+/// `GET /network-info` - `{availableInterfaces:[...]}` (non-internal IPv4).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkInfo {
@@ -82,7 +82,7 @@ pub struct DeviceInfo {
     pub available_hardware_accelerations: serde_json::Value,
 }
 
-/// `{success:true}` — used by POST `/settings` and `/heartbeat`.
+/// `{success:true}` - used by POST `/settings` and `/heartbeat`.
 #[derive(Serialize)]
 pub struct Success {
     pub success: bool,
@@ -94,7 +94,7 @@ impl Success {
     }
 }
 
-/// Body of `GET`/`POST /torrent-settings` — Rillio-specific (not part of the
+/// Body of `GET`/`POST /torrent-settings` - Rillio-specific (not part of the
 /// Stremio `/settings` schema, so it stays out of that oracle-diffed response).
 /// `listenEnabled` opts the torrent engine into an inbound listen port + UPnP
 /// ("faster downloads", at the cost of being a discoverable seeder). The engine
@@ -108,7 +108,7 @@ pub struct TorrentSettings {
 // ---------------------------------------------------------------------------
 // getStatistics (M1 create responses; shared with M2 stats routes).
 // Field names/types mirror crates/core/src/types/streaming_server/statistics.rs
-// EXACTLY — every field is required there (no serde defaults), so an omission
+// EXACTLY - every field is required there (no serde defaults), so an omission
 // makes core's `Option<Statistics>` deserialize to None (silent "no stats").
 // ---------------------------------------------------------------------------
 

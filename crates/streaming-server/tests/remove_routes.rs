@@ -1,4 +1,4 @@
-//! M1.4 — remove/removeAll respond `200 {}` without needing any torrent or
+//! M1.4 - remove/removeAll respond `200 {}` without needing any torrent or
 //! network (empty session, non-existent infohash). The streamed-bytes byte-diff
 //! against the container needs reachable peers and is verified separately.
 //!

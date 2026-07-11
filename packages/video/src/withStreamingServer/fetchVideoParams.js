@@ -82,7 +82,7 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
                     throw new Error('Could not retrieve file list from torrent');
                 }
 
-                // Prefer guessedFileIdx — the file the engine is streaming.
+                // Prefer guessedFileIdx, the file the engine is streaming.
                 var guessed = typeof stats.guessedFileIdx === 'number' ? stats.files[stats.guessedFileIdx] : null;
                 if (guessed && typeof guessed.name === 'string') {
                     return guessed.name;

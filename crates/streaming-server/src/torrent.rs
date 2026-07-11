@@ -55,7 +55,7 @@ pub(crate) struct PeerSearchBody {
     max: Option<u64>,
 }
 
-/// Body of `POST /create` — raw `.torrent` as hex. `from` is intentionally
+/// Body of `POST /create` - raw `.torrent` as hex. `from` is intentionally
 /// unsupported (see spec §5: local-read + SSRF).
 #[derive(Deserialize)]
 pub(crate) struct CreateBlobBody {
@@ -67,7 +67,7 @@ fn err500() -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
-/// `POST /create` — raw `.torrent` blob only.
+/// `POST /create` - raw `.torrent` blob only.
 pub(crate) async fn create_blob(
     State(engine): State<Engine>,
     body: Json<CreateBlobBody>,
@@ -95,7 +95,7 @@ pub(crate) async fn create_blob(
     .into_response()
 }
 
-/// `POST /:ih/create` — magnet/infohash + peerSearch + guess/selector.
+/// `POST /:ih/create` - magnet/infohash + peerSearch + guess/selector.
 pub(crate) async fn create_magnet(
     State(engine): State<Engine>,
     Path(info_hash): Path<String>,
@@ -138,7 +138,7 @@ pub(crate) async fn create_magnet(
     .into_response()
 }
 
-/// `GET /:ih/remove` — stop and forget one torrent. Always `200 {}`.
+/// `GET /:ih/remove` - stop and forget one torrent. Always `200 {}`.
 pub(crate) async fn remove(State(engine): State<Engine>, Path(info_hash): Path<String>) -> Response {
     if is_valid_infohash(&info_hash) {
         engine.remove(&info_hash.to_lowercase()).await;
@@ -146,7 +146,7 @@ pub(crate) async fn remove(State(engine): State<Engine>, Path(info_hash): Path<S
     Json(serde_json::json!({})).into_response()
 }
 
-/// `GET /removeAll` — stop and forget every torrent. Always `200 {}`.
+/// `GET /removeAll` - stop and forget every torrent. Always `200 {}`.
 pub(crate) async fn remove_all(State(engine): State<Engine>) -> Response {
     engine.remove_all().await;
     Json(serde_json::json!({})).into_response()
@@ -178,7 +178,7 @@ pub(crate) fn file_must_include(files: &[types::File], patterns: &[String]) -> O
 }
 
 /// Compile a `/pat/flags` or bare-string pattern. Returns None on unsupported
-/// JS syntax (backreferences/lookaround) — skip, do not fall back.
+/// JS syntax (backreferences/lookaround) - skip, do not fall back.
 fn compile_js_pattern(s: &str) -> Option<Regex> {
     static SLASHED: OnceLock<Regex> = OnceLock::new();
     let slashed = SLASHED.get_or_init(|| Regex::new(r"^/(.*)/(.*)$").expect("slashed regex"));

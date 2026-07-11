@@ -12,7 +12,7 @@ const APPLE_MOBILE_DEVICES = [
 const { userAgent, platform, maxTouchPoints } = globalThis.navigator;
 
 // Vision Pro uniquely supports the WebXR Device API (navigator.xr),
-// while iPads and iPhones do not — this is the most reliable discriminator.
+// while iPads and iPhones do not, this is the most reliable discriminator.
 // Both Vision Pro and iPads (iPadOS 13+) report 'Macintosh' in the UA
 // and have maxTouchPoints > 1, so we cannot rely on those alone.
 const isMacLikeWithTouch = userAgent.includes('Macintosh') && maxTouchPoints > 1;

@@ -1,6 +1,6 @@
-//! Torrent engine — a thin wrapper over one librqbit [`Session`] shared across
+//! Torrent engine - a thin wrapper over one librqbit [`Session`] shared across
 //! the whole server. Quiet by default: DHT + injected trackers for peer
-//! discovery and batched disk writes, but NO inbound listen port and NO UPnP —
+//! discovery and batched disk writes, but NO inbound listen port and NO UPnP -
 //! we connect outbound to peers without advertising a reachable port, so we are
 //! not a discoverable seeder. `RILLIO_TORRENT_LISTEN=1` opts into the louder,
 //! marginally-faster-on-rare-titles inbound behavior. A bring-your-own SOCKS5
@@ -23,7 +23,7 @@ pub type Handle = Arc<ManagedTorrent>;
 
 /// How long a stream/create waits for a torrent to become streamable before
 /// giving up. This must exceed librqbit's initial full-file checksum pass, which
-/// for a large title (tens of GiB) can run ~a minute on a fresh add — the
+/// for a large title (tens of GiB) can run ~a minute on a fresh add - the
 /// torrent stays `Initializing` (not streamable) that whole time. Too short a
 /// wait 500s the stream open mid-validation. (Removing that delay entirely is a
 /// follow-up: a lazy response body that returns headers immediately and blocks
@@ -95,11 +95,11 @@ fn add_torrent_options() -> librqbit::AddTorrentOptions {
         // Reuse existing cache files instead of failing on them. With
         // allow_overwrite=false librqbit's fs storage opens files with
         // `create_new` (fs.rs), so re-adding a torrent whose files already exist
-        // — the normal "close the app, reopen, replay the same title" flow, and
-        // any add after a partial download — fails init ("file is None" / "error
+        // - the normal "close the app, reopen, replay the same title" flow, and
+        // any add after a partial download - fails init ("file is None" / "error
         // creating a new file") and the stream 500s. `overwrite: true` opens
         // existing files with truncate(false): the initial checksum pass
-        // validates what's on disk and playback RESUMES. Safe under our sandbox —
+        // validates what's on disk and playback RESUMES. Safe under our sandbox -
         // ConfinedStorage still confines every path before init runs, so this
         // only ever reuses files already under the cache root.
         overwrite: true,
@@ -107,7 +107,7 @@ fn add_torrent_options() -> librqbit::AddTorrentOptions {
     }
 }
 
-// opts echo (getStatistics.opts) — from the blob's getDefaults merged with our
+// opts echo (getStatistics.opts) - from the blob's getDefaults merged with our
 // settings (server.js:46886-46907). Constant here; these mirror the values M0
 // reports in /settings.values.
 const OPT_CONNECTIONS: u64 = 55;
@@ -136,21 +136,21 @@ impl Engine {
     ///
     /// All torrent storage goes through [`ConfinedStorageFactory`]: every file is
     /// confined under `cache_dir` (path-traversal guard) and created
-    /// non-executable. There is no per-torrent size cap — a streaming server
+    /// non-executable. There is no per-torrent size cap - a streaming server
     /// plays a window of a torrent regardless of its total size.
     pub async fn new(cache_dir: PathBuf) -> anyhow::Result<Self> {
         let cache_root = storage::absolutize(&cache_dir)?;
 
         // Bring-your-own SOCKS5 proxy (privacy): peers see the proxy's IP, not
         // yours. Off unless RILLIO_SOCKS_PROXY is set. NOTE: we never ship a
-        // curated proxy list — a stranger's free proxy sees your IP + all traffic
+        // curated proxy list - a stranger's free proxy sees your IP + all traffic
         // and often can't carry UDP (breaks DHT/uTP). Trust is the user's to bring.
         let socks_proxy = std::env::var("RILLIO_SOCKS_PROXY")
             .ok()
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
 
-        // Inbound listen port + UPnP make us reachable by NAT'd/passive seeders —
+        // Inbound listen port + UPnP make us reachable by NAT'd/passive seeders -
         // more peers, faster especially on less-seeded titles. But being reachable
         // is also what makes a client a discoverable SEEDER: anti-piracy monitors
         // join a swarm and connect INBOUND to log distributors. Outbound-only
@@ -161,7 +161,7 @@ impl Engine {
         // Resolved as: RILLIO_TORRENT_LISTEN env (explicit on/off, a dev escape
         // hatch) ⇒ else the persisted "faster downloads" toggle from the cache
         // root ⇒ else off. A SOCKS5 proxy only tunnels OUTBOUND, so a
-        // real-interface listener would leak the real IP past it — the proxy keeps
+        // real-interface listener would leak the real IP past it - the proxy keeps
         // the listener off regardless of the above.
         let listen_requested = match std::env::var("RILLIO_TORRENT_LISTEN").as_deref() {
             Ok("1") | Ok("true") => true,
@@ -241,7 +241,7 @@ impl Engine {
     /// deletes their cached files) until under the cap. A torrent touched within
     /// `grace` is never evicted, so the currently-playing title is safe. Loud: logs
     /// every eviction and warns if it cannot reach the cap (only active torrents
-    /// remain). Adds are never refused by size — the bound is applied here.
+    /// remain). Adds are never refused by size - the bound is applied here.
     pub async fn enforce_cache_cap(&self, cap: u64, grace: Duration) {
         let mut used = self.cache_bytes();
         if used <= cap {
@@ -381,14 +381,14 @@ impl Engine {
     //
     // The spec suggested keep-files (delete_files=false) to mirror the blob's
     // `destroy`, but librqbit 8.1.1 cannot re-add a torrent whose files still
-    // exist in its output folder — the second add fails during init with
+    // exist in its output folder - the second add fails during init with
     // "setting length for file ...: file is None". Since remove→re-add is a real
     // flow, we delete files: a clean teardown that re-adds cleanly, and the
     // natural meaning of "remove" (free the cache) for a streaming server.
     const DELETE_FILES_ON_REMOVE: bool = true;
 
     /// Stop and forget a torrent by infohash (`GET /:ih/remove`). No-op if not
-    /// managed. Returns whether one was found — the route responds `200 {}`
+    /// managed. Returns whether one was found - the route responds `200 {}`
     /// either way (blob parity).
     pub async fn remove(&self, info_hash: &str) -> bool {
         let target = self.session.with_torrents(|it| {

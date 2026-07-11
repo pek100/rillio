@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2026 Smart code 203358507
-
 import React from 'react';
 import classnames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
@@ -18,7 +16,7 @@ type Slide =
     | { type: 'video', ytId: string };
 
 // The hero's 16:9 media panel: a banner carousel. Slides are the backdrop image
-// plus each trailer as a VIDEO slide, paused by default (autoplay=0 — the user
+// plus each trailer as a VIDEO slide, paused by default (autoplay=0, the user
 // presses YouTube's own play). Image slides auto-advance gently; a video slide
 // never auto-advances (the user may be watching). The poster is portrait so it is
 // only used when there is no backdrop at all.

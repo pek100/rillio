@@ -1,4 +1,4 @@
-//! M4 — `/local-addon` transport.
+//! M4 - `/local-addon` transport.
 //!
 //! The streaming server hosts a Stremio addon (`org.stremio.local`, "Local
 //! Files") at `/local-addon`. `crates/core` consumes it like any addon: it
@@ -7,7 +7,7 @@
 //! `local_addon` Descriptor. Without this route core shows
 //! `LOCAL_ADDON_NOT_ENABLED` and local-file features break.
 //!
-//! Scope: this serves the **default** (disabled) manifest — `localAddonEnabled`
+//! Scope: this serves the **default** (disabled) manifest - `localAddonEnabled`
 //! is false in our `/settings`, so the blob builds `manifestNoCatalogs`
 //! (server.js:93889: name + " (without catalog support)", catalogs: []). The
 //! full local-file **indexing** feature (scan the localFiles dir, parse video
@@ -49,7 +49,7 @@ pub(crate) async fn local_manifest() -> Response {
         .into_response()
 }
 
-/// `GET /local-addon/{resource}/{type}/{*rest}` — the addon resource dispatch
+/// `GET /local-addon/{resource}/{type}/{*rest}` - the addon resource dispatch
 /// (server.js:91814). `rest` is `<id>.json` or `<id>/<extra>.json`; we don't
 /// need to parse it while returning empty responses. Unknown resource → 404
 /// (the blob's `next()`).

@@ -35,7 +35,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
     return (
         <Section ref={ref} label={'SETTINGS_NAV_PLAYER'}>
             {/* Subtitles language deliberately lives on the movie page (the streams
-                language picker), not here — one language control drives stream
+                language picker), not here, one language control drives stream
                 priority AND default subtitles. */}
             <Category icon={'subtitles'} label={'SETTINGS_SECTION_SUBTITLES'}>
                 <Option label={'SETTINGS_SUBTITLES_SIZE'}>

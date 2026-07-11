@@ -1,4 +1,4 @@
-//! M3a — /proxy end-to-end against a hermetic local origin (no container/net).
+//! M3a - /proxy end-to-end against a hermetic local origin (no container/net).
 //! Exercises: playlist rewrite + header mutations, Range passthrough, request
 //! header injection, and the SSRF guard blocking a non-allowlisted private host.
 
@@ -100,7 +100,7 @@ async fn playlist_is_rewritten_and_headers_mutated() {
     assert_eq!(resp.status(), 200);
     // Playlist header mutation. (We buffer + rewrite, so hyper sets a correct
     // content-length for the rewritten body rather than the blob's forced-chunked
-    // streaming — a documented, equivalent deviation. accept-ranges is the
+    // streaming - a documented, equivalent deviation. accept-ranges is the
     // meaningful assertion: a regenerated playlist is not range-addressable.)
     assert_eq!(resp.headers().get(header::ACCEPT_RANGES).unwrap(), "none");
     let body = resp.text().await.unwrap();

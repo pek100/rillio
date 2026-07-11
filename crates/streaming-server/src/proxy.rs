@@ -1,4 +1,4 @@
-//! M3a — the `/proxy` subsystem.
+//! M3a - the `/proxy` subsystem.
 //!
 //! An HTTP forward-proxy (header injection for addon streams) that ALSO rewrites
 //! HLS/`m3u8` playlists so every absolute/rooted URL inside them routes back
@@ -38,7 +38,7 @@ const REQ_ALLOW: &[&str] = &[
 /// Origin response headers allowed back to the client (server.js:71803).
 ///
 /// NOTE: the blob's allowlist also includes `connection` and `transfer-encoding`;
-/// we omit them because they are hop-by-hop headers that hyper frames itself —
+/// we omit them because they are hop-by-hop headers that hyper frames itself -
 /// forwarding or hand-setting them produces an invalid response. hyper computes
 /// content-length / chunked framing for the body we return.
 const RES_ALLOW: &[&str] = &[
@@ -126,7 +126,7 @@ fn err(status: StatusCode) -> Response {
     status.into_response()
 }
 
-/// `ALL /proxy/{opts}/{*path}` — with a trailing path.
+/// `ALL /proxy/{opts}/{*path}` - with a trailing path.
 pub(crate) async fn proxy_with_path(
     cfg: State<Config>,
     method: Method,
@@ -138,7 +138,7 @@ pub(crate) async fn proxy_with_path(
     handle(cfg.0, method, uri, opts, tail, headers, body).await
 }
 
-/// `ALL /proxy/{opts}` — no trailing path (target is the origin root).
+/// `ALL /proxy/{opts}` - no trailing path (target is the origin root).
 pub(crate) async fn proxy_root(
     cfg: State<Config>,
     method: Method,
@@ -391,7 +391,7 @@ fn origin_of(u: &Url) -> Url {
 }
 
 fn origin_string(u: &Url) -> String {
-    // scheme://host[:port] — no double port (blob bug deliberately not replicated).
+    // scheme://host[:port] - no double port (blob bug deliberately not replicated).
     match u.port() {
         Some(p) => format!("{}://{}:{}", u.scheme(), u.host_str().unwrap_or(""), p),
         None => format!("{}://{}", u.scheme(), u.host_str().unwrap_or("")),

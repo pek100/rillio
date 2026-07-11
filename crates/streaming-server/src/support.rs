@@ -1,10 +1,10 @@
-//! M3b — non-ffmpeg support routes.
+//! M3b - non-ffmpeg support routes.
 //!
-//! - `/opensubHash` — OpenSubtitles movie hash (spec 04 B.1)
-//! - `/subtitles.vtt` / `.srt` — SRT re-serializer (B.2)
-//! - `/subtitlesTracks` — SRT → cue array (B.3)
-//! - `/tracks/:url` — track enumeration; MKV/EBML demux deferred, returns `[]` (B.3)
-//! - `/yt/:id`(`.json`) — YouTube redirect; extractor deferred, returns 403 (B.4)
+//! - `/opensubHash` - OpenSubtitles movie hash (spec 04 B.1)
+//! - `/subtitles.vtt` / `.srt` - SRT re-serializer (B.2)
+//! - `/subtitlesTracks` - SRT → cue array (B.3)
+//! - `/tracks/:url` - track enumeration; MKV/EBML demux deferred, returns `[]` (B.3)
+//! - `/yt/:id`(`.json`) - YouTube redirect; extractor deferred, returns 403 (B.4)
 
 use axum::extract::{Path, Query, State};
 use axum::http::{header, StatusCode};
@@ -121,7 +121,7 @@ async fn ranged_get(
 
 /// OSDb movie hash: `(size + Σ u64_le(head) + Σ u64_le(tail)) mod 2^64`, 16-hex.
 /// head/tail are each exactly 64 KiB (8192 little-endian u64 words). Do NOT use
-/// the blob's `/16` divisor — that is an artifact of its zero-pad trick; sum all
+/// the blob's `/16` divisor - that is an artifact of its zero-pad trick; sum all
 /// 65536 bytes (spec 04 B.1).
 fn osdb_hash(size: u64, head: &[u8], tail: &[u8]) -> String {
     let mut h = size;
@@ -148,7 +148,7 @@ pub(crate) struct SubtitlesTracksQuery {
     subs_url: String,
 }
 
-/// `GET /subtitles.vtt?from=…&offset=…` — re-serialize source cues as WEBVTT.
+/// `GET /subtitles.vtt?from=…&offset=…` - re-serialize source cues as WEBVTT.
 pub(crate) async fn subtitles_vtt(
     cfg: State<Config>,
     q: Query<SubtitlesQuery>,
@@ -156,7 +156,7 @@ pub(crate) async fn subtitles_vtt(
     subtitles_inner(cfg, q, true).await
 }
 
-/// `GET /subtitles.srt?from=…&offset=…` — re-serialize source cues as SRT.
+/// `GET /subtitles.srt?from=…&offset=…` - re-serialize source cues as SRT.
 pub(crate) async fn subtitles_srt(
     cfg: State<Config>,
     q: Query<SubtitlesQuery>,
@@ -204,14 +204,14 @@ pub(crate) async fn subtitles_tracks(
     Json(json!({"error": null, "result": result})).into_response()
 }
 
-/// `GET /tracks/:url` — track enumeration. Full MKV/EBML demux is deferred; the
+/// `GET /tracks/:url` - track enumeration. Full MKV/EBML demux is deferred; the
 /// blob returns `200 []` on any failure (server.js:46651-46655), so an empty
 /// list is a safe, non-breaking stub (no embedded tracks surfaced).
 pub(crate) async fn tracks(Path(_url): Path<String>) -> Response {
     Json(json!([])).into_response()
 }
 
-/// `GET /yt/:id`(`.json`) — deferred (needs a YouTube extractor; upstream churns
+/// `GET /yt/:id`(`.json`) - deferred (needs a YouTube extractor; upstream churns
 /// constantly). The blob's failure code is 403; we return it honestly.
 pub(crate) async fn yt(Path(_id): Path<String>) -> Response {
     StatusCode::FORBIDDEN.into_response()
@@ -271,7 +271,7 @@ fn parse_timing(line: &str) -> Option<(i64, i64)> {
 }
 
 fn parse_ts(s: &str) -> Option<i64> {
-    // HH:MM:SS[,.]mmm — take the leading token (drop any trailing cue settings).
+    // HH:MM:SS[,.]mmm - take the leading token (drop any trailing cue settings).
     let s = s.split_whitespace().next()?;
     let (hms, ms) = s.split_once([',', '.'])?;
     let mut it = hms.split(':');
@@ -332,7 +332,7 @@ mod tests {
         head[0] = 1;
         let tail = vec![0u8; CHUNK as usize];
         assert_eq!(osdb_hash(0, &head, &tail), format!("{:016x}", 1u64));
-        // big-endian misread would give 0x0100000000000000 — ensure we don't.
+        // big-endian misread would give 0x0100000000000000 - ensure we don't.
         assert_ne!(osdb_hash(0, &head, &tail), format!("{:016x}", 1u64 << 56));
     }
 
