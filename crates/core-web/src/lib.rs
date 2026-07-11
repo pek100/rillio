@@ -65,8 +65,6 @@ pub mod model {
 
 #[cfg(all(feature = "wasm", feature = "env"))]
 pub mod env;
-#[cfg(feature = "wasm")]
-pub mod event;
 #[cfg(all(feature = "wasm", feature = "env"))]
 mod rillio_core_web;
 #[cfg(all(feature = "wasm", feature = "env"))]

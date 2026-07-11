@@ -87,21 +87,6 @@ const App = () => {
     });
 
     React.useEffect(() => {
-        let prevPath = window.location.hash.slice(1);
-        const onLocationHashChange = () => {
-            core.transport.analytics({
-                event: 'LocationPathChanged',
-                args: { prevPath }
-            });
-            prevPath = window.location.hash.slice(1);
-        };
-        window.addEventListener('hashchange', onLocationHashChange);
-        return () => {
-            window.removeEventListener('hashchange', onLocationHashChange);
-        };
-    }, []);
-
-    React.useEffect(() => {
         const onChromecastStateChange = () => {
             if (services.chromecast.active) {
                 services.chromecast.transport.setOptions({

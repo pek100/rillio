@@ -13,7 +13,7 @@ const createTransport = (): CoreTransport => {
     };
 
     const dispatch = (action: DispatchAction, model?: string): Promise<void> => {
-        return bridge.call(['dispatch'], [action, model, location.hash]);
+        return bridge.call(['dispatch'], [action, model]);
     };
 
     const encodeStream = (stream: Stream): Promise<string> => {
@@ -24,17 +24,12 @@ const createTransport = (): CoreTransport => {
         return bridge.call(['decodeStream'], [stream]);
     };
 
-    const analytics = (event: object): Promise<void> => {
-        return bridge.call(['analytics'], [event, location.hash]);
-    };
-
     return {
         init,
         getState,
         dispatch,
         encodeStream,
         decodeStream,
-        analytics,
     };
 };
 

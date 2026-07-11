@@ -4,8 +4,6 @@ use crate::constants::{
     PROFILE_STORAGE_KEY, SCHEMA_VERSION, SCHEMA_VERSION_STORAGE_KEY, SEARCH_HISTORY_STORAGE_KEY,
     STREAMING_SERVER_URLS_STORAGE_KEY, STREAMS_STORAGE_KEY,
 };
-use crate::models::ctx::Ctx;
-use crate::models::streaming_server::StreamingServer;
 use chrono::{DateTime, Utc};
 use futures::{future, Future, TryFutureExt};
 use http::Request;
@@ -151,12 +149,6 @@ pub trait Env {
     fn exec_concurrent<F: Future<Output = ()> + ConditionalSend + 'static>(future: F);
     fn exec_sequential<F: Future<Output = ()> + ConditionalSend + 'static>(future: F);
     fn now() -> DateTime<Utc>;
-    fn flush_analytics() -> EnvFuture<'static, ()>;
-    fn analytics_context(
-        ctx: &Ctx,
-        streaming_server: &StreamingServer,
-        path: &str,
-    ) -> serde_json::Value;
     #[cfg(debug_assertions)]
     fn log(message: String);
     fn addon_transport(transport_url: &Url) -> Box<dyn AddonTransport>

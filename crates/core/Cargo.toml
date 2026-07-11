@@ -22,9 +22,6 @@ env-future-send = []
 # Exports the Model derive macro from `rillio-derive`
 derive = []
 
-# Enable core analytics
-analytics = []
-
 # Enable deflate feature in official addons
 deflate = ["stremio-official-addons/deflate"]
 

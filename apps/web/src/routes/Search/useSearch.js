@@ -6,31 +6,6 @@ const { useModelState } = require('rillio/common');
 
 const useSearch = (queryParams) => {
     const core = useCore();
-    // TODO: refactor this to be in rillio-core-web
-    // React.useEffect(() => {
-    //     let timerId = setTimeout(emitSearchEvent, 500);
-    //     function emitSearchEvent() {
-    //         timerId = null;
-    //         const state = core.transport.getState('search');
-    //         if (state.selected !== null) {
-    //             const [, query] = state.selected.extra.find(([name]) => name === 'search');
-    //             const responses = state.catalogs.filter((catalog) => catalog.content?.type === 'Ready');
-    //             core.transport.analytics({
-    //                 event: 'Search',
-    //                 args: {
-    //                     query,
-    //                     responsesCount: responses.length
-    //                 }
-    //             });
-    //         }
-    //     }
-    //     return () => {
-    //         if (timerId !== null) {
-    //             clearTimeout(timerId);
-    //             emitSearchEvent();
-    //         }
-    //     };
-    // }, [queryParams.get('search')]);
     const action = React.useMemo(() => {
         const query = queryParams.get('search') ?? queryParams.get('query');
         if (query?.length > 0) {
