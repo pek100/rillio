@@ -67,6 +67,16 @@ pub fn run() {
         )
         .try_init();
 
+    // Must run BEFORE any WebView2 initialization (i.e. before Builder::run),
+    // otherwise the running WebView2 holds its own cache dirs open and they
+    // cannot be deleted. Uses the context (available before .run()) for the
+    // identifier + version.
+    let ctx = tauri::generate_context!();
+    clear_stale_webview_cache(
+        ctx.config().identifier.clone(),
+        ctx.package_info().version.to_string(),
+    );
+
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(MpvState::default())
@@ -91,7 +101,7 @@ pub fn run() {
             shell::shell_send,
             shell::shell_mpv_stats
         ])
-        .run(tauri::generate_context!())
+        .run(ctx)
         .expect("error while running the Rillio desktop shell");
 }
 
@@ -137,6 +147,58 @@ fn start_mpv_embedded(
 /// links (`vlc://`, `mpv://`, `magnet:`, external-player deep links) are opened
 /// in the OS/native app and the in-app navigation is cancelled (S2). Normal
 /// http(s)/tauri navigations proceed in the WebView.
+/// Root fix for the "update installs but the UI is still the old one" bug: the
+/// embedded web bundle registers a cache-first service worker, and its asset
+/// path is prefixed with the commit hash, so after the native updater swaps in a
+/// new bundle the stale SW + HTTP cache keep serving the OLD UI. Before the
+/// WebView loads, if the shell's version changed since last run (fresh install
+/// or a just-applied update), delete WebView2's service-worker + HTTP caches so
+/// the fresh embedded assets always win. Best-effort: any error just logs and
+/// the web-side self-heal (apps/web index.js) remains as a backstop.
+fn clear_stale_webview_cache(identifier: String, current: String) {
+    // %LOCALAPPDATA%\<identifier> is where WebView2 keeps its EBWebView profile.
+    let local = match std::env::var_os("LOCALAPPDATA") {
+        Some(dir) => dir,
+        None => return,
+    };
+    let base = std::path::Path::new(&local).join(&identifier);
+    let marker = base.join("web-bundle-version");
+    // `current` is the tauri.conf.json version (bumped every release), not
+    // Cargo.toml's CARGO_PKG_VERSION (a constant 0.1.0), so it changes on update.
+    let previous = std::fs::read_to_string(&marker).unwrap_or_default();
+    if previous.trim() == current {
+        return;
+    }
+    let default_profile = base.join("EBWebView").join("Default");
+    for sub in ["Service Worker", "Cache", "Code Cache"] {
+        let path = default_profile.join(sub);
+        if !path.exists() {
+            continue;
+        }
+        // std::fs::remove_dir_all refuses to traverse the reparse points inside
+        // WebView2's cache dirs (os error 4395), so shell out to `rmdir /S /Q`,
+        // which removes them the way Explorer/PowerShell do. Windows-only shell.
+        #[cfg(windows)]
+        let removed = std::process::Command::new("cmd")
+            .args(["/C", "rmdir", "/S", "/Q"])
+            .arg(&path)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        #[cfg(not(windows))]
+        let removed = std::fs::remove_dir_all(&path).is_ok();
+        if removed && !path.exists() {
+            tracing::info!("cache-clear: removed {}", path.display());
+        } else {
+            tracing::warn!("cache-clear: could not remove {}", path.display());
+        }
+    }
+    let _ = std::fs::create_dir_all(&base);
+    if let Err(e) = std::fs::write(&marker, &current) {
+        tracing::warn!("cache-clear: could not write version marker: {e}");
+    }
+}
+
 fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
     // In-window mpv compositing (S4) is opt-in behind STREMIO_EMBED_MPV: on
     // Windows a transparent (layered) top-level window does NOT display child
