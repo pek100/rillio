@@ -78,6 +78,17 @@ pub fn run() {
     );
 
     tauri::Builder::default()
+        // Single-instance MUST be the first plugin registered (Tauri requirement).
+        // On a second launch, focus the running window instead of starting a
+        // second shell that would fail to bind :11470 and clobber the WebView2
+        // profile the first one is using.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(MpvState::default())
         .manage(shell::ShellState::default())

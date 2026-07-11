@@ -67,6 +67,53 @@ const HF_PROPS: &[&str] = &["time-pos", "demuxer-cache-time"];
 /// Minimum spacing between forwarded high-frequency updates (~5/s).
 const HF_INTERVAL: Duration = Duration::from_millis(200);
 
+/// SECURITY (S1): the ONLY mpv `command`s the web player is allowed to run over
+/// the bridge. mpv's command set also includes `run`, `subprocess` and
+/// `load-script` (arbitrary local code execution) and `loadlist`/`set` (which
+/// can reach dangerous properties), so any of those reaching mpv from web
+/// content would be XSS -> RCE. The WebView renders remote, addon-driven content
+/// and `withGlobalTauri` exposes `invoke` globally, so this list must be exactly
+/// what `packages/video/src/ShellVideo/ShellVideo.js` actually sends: only
+/// `stop` and `loadfile` (grep it before widening this).
+const MPV_COMMAND_ALLOWLIST: &[&str] = &["loadfile", "stop"];
+
+/// SECURITY (S5): the ONLY mpv properties the web player is allowed to `set`
+/// over the bridge. Enumerated from every `mpv-set-prop` in ShellVideo.js:
+/// transport, audio, track selection, decode/output selection, aspect/scaling
+/// and subtitle styling. mpv exposes many other settable properties (scripts,
+/// stream-record, screenshot paths, ...) that must never be reachable from web
+/// content. `start` is applied by the shell itself (loadfile handling below),
+/// not over the bridge, so it is deliberately absent here.
+const MPV_SETPROP_ALLOWLIST: &[&str] = &[
+    // transport / playback
+    "pause",
+    "speed",
+    "time-pos",
+    "volume",
+    "mute",
+    // track selection
+    "aid",
+    "sid",
+    // decode / video output (chosen by the player per stream)
+    "hwdec",
+    "vo",
+    // separate-window on-screen-controls / input behaviour
+    "osc",
+    "input-default-bindings",
+    "input-vo-keyboard",
+    // aspect / scaling (videoScale: cover/fill/contain)
+    "keepaspect",
+    "panscan",
+    // subtitle styling
+    "sub-ass-override",
+    "sub-scale",
+    "sub-pos",
+    "sub-delay",
+    "sub-color",
+    "sub-back-color",
+    "sub-border-color",
+];
+
 /// What [`shell_init`] returns to the web client's `useShell`.
 #[derive(Serialize)]
 pub struct ShellInit {
@@ -383,13 +430,17 @@ pub fn shell_send(
     method: String,
     args: Vec<Value>,
 ) -> Result<(), String> {
-    let ctrl = state.ensure(&app)?;
     let arg0 = args.first().cloned().unwrap_or(Value::Null);
     match method.as_str() {
         "mpv-command" => {
             let list = arg0.as_array().ok_or("mpv-command: expected an array")?;
             let strs: Vec<String> = list.iter().map(json_to_mpv_str).collect();
             let refs: Vec<&str> = strs.iter().map(String::as_str).collect();
+            // SECURITY (S1/S5): validate against the allowlist BEFORE the native
+            // player is even loaded, so hostile input is rejected (and logged
+            // loudly) even if mpv is unavailable, and never reaches mpv.command().
+            check_mpv_command(&refs)?;
+            let ctrl = state.ensure(&app)?;
             tracing::debug!("mpv command {refs:?}");
             // Drop cached stats when playback stops so the panel doesn't show a
             // previous title's codec/bitrate.
@@ -403,6 +454,7 @@ pub fn shell_send(
             // fails, so nothing ever streams. Apply the resume time via the
             // `start` property and issue a clean two-arg loadfile instead.
             if refs.first() == Some(&"loadfile") {
+                // URL already validated as http(s) by check_mpv_command.
                 let url = refs.get(1).copied().unwrap_or_default();
                 let start = refs
                     .iter()
@@ -421,7 +473,11 @@ pub fn shell_send(
                 .first()
                 .and_then(Value::as_str)
                 .ok_or("mpv-set-prop: missing property name")?;
+            // SECURITY (S5): only properties the player legitimately sets. Reject
+            // (and log) anything else before touching the native player.
+            check_mpv_setprop(name)?;
             let value = json_to_mpv_str(list.get(1).unwrap_or(&Value::Null));
+            let ctrl = state.ensure(&app)?;
             tracing::debug!("mpv set-prop {name} = {value}");
             if let Err(e) = ctrl.mpv.set_property(name, &value) {
                 // A minimal build may reject a prop (e.g. vo=gpu-next); log but
@@ -432,6 +488,7 @@ pub fn shell_send(
         }
         "mpv-observe-prop" => {
             let name = arg0.as_str().ok_or("mpv-observe-prop: expected a name")?;
+            let ctrl = state.ensure(&app)?;
             // ALWAYS observe — never de-dupe. The web client builds a fresh
             // ShellVideo per playback and relies on mpv re-emitting each
             // property's initial value; `mpv-version` in particular gates the
@@ -479,5 +536,129 @@ fn json_to_mpv_str(v: &Value) -> String {
         Value::Number(n) => n.to_string(),
         Value::Null => String::new(),
         other => other.to_string(),
+    }
+}
+
+/// SECURITY (S1): gate an `mpv-command` argv against [`MPV_COMMAND_ALLOWLIST`]
+/// and, for `loadfile`, its target URL. Returns a loud `Err` (surfaced to the
+/// web caller and logged at error) for anything off the allowlist, so an XSS in
+/// addon-driven content can never reach `run`/`subprocess`/`load-script` etc.
+fn check_mpv_command(refs: &[&str]) -> Result<(), String> {
+    let name = *refs.first().ok_or("mpv-command: empty command")?;
+    if !MPV_COMMAND_ALLOWLIST.contains(&name) {
+        tracing::error!("shell: BLOCKED disallowed mpv-command {name:?} (argv {refs:?})");
+        return Err(format!("mpv-command {name:?} is not allowed"));
+    }
+    if name == "loadfile" {
+        validate_stream_url(refs.get(1).copied().unwrap_or_default())?;
+    }
+    Ok(())
+}
+
+/// SECURITY (S5): gate an `mpv-set-prop` name against [`MPV_SETPROP_ALLOWLIST`].
+fn check_mpv_setprop(name: &str) -> Result<(), String> {
+    if MPV_SETPROP_ALLOWLIST.contains(&name) {
+        return Ok(());
+    }
+    tracing::error!("shell: BLOCKED disallowed mpv-set-prop {name:?}");
+    Err(format!("mpv-set-prop {name:?} is not allowed"))
+}
+
+/// SECURITY (S5): a `loadfile` target must be a plain http(s) stream URL (the
+/// local streaming server at http://127.0.0.1:11470/… or a direct addon URL).
+/// mpv would otherwise happily open a local path, `file://`, or one of its
+/// protocol handlers (`av://`, `edl://`, `memory://`, pipe/subprocess-style
+/// inputs) — data-exfil / code-execution vectors reachable from web content.
+fn validate_stream_url(url: &str) -> Result<(), String> {
+    let lower = url.trim().to_ascii_lowercase();
+    if lower.starts_with("http://") || lower.starts_with("https://") {
+        Ok(())
+    } else {
+        tracing::error!("shell: BLOCKED loadfile with non-http(s) URL {url:?}");
+        Err(format!("loadfile: refusing non-http(s) URL {url:?}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every command ShellVideo actually sends over the bridge must pass.
+    #[test]
+    fn allows_the_commands_shellvideo_sends() {
+        check_mpv_command(&["stop"]).unwrap();
+        check_mpv_command(&["loadfile", "http://127.0.0.1:11470/abc/0"]).unwrap();
+        check_mpv_command(&["loadfile", "https://cdn.example/stream.mkv", "replace", "-1", "start=+90"])
+            .unwrap();
+    }
+
+    /// The dangerous mpv commands (the S1 RCE surface) must be rejected.
+    #[test]
+    fn blocks_dangerous_commands() {
+        for argv in [
+            vec!["run", "cmd.exe", "/c", "calc"],
+            vec!["subprocess"],
+            vec!["load-script", "C:/evil.lua"],
+            vec!["set", "script-opts", "x=1"],
+            vec!["loadlist", "playlist.txt"],
+            vec!["quit"],
+        ] {
+            assert!(check_mpv_command(&argv).is_err(), "should block {argv:?}");
+        }
+        assert!(check_mpv_command(&[]).is_err());
+    }
+
+    /// loadfile only accepts http(s); local paths and mpv protocols are refused.
+    #[test]
+    fn loadfile_url_scheme_is_enforced() {
+        validate_stream_url("http://127.0.0.1:11470/abc/0").unwrap();
+        validate_stream_url("https://example.com/a.mkv").unwrap();
+        validate_stream_url("  https://example.com/a.mkv  ").unwrap(); // trimmed
+        validate_stream_url("HTTPS://EXAMPLE.COM/A").unwrap(); // scheme case-insensitive
+        for bad in [
+            "",
+            "av://lavfi:testsrc",
+            "file:///etc/passwd",
+            "C:/Windows/System32/calc.exe",
+            "/etc/passwd",
+            "\\\\server\\share\\x",
+            "edl://!;...",
+            "javascript:alert(1)",
+        ] {
+            assert!(validate_stream_url(bad).is_err(), "should reject {bad:?}");
+        }
+        // A loadfile command with a bad URL is rejected as a whole.
+        assert!(check_mpv_command(&["loadfile", "av://lavfi:testsrc"]).is_err());
+    }
+
+    /// Every property ShellVideo actually sets over the bridge must pass.
+    #[test]
+    fn allows_the_props_shellvideo_sets() {
+        for name in [
+            "pause", "speed", "time-pos", "volume", "mute", "aid", "sid", "hwdec", "vo", "osc",
+            "input-default-bindings", "input-vo-keyboard", "keepaspect", "panscan",
+            "sub-ass-override", "sub-scale", "sub-pos", "sub-delay", "sub-color", "sub-back-color",
+            "sub-border-color",
+        ] {
+            check_mpv_setprop(name).unwrap_or_else(|e| panic!("{name} should be allowed: {e}"));
+        }
+    }
+
+    /// Properties outside the player's set (including anything that could reach
+    /// scripting/recording/filesystem) are rejected.
+    #[test]
+    fn blocks_dangerous_props() {
+        for name in [
+            "start", // shell sets this itself, never over the bridge
+            "script-opts",
+            "input-conf",
+            "stream-record",
+            "screenshot-directory",
+            "ytdl",
+            "sub-file",
+            "vf",
+        ] {
+            assert!(check_mpv_setprop(name).is_err(), "should block {name}");
+        }
     }
 }
