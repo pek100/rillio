@@ -6,7 +6,6 @@ const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
 const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
-const { useCore } = require('rillio/core');
 const { Button } = require('rillio/components');
 const { default: TextInput } = require('rillio/components/TextInput');
 const useToast = require('rillio/common/Toast/useToast');
@@ -14,7 +13,6 @@ const styles = require('./styles');
 
 const SharePrompt = ({ className, url }) => {
     const { t } = useTranslation();
-    const core = useCore();
     const toast = useToast();
     const inputRef = React.useRef(null);
     const routeFocused = useRouteFocused();
@@ -39,14 +37,6 @@ const SharePrompt = ({ className, url }) => {
             inputRef.current.select();
         }
     }, [routeFocused]);
-    React.useEffect(() => {
-        core.transport.analytics({
-            event: 'Share',
-            args: {
-                url: url
-            }
-        });
-    }, [url]);
     return (
         <div className={classnames(className, styles['share-prompt-container'])}>
             <div className={styles['buttons-container']}>

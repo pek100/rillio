@@ -78,11 +78,6 @@ pub enum APIRequest {
     DataExport {
         auth_key: AuthKey,
     },
-    #[serde(rename_all = "camelCase")]
-    Events {
-        auth_key: AuthKey,
-        events: Vec<serde_json::Value>,
-    },
     /// Sends Seek log request to the API
     #[serde(rename_all = "camelCase")]
     SeekLog(SeekLogRequest),
@@ -167,7 +162,6 @@ impl FetchRequestParams<APIRequest> for APIRequest {
             APIRequest::GetUser { .. } => "getUser".to_owned(),
             APIRequest::SaveUser { .. } => "saveUser".to_owned(),
             APIRequest::DataExport { .. } => "dataExport".to_owned(),
-            APIRequest::Events { .. } => "events".to_owned(),
             APIRequest::SeekLog { .. } => "seekLog".to_owned(),
             APIRequest::SkipGaps { .. } => "getSkipGaps".to_owned(),
             APIRequest::GetModal { .. } => "getModal".to_owned(),

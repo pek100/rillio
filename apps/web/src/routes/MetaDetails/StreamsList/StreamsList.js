@@ -8,7 +8,6 @@ const classnames = require('classnames');
 const { useTranslation } = require('react-i18next');
 const { default: Icon } = require('@stremio/stremio-icons/react');
 const { Button, Image, MultiselectMenu } = require('rillio/components');
-const { useCore } = require('rillio/core');
 const Stream = require('./Stream');
 const CuratedStreams = require('./CuratedStreams');
 const styles = require('./styles');
@@ -19,7 +18,6 @@ const ALL_ADDONS_KEY = 'ALL';
 
 const StreamsList = ({ className, video, type, onEpisodeSearch, ...props }) => {
     const { t } = useTranslation();
-    const core = useCore();
     const platform = usePlatform();
     const profile = useProfile();
     const navigate = useNavigate();
@@ -54,14 +52,6 @@ const StreamsList = ({ className, video, type, onEpisodeSearch, ...props }) => {
                     addon: streams.addon,
                     streams: streams.content.content.map((stream) => ({
                         ...stream,
-                        onClick: () => {
-                            core.transport.analytics({
-                                event: 'StreamClicked',
-                                args: {
-                                    stream
-                                }
-                            });
-                        },
                         addonName: streams.addon.manifest.name
                     }))
                 };

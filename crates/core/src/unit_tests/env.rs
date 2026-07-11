@@ -11,10 +11,7 @@ use futures::{channel::mpsc::Receiver, future, Future, StreamExt, TryFutureExt};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    models::{ctx::Ctx, streaming_server::StreamingServer},
-    runtime::{Env, EnvFuture, EnvFutureExt, Model, Runtime, RuntimeEvent, TryEnvFuture},
-};
+use crate::runtime::{Env, EnvFutureExt, Model, Runtime, RuntimeEvent, TryEnvFuture};
 
 pub static FETCH_HANDLER: Lazy<RwLock<FetchHandler>> =
     Lazy::new(|| RwLock::new(Box::new(default_fetch_handler)));
@@ -145,16 +142,6 @@ impl Env for TestEnv {
     }
     fn now() -> DateTime<Utc> {
         *NOW.read().unwrap()
-    }
-    fn flush_analytics() -> EnvFuture<'static, ()> {
-        future::ready(()).boxed_env()
-    }
-    fn analytics_context(
-        _ctx: &Ctx,
-        _streaming_server: &StreamingServer,
-        _path: &str,
-    ) -> serde_json::Value {
-        serde_json::Value::Null
     }
     fn log(message: String) {
         println!("{message}")

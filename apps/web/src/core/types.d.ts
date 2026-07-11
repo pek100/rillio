@@ -13,7 +13,6 @@ type CoreTransport = {
     dispatch: (action: DispatchAction, model?: string) => Promise<void>,
     encodeStream: (stream: Stream) => Promise<string>,
     decodeStream: (stream: string) => Promise<Stream>,
-    analytics: (event: object) => Promise<void>,
 };
 
 type CoreStateListener = (models: string[]) => void;

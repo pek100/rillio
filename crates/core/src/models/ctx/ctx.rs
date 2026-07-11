@@ -313,8 +313,6 @@ fn authenticate<E: Env + 'static>(auth_request: &AuthRequest) -> Effect {
 
     EffectFuture::Concurrent(
         async {
-            E::flush_analytics().await;
-
             // return an error only if the auth request fails
             let auth = fetch_api::<E, _, _, _>(&auth_api)
                 .inspect(move |result| trace!(?result, ?auth_api, "Auth request"))
@@ -396,11 +394,8 @@ fn delete_session<E: Env + 'static>(auth_key: &AuthKey) -> Effect {
     };
 
     EffectFuture::Concurrent(
-        E::flush_analytics()
-            .then(|_| {
-                fetch_api::<E, _, _, SuccessResponse>(&request)
-                    .inspect(move |result| trace!(?result, ?request, "Logout request"))
-            })
+        fetch_api::<E, _, _, SuccessResponse>(&request)
+            .inspect(move |result| trace!(?result, ?request, "Logout request"))
             .map_err(CtxError::from)
             .and_then(|result| match result {
                 APIResult::Ok(result) => future::ok(result),

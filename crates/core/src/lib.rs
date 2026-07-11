@@ -14,8 +14,6 @@
 pub use rillio_derive::Model;
 
 pub mod addon_transport;
-#[cfg(feature = "analytics")]
-pub mod analytics;
 pub mod deep_links;
 pub mod models;
 pub mod runtime;
