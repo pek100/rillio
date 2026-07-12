@@ -594,5 +594,10 @@
     els.forEach(function (e) { io.observe(e); });
   })();
 </script>
+<!-- Vercel Web Analytics: cookieless, no IP storage, aggregate unique visitors
+     only. Serves once Web Analytics is enabled in the project's Analytics tab
+     (404s until then). This measures the marketing site, not the app, the app
+     stays telemetry-free. -->
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
