@@ -1,9 +1,17 @@
 # Rillio
 
+**Website: [rillio.app](https://rillio.app)**
+
 Rillio is a hard fork of the Stremio client, consolidated from five upstream
 Stremio repositories into a single monorepo. There is no upstream merge path:
 history was squashed and the repos were restructured. (The name comes from *rill*,
 a small quiet stream, for a calm, local-first app.)
+
+Safety model in one line: torrent data is untrusted end to end - every file
+path a torrent declares must resolve inside Rillio's own cache folder (a write
+jail: absolute paths, drive prefixes, and `..` traversal are rejected and the
+offending torrent is removed), the local API accepts mutations only from the
+app's own origin, and updates are signed. Details below.
 
 ## Layout
 
