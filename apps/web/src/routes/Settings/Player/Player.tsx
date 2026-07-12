@@ -25,6 +25,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
         playInExternalPlayerSelect,
         nextVideoPopupDurationSelect,
         bingeWatchingToggle,
+        nextEpisodePreloadToggle,
         playInBackgroundToggle,
         hardwareDecodingToggle,
         gpuVideoProcessingToggle,
@@ -109,6 +110,12 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                     <MultiselectMenu
                         className={'multiselect'}
                         {...nextVideoPopupDurationSelect}
+                    />
+                </Option>
+                <Option label={'Offer to preload the next episode'}>
+                    <Toggle
+                        tabIndex={-1}
+                        {...nextEpisodePreloadToggle}
                     />
                 </Option>
             </Category>

@@ -91,6 +91,7 @@ pub fn router(config: Config, engine: Engine) -> Router {
         .route("/cache/list", get(cache_api::list))
         .route("/cache/download", post(cache_api::download))
         .route("/cache/pin", post(cache_api::pin))
+        .route("/cache/pause", post(cache_api::pause))
         .route("/cache/delete", post(cache_api::delete))
         // M2 stats family (static segments; win over the {idx} stream param).
         .route("/stats.json", get(stats::stats_aggregate))

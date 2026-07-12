@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useLayoutEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
 import { Image } from 'rillio/components';
 import styles from './Buffering.less';
@@ -6,6 +6,10 @@ import styles from './Buffering.less';
 type Props = {
     className: string,
     logo: string,
+    // Text fallback for streams with no meta (e.g. played from the Cached
+    // page): when there is no usable logo, the stream/file name is rendered
+    // as a title instead of the bare symbol logo.
+    title?: string | null,
     progress: number,
     infoHash?: string | null,
     loaded?: boolean,
@@ -28,12 +32,22 @@ type Props = {
 // how much has downloaded, the current speed, and how many peers we are pulling
 // from. All stats are optional-chained with defaults, so missing stats fall
 // back to a plain "Buffering" without numbers rather than crashing.
-const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress, infoHash, loaded, hasStatistics, peers, speed, completed, escalated, connectionSlow, fastModeAvailable, onTryDifferentSource, onSwitchToFastMode }, ref) => {
+const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, title, progress, infoHash, loaded, hasStatistics, peers, speed, completed, escalated, connectionSlow, fastModeAvailable, onTryDifferentSource, onSwitchToFastMode }, ref) => {
     const style = useMemo(() => {
         return {
             clipPath: `inset(0 ${100 - progress}% 0 0)`,
         };
     }, [progress]);
+
+    // A logo that is missing, or one that failed to load, would render the
+    // generic symbol - when a title is available (the stream/file name for
+    // meta-less playback) show that text instead, it is strictly more useful.
+    const [logoBroken, setLogoBroken] = useState(false);
+    useLayoutEffect(() => {
+        setLogoBroken(false);
+    }, [logo]);
+    const hasLogo = typeof logo === 'string' && logo.length > 0 && !logoBroken;
+    const showTitle = !hasLogo && typeof title === 'string' && title.length > 0;
 
     // Only a torrent stream that has not started playing yet gets the panel;
     // direct (non-torrent) streams have no infoHash, and once loaded is true the
@@ -63,19 +77,32 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress
 
     return (
         <div ref={ref} className={classNames(className, styles['buffering'])}>
-            <Image
-                className={styles['logo']}
-                style={style}
-                src={logo}
-                alt={' '}
-                fallbackSrc={require('/assets/images/symbol.svg')}
-            />
-            <Image
-                className={classNames(styles['logo'], styles['background'])}
-                src={logo}
-                alt={' '}
-                fallbackSrc={require('/assets/images/symbol.svg')}
-            />
+            {
+                showTitle ?
+                    <div
+                        className="pointer-events-none max-w-[min(44rem,calc(100vw-3rem))] px-6 text-center text-2xl font-semibold leading-snug text-fg [overflow-wrap:anywhere]"
+                        title={title as string}
+                    >
+                        {title}
+                    </div>
+                    :
+                    <>
+                        <Image
+                            className={styles['logo']}
+                            style={style}
+                            src={logo}
+                            alt={' '}
+                            fallbackSrc={require('/assets/images/symbol.svg')}
+                            onError={() => setLogoBroken(true)}
+                        />
+                        <Image
+                            className={classNames(styles['logo'], styles['background'])}
+                            src={logo}
+                            alt={' '}
+                            fallbackSrc={require('/assets/images/symbol.svg')}
+                        />
+                    </>
+            }
             {
                 showStatus ?
                     <div className="pointer-events-none absolute bottom-[16%] left-1/2 flex w-[min(28rem,calc(100vw-3rem))] -translate-x-1/2 flex-col items-center gap-2 px-6 text-center">

@@ -141,6 +141,9 @@
   @media (prefers-reduced-motion: reduce) { .hero-rill path { animation: none; stroke-dashoffset: 0; } }
   .hero .lede { max-width: 40rem; margin: 0 auto 0.9rem; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--fg-2); text-wrap: balance; }
   .hero .lede-strong { color: var(--fg); font-weight: 600; margin-bottom: 2.4rem; }
+  /* Lede anchors: quiet in-page links, a faint accent underline that lights up. */
+  .lede a { border-bottom: 1px solid var(--accent-soft); transition: color 0.15s var(--ease), border-color 0.15s var(--ease); }
+  .lede a:hover { color: var(--accent); border-color: var(--accent); }
 
   /* How it works: three numbered steps in one flat, hairline-divided row. */
   .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--edge); border-bottom: 1px solid var(--edge); }
@@ -215,8 +218,26 @@
   }
   .feature-row .lead { display: flex; align-items: center; gap: 1rem; }
   .feature-row .lead svg { color: var(--accent); flex: none; }
+  .feature-row[id] { scroll-margin-top: 5.5rem; }
   .feature-row h3 { font-size: clamp(1.4rem, 2.6vw, 1.95rem); font-weight: 800; letter-spacing: -0.02em; }
   .feature-row p { color: var(--fg-2); font-size: 1.08rem; }
+  /* Playback checklist inside a feature row: two muted misses, one accent hit. */
+  .vs-list { list-style: none; display: grid; gap: 0.6rem; margin-bottom: 1rem; }
+  .vs-list li { display: flex; align-items: center; gap: 0.7rem; color: var(--fg-2); font-size: 1.08rem; }
+  .vs-list svg { flex: none; color: var(--fg-3); }
+  .vs-list .yes { color: var(--fg); font-weight: 700; }
+  .vs-list .yes svg { color: var(--accent); }
+  /* Footnote star: muted superscript, links down to the FAQ entry. */
+  .vs-list .fn {
+    color: var(--fg-3); font-weight: 700; font-size: 0.72em;
+    vertical-align: super; line-height: 1; margin-left: 0.1em;
+    transition: color 0.15s var(--ease);
+  }
+  .vs-list .fn:hover { color: var(--accent); }
+  /* The star's target is the (hidden) answer, so fragment navigation
+     auto-expands the entry; the margin keeps its summary in view too. */
+  .faq .a[id] { scroll-margin-top: 12rem; }
+  .feature-row .vs-note { color: var(--fg-3); font-size: 0.98rem; }
 
   /* Privacy: an honest statement, then a tight two-column list, no boxes. */
   .privacy { border-top: 1px solid var(--edge); background: linear-gradient(180deg, transparent, rgba(255,160,51,0.02)); }
@@ -296,7 +317,7 @@
     <svg class="hero-rill reveal" viewBox="0 0 260 24" aria-hidden="true" style="transition-delay:0.14s">
       <path d="M4 14 C58 4, 92 22, 130 12 S 208 4, 256 12" pathLength="1"/>
     </svg>
-    <p class="lede reveal" style="transition-delay:0.16s">Movies, series and live TV, brought together by add-ons you choose and played in a native 4K player.</p>
+    <p class="lede reveal" style="transition-delay:0.16s">Movies, series and live TV, brought together by <a href="#addons">add-ons you choose</a> and played in the <a href="#hdr">highest quality there is</a>.</p>
     <p class="lede lede-strong reveal" style="transition-delay:0.19s">Your library lives on your device, and it stays yours.</p>
     <div class="cta-row reveal" style="transition-delay:0.22s">
       <a class="btn btn-primary" href="https://github.com/pek100/rillio/releases/latest/download/RillioSetup.exe">
@@ -346,19 +367,26 @@
         <p>Discover, organize and watch from any source, held together by an open add-on ecosystem.</p>
       </div>
       <div class="feature-rows">
-        <div class="feature-row reveal">
+        <div class="feature-row reveal" id="addons">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
             <h3>Open add-ons</h3>
           </div>
           <p>Catalogs, subtitles and streams come from third-party add-ons you choose to install, browsable at the <a class="ilink" href="https://stremio-addons.net/addons" target="_blank" rel="noopener noreferrer">community directory</a>. Nothing is bundled, and Rillio itself hosts no content, it is the player and the shelf.</p>
         </div>
-        <div class="feature-row reveal">
+        <div class="feature-row reveal" id="hdr">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 14 8-14 8V4Z"/></svg>
-            <h3>Native 4K playback</h3>
+            <h3>True 4K HDR and Dolby Vision, in the app</h3>
           </div>
-          <p>A real in-app player handles 4K HDR and Dolby Vision natively through mpv. Smooth, sharp, and free of the browser codec limits every web player runs into.</p>
+          <div>
+            <ul class="vs-list">
+              <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Stremio hands these streams to an external player</li>
+              <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>VLC skips their Dolby Vision metadata<a class="fn" href="#faq-dv" aria-label="How does Rillio render Dolby Vision when VLC does not?">*</a></li>
+              <li class="yes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Rillio plays them natively, right in the app</li>
+            </ul>
+            <p class="vs-note">True HDR passthrough on HDR displays and full Dolby Vision rendering, built on mpv.</p>
+          </div>
         </div>
         <div class="feature-row reveal">
           <div class="lead">
@@ -442,6 +470,10 @@
         <details>
           <summary>Is it really free?</summary>
           <p class="a">Yes. Rillio is free software under the GPL, with no tiers, no ads and no data business. Every line of it is on GitHub for you to read, build and verify.</p>
+        </details>
+        <details>
+          <summary>* How does Rillio render Dolby Vision when VLC does not?</summary>
+          <p class="a" id="faq-dv">VLC's playback pipeline does not process the Dolby Vision RPU metadata carried inside these streams, so the picture falls back to the base layer. Rillio renders through mpv and libplacebo, whose open-source implementation does read and apply that metadata. To be clear, Rillio is not Dolby certified and does not claim to be. It renders what is in the stream, faithfully.</p>
         </details>
       </div>
     </div>

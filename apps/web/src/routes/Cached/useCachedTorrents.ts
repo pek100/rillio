@@ -10,6 +10,9 @@ export type CacheEntry = {
     error?: string,
     pinned: boolean,
     fileCount: number,
+    // The single selected file's index when the entry is one playable file,
+    // absent for multi-file selections. Powers the row's play button.
+    fileIdx?: number,
 };
 
 // The Cached page's data layer: polls the local streaming server's cache list
@@ -56,6 +59,20 @@ const useCachedTorrents = () => {
         }).catch(() => refresh());
     }, [serverUrl, refresh]);
 
+    const setPaused = useCallback((infoHash: string, paused: boolean) => {
+        if (typeof serverUrl !== 'string') return;
+        setEntries((current) => current !== null ?
+            current.map((entry) => entry.infoHash === infoHash ? { ...entry, state: paused ? 'paused' : 'live' } : entry)
+            :
+            current
+        );
+        fetch(new URL('cache/pause', serverUrl), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ infoHash, paused }),
+        }).catch(() => refresh());
+    }, [serverUrl, refresh]);
+
     const remove = useCallback((infoHash: string) => {
         if (typeof serverUrl !== 'string') return;
         hidden.current.add(infoHash);
@@ -74,7 +91,7 @@ const useCachedTorrents = () => {
         });
     }, [serverUrl, refresh]);
 
-    return { entries, failed, setPinned, remove };
+    return { entries, failed, setPinned, setPaused, remove };
 };
 
 export default useCachedTorrents;

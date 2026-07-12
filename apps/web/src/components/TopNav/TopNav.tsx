@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Icon from '@stremio/stremio-icons/react';
 import LogoMark from 'rillio/common/LogoMark/LogoMark';
 import { cn } from 'rillio/common/cn';
+import useActiveDownloads from 'rillio/common/useActiveDownloads';
 import SearchModal from 'rillio/components/SearchModal';
 import { useIsShell } from 'rillio/components/WindowControls/WindowControls';
 
@@ -41,6 +42,8 @@ const TopNav = ({ className, route }: Props) => {
     const shell = useIsShell();
     const dragProps = shell ? { 'data-tauri-drag-region': '' } : {};
     const activeId = route === 'continue_watching' ? 'library' : route;
+    // Pulsing dot on the Cached button while anything is downloading.
+    const downloading = useActiveDownloads();
     const [searchOpen, setSearchOpen] = React.useState(false);
     const brandRef = React.useRef<HTMLAnchorElement>(null);
 
@@ -118,9 +121,17 @@ const TopNav = ({ className, route }: Props) => {
                     to="/cached"
                     title={'Cached'}
                     tabIndex={-1}
-                    className={cn(ICON_BUTTON_BARE, route === 'cached' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
+                    className={cn(ICON_BUTTON_BARE, 'relative', route === 'cached' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
                 >
-                    <Icon className="size-4" name="download" />
+                    <span className="relative">
+                        <Icon className="size-4" name="download" />
+                        {
+                            downloading ?
+                                <span className="absolute -right-1 -top-1 size-2 animate-pulse rounded-full bg-accent" />
+                                :
+                                null
+                        }
+                    </span>
                 </Link>
                 <Link
                     to="/settings"

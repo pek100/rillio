@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCore } from 'rillio/core';
 import { CONSTANTS, languageNames, useLanguageSorting, usePlatform } from 'rillio/common';
+import { getPreloadPromptEnabled, setPreloadPromptEnabled } from 'rillio/common/nextEpisodePreloadPrefs';
 
 const LANGUAGES_NAMES: Record<string, string> = languageNames;
 
@@ -253,6 +254,19 @@ const usePlayerOptions = (profile: Profile) => {
         }
     }), [profile.settings]);
 
+    // Web-only preference (localStorage): the core profile.settings schema is
+    // fixed in Rust, so the next-episode preload prompt toggle cannot live
+    // there. Mirrored into state so the toggle re-renders on click.
+    const [nextEpisodePreloadEnabled, setNextEpisodePreloadEnabled] = useState(getPreloadPromptEnabled);
+    const nextEpisodePreloadToggle = useMemo(() => ({
+        checked: nextEpisodePreloadEnabled,
+        onClick: () => {
+            const enabled = !nextEpisodePreloadEnabled;
+            setPreloadPromptEnabled(enabled);
+            setNextEpisodePreloadEnabled(enabled);
+        }
+    }), [nextEpisodePreloadEnabled]);
+
     const playInBackgroundToggle = useMemo(() => ({
         checked: profile.settings.playInBackground,
         onClick: () => {
@@ -362,6 +376,7 @@ const usePlayerOptions = (profile: Profile) => {
         playInExternalPlayerSelect,
         nextVideoPopupDurationSelect,
         bingeWatchingToggle,
+        nextEpisodePreloadToggle,
         playInBackgroundToggle,
         hardwareDecodingToggle,
         gpuVideoProcessingToggle,

@@ -3,6 +3,10 @@ type ToastOptions = {
     title: string,
     message?: string,
     timeout: number,
+    action?: {
+        label: string,
+        onSelect: () => void,
+    },
 };
 
 declare const useToast: () => {

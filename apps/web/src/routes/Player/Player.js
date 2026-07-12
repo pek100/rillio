@@ -29,6 +29,8 @@ const { default: SideDrawer } = require('./SideDrawer');
 const usePlayer = require('./usePlayer');
 const useStatistics = require('./useStatistics');
 const useSlowDownload = require('./useSlowDownload');
+const useNextEpisodePreload = require('./useNextEpisodePreload');
+const NextEpisodePreloadPrompt = require('./NextEpisodePreloadPrompt');
 const useVideo = require('./useVideo');
 const { default: useSubtitles } = require('./useSubtitles');
 const styles = require('./styles');
@@ -137,6 +139,10 @@ const Player = () => {
         streamingSettings,
     });
 
+    // Next-episode preload: prompt scheduling, per-series dismissal, the
+    // /cache/download trigger, and the start-next-paused handoff after ended.
+    const nextEpisodePreload = useNextEpisodePreload({ player, video });
+
     // "Try a different source": back to this title's streams list. The player
     // route carries the meta type/id and the video id, which is exactly the
     // MetaDetails streams route (/metadetails/:type/:id/:videoId).
@@ -219,12 +225,18 @@ const Player = () => {
         if (player.nextVideo !== null) {
             nextVideo();
 
+            // An accepted preload means the user already chose to continue:
+            // auto-continue even with binge watching off, and arm the handoff
+            // that starts the next episode paused once it loads.
+            if (nextEpisodePreload.accepted) {
+                nextEpisodePreload.armPausedStart();
+            }
             const deepLinks = player.nextVideo.deepLinks;
-            handleNextVideoNavigation(deepLinks, profile.settings.bingeWatching, true);
+            handleNextVideoNavigation(deepLinks, profile.settings.bingeWatching || nextEpisodePreload.accepted, true);
         } else {
             navigate(-1);
         }
-    }, [player.nextVideo, profile.settings.bingeWatching, handleNextVideoNavigation]);
+    }, [player.nextVideo, profile.settings.bingeWatching, handleNextVideoNavigation, nextEpisodePreload.accepted, nextEpisodePreload.armPausedStart]);
 
     const onError = React.useCallback((error) => {
         console.error('Player', error);
@@ -903,6 +915,7 @@ const Player = () => {
                         ref={bufferingRef}
                         className={classnames(styles['layer'], styles['buffering-layer'])}
                         logo={player?.metaItem?.content?.logo}
+                        title={player?.selected?.stream?.name ?? null}
                         progress={statistics.progress}
                         infoHash={statistics.infoHash}
                         loaded={video.state.loaded}
@@ -1020,6 +1033,17 @@ const Player = () => {
                         nextVideo={player.nextVideo}
                         onDismiss={onDismissNextVideoPopup}
                         onNextVideoRequested={onNextVideoRequested}
+                    />
+                    :
+                    null
+            }
+            {
+                nextEpisodePreload.promptVisible && !menusOpen && error === null ?
+                    <NextEpisodePreloadPrompt
+                        onAccept={nextEpisodePreload.accept}
+                        onDismiss={nextEpisodePreload.dismiss}
+                        onMouseMove={onBarMouseMove}
+                        onMouseOver={onBarMouseMove}
                     />
                     :
                     null

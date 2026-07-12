@@ -16,13 +16,17 @@ use serde::{Deserialize, Serialize};
 use crate::engine::Engine;
 use crate::torrent::is_valid_infohash;
 
-/// One cached torrent, as the Cached page renders it.
+/// One cached torrent, as the Cached page renders it. Everything is scoped to
+/// the SELECTED files (what we actually download), not the whole torrent, so a
+/// season pack where one episode was picked shows that episode's name and size.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CacheEntry {
     pub info_hash: String,
+    /// The single selected file's name when exactly one file is selected
+    /// (e.g. the episode filename), otherwise the torrent name.
     pub name: String,
-    /// Bytes actually downloaded (≈ on-disk weight).
+    /// Bytes actually downloaded of the selected files (≈ on-disk weight).
     pub downloaded: u64,
     /// Total size of the selected files.
     pub total: u64,
@@ -31,7 +35,13 @@ pub(crate) struct CacheEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     pub pinned: bool,
+    /// Number of selected files.
     pub file_count: usize,
+    /// The single selected file's index in the torrent when exactly one file
+    /// is selected (a playable stream is one file), omitted otherwise. Lets
+    /// the Cached page build a player deep link for the entry.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_idx: Option<usize>,
 }
 
 /// `GET /cache/list` - every torrent the engine manages (the session persists
@@ -43,15 +53,45 @@ pub(crate) async fn list(State(engine): State<Engine>) -> Json<Vec<CacheEntry>> 
         .map(|handle| {
             let stats = handle.stats();
             let info_hash = Engine::info_hash_hex(handle);
+            let files = Engine::files(handle);
+            // The download selection: `only_files() == None` means every file.
+            // Indices are bounds-checked so a stale selection can't panic.
+            let selected: Vec<usize> = match handle.only_files() {
+                Some(only) => only.into_iter().filter(|&i| i < files.len()).collect(),
+                None => (0..files.len()).collect(),
+            };
+            let total: u64 = selected.iter().map(|&i| files[i].length).sum();
+            // Per-file have-bytes are exact (never exceed the file's length),
+            // unlike `progress_bytes` which is piece-aligned. Empty while the
+            // torrent is initializing or errored - clamp the torrent-level
+            // counter then so `downloaded <= total` always holds.
+            let downloaded: u64 = if stats.file_progress.is_empty() {
+                stats.progress_bytes.min(total)
+            } else {
+                selected
+                    .iter()
+                    .map(|&i| stats.file_progress.get(i).copied().unwrap_or(0))
+                    .sum()
+            };
+            let name = if selected.len() == 1 {
+                files[selected[0]].name.clone()
+            } else {
+                handle.name().unwrap_or_default()
+            };
             CacheEntry {
                 pinned: engine.is_pinned(&info_hash),
                 info_hash,
-                name: handle.name().unwrap_or_default(),
-                downloaded: stats.progress_bytes,
-                total: stats.total_bytes,
+                name,
+                downloaded,
+                total,
                 state: format!("{:?}", stats.state).to_lowercase(),
                 error: stats.error.clone(),
-                file_count: Engine::files(handle).len(),
+                file_count: selected.len(),
+                file_idx: if selected.len() == 1 {
+                    Some(selected[0])
+                } else {
+                    None
+                },
             }
         })
         .collect();
@@ -108,6 +148,30 @@ pub(crate) async fn pin(State(engine): State<Engine>, Json(body): Json<PinBody>)
         return StatusCode::BAD_REQUEST.into_response();
     }
     engine.set_pinned(&body.info_hash.to_lowercase(), body.pinned);
+    Json(serde_json::json!({ "success": true })).into_response()
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PauseBody {
+    info_hash: String,
+    paused: bool,
+}
+
+/// `POST /cache/pause` - pause or resume a cached torrent's download.
+pub(crate) async fn pause(State(engine): State<Engine>, Json(body): Json<PauseBody>) -> Response {
+    if !is_valid_infohash(&body.info_hash) {
+        return StatusCode::BAD_REQUEST.into_response();
+    }
+    let info_hash = body.info_hash.to_lowercase();
+    let Some(handle) = engine.get(&info_hash) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    if body.paused {
+        engine.pause(&handle).await;
+    } else {
+        engine.unpause(&handle).await;
+    }
     Json(serde_json::json!({ "success": true })).into_response()
 }
 

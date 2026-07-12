@@ -13,7 +13,10 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use anyhow::Context;
-use librqbit::{AddTorrent, ManagedTorrent, Session, SessionOptions, SessionPersistenceConfig};
+use librqbit::{
+    torrent_from_bytes, AddTorrent, ByteBuf, ManagedTorrent, Session, SessionOptions,
+    SessionPersistenceConfig,
+};
 
 use crate::{storage, types};
 
@@ -219,6 +222,229 @@ fn write_pins(cache_dir: &std::path::Path, pins: &HashSet<String>) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Stale-fastresume guard
+// ---------------------------------------------------------------------------
+//
+// librqbit 8.1.1 persists per-torrent fastresume under `<cache_root>/session/`:
+// `session.json` (per-torrent output_folder), `<infohash>.bitv` (the raw
+// BitTorrent have-bitfield, Msb0) and `<infohash>.torrent` (metainfo). On
+// restore it TRUSTS the .bitv unconditionally: if the bitfield says "have all"
+// but the data files at output_folder are gone (moved/deleted externally),
+// librqbit preallocates fresh zero-filled files, reports the torrent 100%
+// complete, and the stream route serves gigabytes of zeros (mpv dies with
+// "unrecognized file format"). Silent corruption; the guard below runs BEFORE
+// the Session is constructed and deletes the .bitv of any torrent whose claimed
+// progress provably has no data behind it, forcing a clean re-download instead.
+
+/// How many bytes of a file's head (and tail) the zero-prealloc check samples.
+/// Never full reads: 64 KiB from each end is enough to tell a preallocated
+/// zero-filled file from real media (which always has nonzero structure).
+const ZERO_SAMPLE_LEN: u64 = 64 * 1024;
+
+/// One torrent entry of librqbit's `session/session.json`, reduced to the two
+/// fields the guard needs. Unknown fields are ignored, and the file itself is
+/// never rewritten, so the rest of the entry stays untouched.
+#[derive(serde::Deserialize)]
+struct PersistedTorrentEntry {
+    info_hash: String,
+    output_folder: PathBuf,
+}
+
+/// The `session.json` shape (`{"torrents": {"<id>": {...}}}`).
+#[derive(serde::Deserialize)]
+struct PersistedSessionDb {
+    torrents: HashMap<String, PersistedTorrentEntry>,
+}
+
+fn bitv_path(session_dir: &Path, info_hash: &str) -> PathBuf {
+    session_dir.join(format!("{info_hash}.bitv"))
+}
+
+/// Whether the raw bitfield claims EVERY piece is downloaded. BitTorrent
+/// bitfields are Msb0 (piece 0 = highest bit of byte 0); trailing pad bits of
+/// the last byte are ignored.
+fn bitv_claims_all_pieces(bitv: &[u8], num_pieces: usize) -> bool {
+    if num_pieces == 0 {
+        return false;
+    }
+    let full_bytes = num_pieces / 8;
+    let rem_bits = num_pieces % 8;
+    if bitv.len() < full_bytes + usize::from(rem_bits > 0) {
+        return false;
+    }
+    if !bitv[..full_bytes].iter().all(|&b| b == 0xFF) {
+        return false;
+    }
+    if rem_bits > 0 {
+        let mask = 0xFFu8 << (8 - rem_bits);
+        if bitv[full_bytes] & mask != mask {
+            return false;
+        }
+    }
+    true
+}
+
+/// Sample the first and last [`ZERO_SAMPLE_LEN`] bytes of `path`. `true` means
+/// every sampled byte is zero, i.e. the file looks like a fresh preallocation
+/// rather than downloaded data. Errors propagate (caller keeps the fastresume
+/// when it cannot verify).
+fn file_head_tail_all_zeros(path: &Path) -> anyhow::Result<bool> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(path).with_context(|| format!("opening {path:?}"))?;
+    let len = f.metadata().with_context(|| format!("stat {path:?}"))?.len();
+    if len == 0 {
+        // An existing but empty file carries no data; equivalent to all-zero.
+        return Ok(true);
+    }
+    let head = len.min(ZERO_SAMPLE_LEN) as usize;
+    let mut buf = vec![0u8; head];
+    f.read_exact(&mut buf).with_context(|| format!("reading head of {path:?}"))?;
+    if buf.iter().any(|&b| b != 0) {
+        return Ok(false);
+    }
+    if len > ZERO_SAMPLE_LEN {
+        let tail = ZERO_SAMPLE_LEN.min(len - ZERO_SAMPLE_LEN) as usize;
+        f.seek(SeekFrom::End(-(tail as i64)))
+            .with_context(|| format!("seeking tail of {path:?}"))?;
+        let mut buf = vec![0u8; tail];
+        f.read_exact(&mut buf).with_context(|| format!("reading tail of {path:?}"))?;
+        if buf.iter().any(|&b| b != 0) {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// Decide whether one torrent's fastresume is provably stale. Returns
+/// `Some(reason)` when the .bitv must be invalidated, `None` to keep it, and
+/// `Err` when it cannot be verified (caller keeps it and warns).
+///
+/// Deliberately conservative, two rules only:
+/// 1. The .bitv claims progress (any bit set) but NONE of the torrent's
+///    payload files exist at the recorded output_folder: a fully absent
+///    download. Partially-moved trees (some files still present) are kept.
+/// 2. The .bitv claims EVERY piece, all payload files exist, and every one of
+///    them samples all-zero at head and tail: the zero-preallocated corpse a
+///    previous run left behind after trusting rule-1 state. A false positive
+///    here only costs a re-hash/re-download; the data files themselves are
+///    never touched.
+fn check_fastresume_stale(
+    session_dir: &Path,
+    entry: &PersistedTorrentEntry,
+) -> anyhow::Result<Option<&'static str>> {
+    let bitv_bytes = match std::fs::read(bitv_path(session_dir, &entry.info_hash)) {
+        Ok(b) => b,
+        // No fastresume, nothing to invalidate.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e).context("reading .bitv"),
+    };
+    if bitv_bytes.iter().all(|&b| b == 0) {
+        // Claims no progress; a full initial check runs anyway.
+        return Ok(None);
+    }
+
+    let torrent_file = session_dir.join(format!("{}.torrent", entry.info_hash));
+    let torrent_raw = std::fs::read(&torrent_file)
+        .with_context(|| format!("reading {torrent_file:?} (cannot enumerate expected files)"))?;
+    let meta = torrent_from_bytes::<ByteBuf>(&torrent_raw)
+        .with_context(|| format!("parsing {torrent_file:?}"))?;
+
+    // Payload files only: bep-47 padding files are never written to disk, and
+    // zero-length files prove nothing about downloaded data.
+    let files: Vec<PathBuf> = meta
+        .info
+        .iter_file_details()
+        .context("listing torrent files")?
+        .filter(|fd| !fd.attrs().padding && fd.len > 0)
+        .map(|fd| fd.filename.to_pathbuf())
+        .collect::<anyhow::Result<_>>()?;
+    if files.is_empty() {
+        return Ok(None);
+    }
+
+    let existing: Vec<PathBuf> = files
+        .iter()
+        .map(|rel| entry.output_folder.join(rel))
+        .filter(|p| p.is_file())
+        .collect();
+    if existing.is_empty() {
+        return Ok(Some("no data files exist at the recorded output folder"));
+    }
+
+    let num_pieces = meta.info.pieces.as_ref().len() / 20;
+    if existing.len() == files.len() && bitv_claims_all_pieces(&bitv_bytes, num_pieces) {
+        for path in &existing {
+            if !file_head_tail_all_zeros(path)? {
+                return Ok(None);
+            }
+        }
+        return Ok(Some(
+            "bitfield claims complete but every data file samples all-zero (stale preallocation)",
+        ));
+    }
+    Ok(None)
+}
+
+/// Startup guard: walk `session.json` and delete the `.bitv` of every torrent
+/// whose fastresume is provably stale (see [`check_fastresume_stale`]), so the
+/// librqbit [`Session`] constructed right after never trusts it. The
+/// `.torrent` file stays so metadata survives and the torrent re-adds without
+/// a magnet round-trip; librqbit then runs a fresh initial check and
+/// re-downloads instead of serving zeros. Every invalidation and every
+/// entry that cannot be verified is logged loudly.
+fn invalidate_stale_fastresume(session_dir: &Path) {
+    let db_path = session_dir.join("session.json");
+    let raw = match std::fs::read(&db_path) {
+        Ok(b) => b,
+        // Fresh install / first boot: no persisted session, nothing to guard.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
+        Err(e) => {
+            tracing::warn!("fastresume-guard: cannot read {db_path:?}: {e}; skipping guard");
+            return;
+        }
+    };
+    let db: PersistedSessionDb = match serde_json::from_slice(&raw) {
+        Ok(db) => db,
+        Err(e) => {
+            // Malformed db: librqbit itself fails loud constructing the
+            // session; not this guard's call to delete anything.
+            tracing::warn!("fastresume-guard: {db_path:?} unparseable ({e}); leaving it to librqbit");
+            return;
+        }
+    };
+    for entry in db.torrents.values() {
+        // The infohash names files we join onto session_dir; only the exact
+        // 40-char lowercase-hex shape librqbit writes is trusted.
+        let ih = entry.info_hash.as_str();
+        if ih.len() != 40 || !ih.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+            tracing::warn!("fastresume-guard: skipping malformed info_hash {ih:?} in {db_path:?}");
+            continue;
+        }
+        match check_fastresume_stale(session_dir, entry) {
+            Ok(Some(reason)) => {
+                let bitv = bitv_path(session_dir, ih);
+                match std::fs::remove_file(&bitv) {
+                    Ok(()) => tracing::warn!(
+                        "fastresume-guard: invalidated fastresume for {ih} ({reason}); \
+                         output_folder={:?}; deleted {bitv:?} so librqbit re-checks instead of \
+                         trusting stale state and serving zeros",
+                        entry.output_folder,
+                    ),
+                    Err(e) => tracing::warn!(
+                        "fastresume-guard: {ih} is stale ({reason}) but deleting {bitv:?} \
+                         failed: {e}; librqbit may resume corrupt state"
+                    ),
+                }
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!(
+                "fastresume-guard: cannot verify {ih}: {e:#}; keeping its fastresume as-is"
+            ),
+        }
+    }
+}
+
 impl Engine {
     /// Bootstrap the session rooted at `cache_dir`. librqbit lays out per-torrent
     /// subfolders beneath it.
@@ -308,6 +534,11 @@ impl Engine {
             default_storage_factory: None,
             ..Default::default()
         };
+        // Stale fastresume must be invalidated BEFORE the session is built:
+        // librqbit trusts the persisted bitfields at restore time, and a
+        // "have all" bitfield over missing files silently becomes zero-filled
+        // preallocations served as a 100%-complete stream.
+        invalidate_stale_fastresume(&cache_dir.join("session"));
         let session = Session::new_with_opts(cache_dir, opts).await?;
         let pinned = read_pins(&cache_root);
         Ok(Self {
@@ -338,6 +569,15 @@ impl Engine {
             };
             if changed {
                 write_pins(&self.cache_root, &p);
+            }
+        }
+    }
+
+    /// Pause a live torrent (the Cached page's per-row pause button).
+    pub async fn pause(&self, handle: &Handle) {
+        if !handle.is_paused() {
+            if let Err(e) = self.session.pause(handle).await {
+                tracing::warn!("pause failed: {e:#}");
             }
         }
     }
@@ -764,6 +1004,182 @@ mod tests {
         let dir = fresh_dir("malformed");
         std::fs::write(dir.join(TORRENT_PREFS_FILE), b"{ not valid json").unwrap();
         assert!(!read_listen_pref(&dir));
+    }
+
+    // -----------------------------------------------------------------------
+    // Stale-fastresume guard
+    // -----------------------------------------------------------------------
+
+    use super::{bitv_claims_all_pieces, invalidate_stale_fastresume};
+
+    const IH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    /// Minimal valid single-file torrent metainfo (16 KiB pieces). Bencode
+    /// dict keys are already in the required sorted order.
+    fn single_file_torrent(name: &str, length: u64, num_pieces: usize) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(b"d4:infod6:lengthi");
+        out.extend_from_slice(length.to_string().as_bytes());
+        out.extend_from_slice(b"e4:name");
+        out.extend_from_slice(format!("{}:{name}", name.len()).as_bytes());
+        out.extend_from_slice(b"12:piece lengthi16384e6:pieces");
+        out.extend_from_slice(format!("{}:", num_pieces * 20).as_bytes());
+        out.extend(std::iter::repeat(0x11u8).take(num_pieces * 20));
+        out.extend_from_slice(b"ee");
+        out
+    }
+
+    /// Minimal valid two-file torrent metainfo (`a.bin` + `b.bin`, 16 KiB each).
+    fn two_file_torrent() -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(
+            b"d4:infod5:filesl\
+              d6:lengthi16384e4:pathl5:a.binee\
+              d6:lengthi16384e4:pathl5:b.binee\
+              e4:name3:dir12:piece lengthi16384e6:pieces40:",
+        );
+        out.extend(std::iter::repeat(0x11u8).take(40));
+        out.extend_from_slice(b"ee");
+        out
+    }
+
+    /// Fabricate a librqbit session dir: session.json + .torrent + .bitv.
+    /// Returns (session_dir, output_folder, bitv_path).
+    fn fake_session(
+        tag: &str,
+        torrent_bytes: &[u8],
+        bitv: &[u8],
+    ) -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
+        let root = fresh_dir(&format!("fastresume-{tag}"));
+        let session_dir = root.join("session");
+        let out_dir = root.join("out");
+        std::fs::create_dir_all(&session_dir).unwrap();
+        std::fs::create_dir_all(&out_dir).unwrap();
+        let db = serde_json::json!({
+            "torrents": {
+                "0": {
+                    "info_hash": IH,
+                    "trackers": [],
+                    "output_folder": out_dir,
+                    "only_files": null,
+                    "is_paused": false,
+                }
+            }
+        });
+        std::fs::write(session_dir.join("session.json"), serde_json::to_vec(&db).unwrap())
+            .unwrap();
+        std::fs::write(session_dir.join(format!("{IH}.torrent")), torrent_bytes).unwrap();
+        let bitv_path = session_dir.join(format!("{IH}.bitv"));
+        std::fs::write(&bitv_path, bitv).unwrap();
+        (session_dir, out_dir, bitv_path)
+    }
+
+    #[test]
+    fn stale_bitv_over_fully_missing_files_is_invalidated() {
+        // 3 pieces claimed complete (Msb0: top 3 bits), but no data file at all.
+        let (session_dir, _out, bitv) =
+            fake_session("missing", &single_file_torrent("file.bin", 40960, 3), &[0xE0]);
+        invalidate_stale_fastresume(&session_dir);
+        assert!(!bitv.exists(), "stale .bitv must be deleted");
+        // Metadata and the session db survive so the torrent re-adds cleanly.
+        assert!(session_dir.join(format!("{IH}.torrent")).exists());
+        assert!(session_dir.join("session.json").exists());
+    }
+
+    #[test]
+    fn bitv_over_real_data_is_kept() {
+        let (session_dir, out, bitv) =
+            fake_session("real", &single_file_torrent("file.bin", 40960, 3), &[0xE0]);
+        std::fs::write(out.join("file.bin"), vec![0x42u8; 40960]).unwrap();
+        invalidate_stale_fastresume(&session_dir);
+        assert!(bitv.exists(), "fastresume over real data must survive");
+    }
+
+    #[test]
+    fn complete_bitv_over_zero_filled_files_is_invalidated() {
+        // The already-corrupted variant: librqbit preallocated zeros on a
+        // previous run and the bitfield still claims 100%.
+        let (session_dir, out, bitv) =
+            fake_session("zeros", &single_file_torrent("file.bin", 40960, 3), &[0xE0]);
+        std::fs::write(out.join("file.bin"), vec![0u8; 40960]).unwrap();
+        invalidate_stale_fastresume(&session_dir);
+        assert!(!bitv.exists(), "complete-but-all-zero fastresume must be deleted");
+        // The data files are never touched, only the bitfield.
+        assert!(out.join("file.bin").exists());
+    }
+
+    #[test]
+    fn partial_bitv_over_zero_filled_file_is_kept() {
+        // Claims only piece 0 of 3: a legit in-progress download whose data
+        // happens to be zeros must NOT be nuked (the zero check requires a
+        // complete bitfield).
+        let (session_dir, out, bitv) =
+            fake_session("partial", &single_file_torrent("file.bin", 40960, 3), &[0x80]);
+        std::fs::write(out.join("file.bin"), vec![0u8; 40960]).unwrap();
+        invalidate_stale_fastresume(&session_dir);
+        assert!(bitv.exists());
+    }
+
+    #[test]
+    fn empty_bitv_is_left_alone() {
+        // All-zero bitfield claims nothing; missing files prove nothing.
+        let (session_dir, _out, bitv) =
+            fake_session("empty", &single_file_torrent("file.bin", 40960, 3), &[0x00]);
+        invalidate_stale_fastresume(&session_dir);
+        assert!(bitv.exists());
+    }
+
+    #[test]
+    fn unverifiable_torrent_keeps_fastresume() {
+        // Without the .torrent we cannot enumerate expected files: keep.
+        let (session_dir, _out, bitv) =
+            fake_session("noverify", &single_file_torrent("file.bin", 40960, 3), &[0xFF]);
+        std::fs::remove_file(session_dir.join(format!("{IH}.torrent"))).unwrap();
+        invalidate_stale_fastresume(&session_dir);
+        assert!(bitv.exists());
+    }
+
+    #[test]
+    fn partially_present_multi_file_torrent_is_kept() {
+        // One of two files still exists: a partially-moved tree, not a fully
+        // absent download. Conservative rule: keep.
+        let (session_dir, out, bitv) = fake_session("multi", &two_file_torrent(), &[0x80]);
+        std::fs::write(out.join("a.bin"), vec![0x42u8; 16384]).unwrap();
+        invalidate_stale_fastresume(&session_dir);
+        assert!(bitv.exists());
+    }
+
+    #[test]
+    fn fully_missing_multi_file_torrent_is_invalidated() {
+        let (session_dir, _out, bitv) = fake_session("multi-gone", &two_file_torrent(), &[0x80]);
+        invalidate_stale_fastresume(&session_dir);
+        assert!(!bitv.exists());
+    }
+
+    #[test]
+    fn missing_session_json_is_a_noop() {
+        let dir = fresh_dir("fastresume-fresh");
+        // Must not panic or create anything on a fresh boot.
+        invalidate_stale_fastresume(&dir.join("session"));
+    }
+
+    #[test]
+    fn bitv_claims_all_pieces_handles_partial_last_byte() {
+        // 3 pieces in one byte: top 3 bits (Msb0).
+        assert!(bitv_claims_all_pieces(&[0xE0], 3));
+        // Pad bits beyond the piece count are ignored.
+        assert!(bitv_claims_all_pieces(&[0xFF], 3));
+        // Missing piece 2.
+        assert!(!bitv_claims_all_pieces(&[0xC0], 3));
+        // Exact multiple of 8.
+        assert!(bitv_claims_all_pieces(&[0xFF], 8));
+        assert!(!bitv_claims_all_pieces(&[0xFE], 8));
+        // 9 pieces need two bytes.
+        assert!(bitv_claims_all_pieces(&[0xFF, 0x80], 9));
+        assert!(!bitv_claims_all_pieces(&[0xFF], 9));
+        // Degenerate inputs claim nothing.
+        assert!(!bitv_claims_all_pieces(&[], 1));
+        assert!(!bitv_claims_all_pieces(&[0xFF], 0));
     }
 }
 

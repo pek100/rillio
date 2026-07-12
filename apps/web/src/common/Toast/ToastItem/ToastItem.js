@@ -8,7 +8,7 @@ const { default: Icon } = require('@stremio/stremio-icons/react');
 const { Button } = require('rillio/components');
 const styles = require('./styles');
 
-const ToastItem = ({ title, message, dataset, onSelect, onClose, ...props }) => {
+const ToastItem = ({ title, message, action, dataset, onSelect, onClose, ...props }) => {
     const { t } = useTranslation();
     const type = React.useMemo(() => {
         return ['success', 'alert', 'info', 'error'].includes(props.type) ?
@@ -41,6 +41,22 @@ const ToastItem = ({ title, message, dataset, onSelect, onClose, ...props }) => 
             });
         }
     }, [dataset, onSelect, onClose]);
+    const actionButtonOnClick = React.useCallback((event) => {
+        event.stopPropagation();
+        event.nativeEvent.selectToastPrevented = true;
+        event.nativeEvent.closeToastPrevented = true;
+        if (action !== null && typeof action === 'object' && typeof action.onSelect === 'function') {
+            action.onSelect();
+        }
+        if (typeof onClose === 'function') {
+            onClose({
+                type: 'close',
+                dataset: dataset,
+                reactEvent: event,
+                nativeEvent: event.nativeEvent
+            });
+        }
+    }, [action, dataset, onClose]);
     const closeButtonOnClick = React.useCallback((event) => {
         event.nativeEvent.selectToastPrevented = true;
         if (typeof onClose === 'function') {
@@ -75,6 +91,14 @@ const ToastItem = ({ title, message, dataset, onSelect, onClose, ...props }) => 
                         :
                         null
                 }
+                {
+                    action !== null && typeof action === 'object' && typeof action.label === 'string' && action.label.length > 0 ?
+                        <Button className={styles['action-button-container']} tabIndex={-1} onClick={actionButtonOnClick}>
+                            <div className={styles['action-label']}>{action.label}</div>
+                        </Button>
+                        :
+                        null
+                }
             </div>
             <Button className={styles['close-button-container']} title={t('BUTTON_CLOSE')} tabIndex={-1} onClick={closeButtonOnClick}>
                 <Icon className={styles['icon']} name={'close'} />
@@ -88,6 +112,10 @@ ToastItem.propTypes = {
     title: PropTypes.string,
     message: PropTypes.string,
     icon: PropTypes.string,
+    action: PropTypes.shape({
+        label: PropTypes.string.isRequired,
+        onSelect: PropTypes.func.isRequired
+    }),
     dataset: PropTypes.object,
     onSelect: PropTypes.func,
     onClose: PropTypes.func

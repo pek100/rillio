@@ -35,8 +35,15 @@ The desktop app is a **Tauri v2 shell** (`apps/desktop/src-tauri`) that:
 - Embeds the **Rust streaming server in-process** on `127.0.0.1:11470` (no
   container, no sidecar), replacing Stremio's closed-source `server.js`.
 - Plays media with an **embedded native mpv** (libmpv loaded at runtime via FFI),
-  composited into the app window, for 4K HDR / Dolby Vision / HEVC decoding
-  without the browser's codec limits.
+  composited into the app window: native 4K HEVC playback, true HDR passthrough
+  on HDR displays, and full Dolby Vision (RPU-applied) rendering. Upstream
+  Stremio hands these streams to an external player ("Stream is not supported");
+  VLC discards the Dolby Vision RPU metadata; Rillio plays them in-app, in full
+  quality, without the browser's codec limits. Dolby Vision support comes from
+  libplacebo's open-source RPU implementation (the libdovi ecosystem), which
+  processes the metadata carried in the stream itself; Rillio uses no Dolby SDK,
+  is not Dolby certified, and claims no certification, the same
+  open-implementation approach as the rest of the codec stack.
 - Encrypts its DNS (DoH) and self-updates from signed GitHub Releases.
 - Registers the `stremio://` and `rillio://` URL schemes, so a deep link (a
   content link, or an addon-install link from the community directory) opens the
