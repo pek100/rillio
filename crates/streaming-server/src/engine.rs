@@ -627,6 +627,11 @@ impl Engine {
             swarm_connections: 0,
             swarm_paused: handle.is_paused(),
             swarm_size: 0,
+            // "initializing" | "live" | "paused" | "error" (librqbit state),
+            // plus the failure text (e.g. a disk-full write error) so the
+            // player can explain a dead stream to the user.
+            engine_state: format!("{:?}", stats.state).to_lowercase(),
+            engine_error: stats.error.clone(),
         }
     }
 }

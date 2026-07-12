@@ -49,6 +49,12 @@ function ShellVideo(options) {
     var ipc = options.shellTransport;
     var observedProps = {};
     var props = {};
+    // `buffering` is the OR of two independent mpv signals; track them
+    // separately so one going false cannot clobber the other being true
+    // (mpv interleaves `seeking=true` with `paused-for-cache=false` while
+    // seeking into a not-yet-downloaded torrent region, which used to hide
+    // the loading overlay and leave a black screen for the whole stall).
+    var stall = { 'seeking': false, 'paused-for-cache': false };
     var stremioProps = {};
     Object.keys(stremioToMPVProps).forEach(function(key) {
         if(stremioToMPVProps[key]) {
@@ -176,8 +182,10 @@ function ShellVideo(options) {
             case 'paused-for-cache':
             case 'seeking':
             {
-                if(props.buffering !== args.data) {
-                    props.buffering = args.data;
+                stall[args.name] = args.data === true;
+                var buffering = stall['seeking'] || stall['paused-for-cache'];
+                if(props.buffering !== buffering) {
+                    props.buffering = buffering;
                     onPropChanged('buffering');
                 }
                 break;
@@ -259,8 +267,17 @@ function ShellVideo(options) {
     });
     ipc.on('mpv-event-ended', function(args) {
         // older shells report 'other' for every non-error reason, including eof
-        if (args.error) onError(args.error);
-        else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
+        if (args.error) {
+            // mpv reports a bare string ("loading failed"). Playback cannot
+            // continue, so mark it critical: the player then shows its full
+            // error screen (and can ask the streaming server for the real
+            // cause) instead of a vague toast over a black screen.
+            onError({
+                critical: true,
+                message: String(args.error),
+                error: args.error,
+            });
+        } else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
             if (!isKnownEarlyEof()) onEnded();
         }
     });
@@ -502,6 +519,7 @@ function ShellVideo(options) {
                     aid: null,
                     sid: null,
                 };
+                stall = { 'seeking': false, 'paused-for-cache': false };
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');

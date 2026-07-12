@@ -2,6 +2,9 @@
 
 @import (reference) '~rillio/common/screen-sizes.less';
 
+// Bare chevron over the video, no container: the glyph carries a drop shadow
+// for legibility on bright frames (flat/borderless theme). The box keeps its
+// generous size purely as a hit area.
 .side-drawer-button {
     height: 12.5rem;
     width: 7.5rem;
@@ -9,14 +12,11 @@
     align-items: center;
     justify-content: start;
     padding-left: 0.5rem;
-    border-radius: 50%;
-    box-shadow: var(--outer-glow);
-    background-color: var(--modal-background-color);
     -webkit-tap-highlight-color: transparent;
     cursor: pointer;
     opacity: 1;
     will-change: opacity;
-    transition: opacity 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
 
     .icon {
         position: relative;
@@ -24,6 +24,7 @@
         height: 2.5rem;
         color: var(--primary-foreground-color);
         opacity: 0.6;
+        filter: drop-shadow(0 0.125rem 0.375rem rgba(0, 0, 0, 0.7));
         transition: 0.3s opacity ease-in-out;
     }
 

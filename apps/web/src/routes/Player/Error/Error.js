@@ -8,7 +8,7 @@ const { default: Icon } = require('@stremio/stremio-icons/react');
 const { Button } = require('rillio/components');
 const styles = require('./styles');
 
-const Error = React.forwardRef(({ className, code, message, stream }, ref) => {
+const Error = React.forwardRef(({ className, code, message, stream, onTryDifferentSource }, ref) => {
     const { t } = useTranslation();
 
     const [playlist, fileName] = React.useMemo(() => {
@@ -24,6 +24,18 @@ const Error = React.forwardRef(({ className, code, message, stream }, ref) => {
             {
                 code === 2 ?
                     <div className={styles['error-sub']} title={t('EXTERNAL_PLAYER_HINT')}>{t('EXTERNAL_PLAYER_HINT')}</div>
+                    :
+                    null
+            }
+            {
+                typeof onTryDifferentSource === 'function' ?
+                    <button
+                        type={'button'}
+                        onClick={onTryDifferentSource}
+                        className={'pointer-events-auto mt-4 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110'}
+                    >
+                        Try a different source
+                    </button>
                     :
                     null
             }
@@ -51,6 +63,7 @@ Error.propTypes = {
     code: PropTypes.number,
     message: PropTypes.string,
     stream: PropTypes.object,
+    onTryDifferentSource: PropTypes.func,
 };
 
 module.exports = Error;

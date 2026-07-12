@@ -531,22 +531,162 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     app.restart()
 }
 
+/// True when we can create `dir` and write a file inside it.
+fn dir_writable(dir: &std::path::Path) -> bool {
+    if std::fs::create_dir_all(dir).is_err() {
+        return false;
+    }
+    let probe = dir.join(".write-probe");
+    match std::fs::File::create(&probe) {
+        Ok(_) => {
+            let _ = std::fs::remove_file(&probe);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// The torrent cache root. The cache lives IN THE APP'S FOLDER (`<app>\cache`):
+/// the user already chose where the app lives via the installer's directory
+/// picker, so the (potentially huge) cache inherits that choice instead of
+/// silently filling the system drive's appdata. The one place that can't work
+/// is a non-writable install dir (e.g. an elevated install under Program
+/// Files), where we fall back to the app data dir and say so in the log.
+fn default_cache_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(app_dir) = exe.parent() {
+            let cache = app_dir.join("cache");
+            if dir_writable(&cache) {
+                return cache;
+            }
+            tracing::warn!(
+                "cache dir {cache:?} is not writable, falling back to the app data dir"
+            );
+        }
+    }
+    app.path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("streaming-server")
+}
+
+/// One-time migration from the pre-0.1.17 cache location (appdata) to the
+/// in-app-folder default. Same volume: a rename, instant regardless of size.
+/// Cross volume: keep using the legacy dir instead (grandfathered) - silently
+/// copying hundreds of GB at startup or abandoning the data are both worse.
+/// Returns the cache root to actually use.
+///
+/// CRITICAL detail: librqbit's `session/session.json` stores each torrent's
+/// `output_folder` as an ABSOLUTE path. After a move those still point at the
+/// legacy root, and the engine happily keeps downloading THERE (recreating the
+/// old dir on the old drive). Verified live 2026-07-12: a moved cache without
+/// the rewrite re-downloaded ~30 GB onto the full system drive. So after a
+/// successful move the session file gets its prefixes rewritten.
+fn migrate_legacy_cache(legacy: &std::path::Path, new_root: &std::path::Path) -> bool {
+    let has_content = |d: &std::path::Path| {
+        d.read_dir().map(|mut i| i.next().is_some()).unwrap_or(false)
+    };
+    if !has_content(legacy) {
+        return true; // nothing to migrate
+    }
+    if has_content(new_root) {
+        // Both populated (e.g. a failed half-migration): prefer the new root,
+        // and say loudly that the legacy data is orphaned.
+        tracing::warn!(
+            "both {legacy:?} and {new_root:?} contain cache data; using the new root. Delete the legacy dir to reclaim space."
+        );
+        return true;
+    }
+    // fs::rename moves a directory instantly on the same volume and fails
+    // cross-volume (or while files are open) - exactly the split we want.
+    let _ = std::fs::remove_dir(new_root); // rename target must not exist
+    match std::fs::rename(legacy, new_root) {
+        Ok(()) => {
+            rewrite_session_output_folders(new_root, legacy, new_root);
+            tracing::info!("migrated torrent cache {legacy:?} -> {new_root:?}");
+            true
+        }
+        Err(e) => {
+            tracing::info!(
+                "cache stays at {legacy:?} (move to {new_root:?} not possible: {e})"
+            );
+            false
+        }
+    }
+}
+
+/// Rebase absolute `output_folder` paths inside librqbit's session.json from
+/// `old_root` to `new_root`. Best-effort: a malformed or missing session file
+/// is left alone (librqbit will rebuild it), but a rewrite failure after a
+/// successful data move is loud, because the engine would then re-download to
+/// the old location.
+fn rewrite_session_output_folders(
+    cache_root: &std::path::Path,
+    old_root: &std::path::Path,
+    new_root: &std::path::Path,
+) {
+    let session = cache_root.join("session").join("session.json");
+    let raw = match std::fs::read_to_string(&session) {
+        Ok(raw) => raw,
+        Err(_) => return, // no session yet - nothing to rewrite
+    };
+    let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&raw) else {
+        tracing::warn!("session.json is not valid JSON, leaving it untouched");
+        return;
+    };
+    let (old_s, new_s) = (old_root.to_string_lossy(), new_root.to_string_lossy());
+    let mut changed = false;
+    if let Some(torrents) = json.get_mut("torrents").and_then(|t| t.as_object_mut()) {
+        for torrent in torrents.values_mut() {
+            if let Some(folder) = torrent.get_mut("output_folder") {
+                if let Some(path) = folder.as_str() {
+                    if path.starts_with(old_s.as_ref()) {
+                        *folder = serde_json::Value::String(path.replacen(old_s.as_ref(), new_s.as_ref(), 1));
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+    if changed {
+        match serde_json::to_string(&json) {
+            Ok(out) => {
+                if let Err(e) = std::fs::write(&session, out) {
+                    tracing::error!("session.json rewrite failed ({e}): torrents will keep downloading to {old_root:?}");
+                }
+            }
+            Err(e) => tracing::error!("session.json re-serialize failed: {e}"),
+        }
+    }
+}
+
 /// Spawn the embedded streaming server on Tauri's async (tokio) runtime. It
-/// binds 127.0.0.1:11470 and owns the torrent cache under the app data dir.
+/// binds 127.0.0.1:11470 and owns the torrent cache (see `default_cache_dir`).
 fn start_streaming_server(app: &tauri::AppHandle) {
     // RILLIO_STREAMING_CACHE_DIR overrides the cache/session root. Use it to run
     // a dev build against an ISOLATED cache so it never opens (or evicts from) the
-    // installed app's real torrent cache. Unset in production => the app data dir.
-    let cache_dir = match std::env::var_os("RILLIO_STREAMING_CACHE_DIR") {
+    // installed app's real torrent cache. Unset => `<app>\cache`.
+    let mut cache_dir = match std::env::var_os("RILLIO_STREAMING_CACHE_DIR") {
         Some(dir) => std::path::PathBuf::from(dir),
-        None => app
-            .path()
-            .app_data_dir()
-            .unwrap_or_else(|_| std::env::temp_dir())
-            .join("streaming-server"),
+        None => {
+            let new_root = default_cache_dir(app);
+            match app.path().app_data_dir().map(|d| d.join("streaming-server")) {
+                Ok(legacy) if legacy != new_root => {
+                    if migrate_legacy_cache(&legacy, &new_root) {
+                        new_root
+                    } else {
+                        legacy // cross-volume: grandfathered in place
+                    }
+                }
+                _ => new_root,
+            }
+        }
     };
     if let Err(e) = std::fs::create_dir_all(&cache_dir) {
         tracing::error!("cannot create cache dir {cache_dir:?}: {e}");
+        // Last-ditch so the server can still come up.
+        cache_dir = std::env::temp_dir().join("rillio-streaming-server");
+        let _ = std::fs::create_dir_all(&cache_dir);
     }
     let config = rillio_streaming_server::Config::local(cache_dir);
     let app_handle = app.clone();

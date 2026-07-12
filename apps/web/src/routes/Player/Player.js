@@ -230,6 +230,25 @@ const Player = () => {
         console.error('Player', error);
         if (error.critical) {
             setError(error);
+            // For a torrent stream the video layer only knows "loading failed";
+            // the local engine knows WHY (disk full, torrent errored/paused
+            // after a write failure, ...). Ask it and upgrade the message so
+            // the user is not stuck staring at a generic error.
+            const stream = player.selected !== null ? player.selected.stream : null;
+            const serverUrl = profile.settings.streamingServerUrl;
+            if (stream !== null && typeof stream.infoHash === 'string' && typeof serverUrl === 'string') {
+                fetch(new URL(`${stream.infoHash}/stats.json`, serverUrl))
+                    .then((resp) => resp.json())
+                    .then((stats) => {
+                        if (stats !== null && typeof stats.engineError === 'string' && stats.engineError.length > 0) {
+                            setError((current) => current !== null ? {
+                                ...current,
+                                message: `${current.message}: ${stats.engineError}`,
+                            } : current);
+                        }
+                    })
+                    .catch(() => { /* the generic message stands */ });
+            }
         } else {
             toast.show({
                 type: 'error',
@@ -238,7 +257,7 @@ const Player = () => {
                 timeout: 3000
             });
         }
-    }, []);
+    }, [player.selected, profile.settings.streamingServerUrl]);
 
     const onPlayRequested = React.useCallback(() => {
         playingOnExternalDevice.current = false;
@@ -902,6 +921,7 @@ const Player = () => {
                         ref={errorRef}
                         className={classnames(styles['layer'], styles['error-layer'])}
                         stream={video.state.stream}
+                        onTryDifferentSource={onTryDifferentSource}
                         {...error}
                     />
                     :

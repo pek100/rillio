@@ -222,20 +222,59 @@ impl Controller {
             // pass (can be ~a minute). Default network-timeout (60s) could abort
             // the open; give generous headroom.
             ("network-timeout", "600"),
-            // HDR: `gpu-next` (libplacebo) tone-maps PQ/HLG down to SDR properly
-            // (the default `gpu` vo washes highlights to grey); keep `gpu` as a
-            // fallback for a minimal libmpv build that lacks it.
-            // target-colorspace-hint is OFF deliberately: with it on, mpv builds an
-            // HDR (PQ/BT.2020) swapchain and expects the window to PRESENT HDR, but
-            // mpv is composited inside our WebView2 window which renders SDR, so the
-            // raw PQ signal shows up washed-out grey. Off = gpu-next tone-maps the
-            // HDR source to the SDR output. hdr-compute-peak tunes the roll-off.
+            // HDR: `gpu-next` (libplacebo) handles PQ/HLG properly (the default
+            // `gpu` vo washes highlights to grey); keep `gpu` as a fallback for
+            // a minimal libmpv build that lacks it.
             ("vo", "gpu-next,gpu"),
-            ("target-colorspace-hint", "no"),
+            // HDR passthrough, diagnosed 2026-07-12 on a Windows-HDR desktop.
+            // The hint re-flags the swapchain to the content's colorspace (PQ
+            // for HDR files, sRGB for SDR files, per file) and DWM honors it,
+            // including for our embedded child window. `auto` engages only when
+            // the display can actually present the space; SDR displays fall
+            // back to tone-mapping. Two defaults break it and must be overridden:
+            // - hint-mode defaults to `target`, which ADAPTS the image toward
+            //   the display's inferred characterization instead of passing the
+            //   source signal through; with the (sRGB) display ICC profile in
+            //   that inference the picture goes washed-out grey, because the
+            //   manual guarantees "the ICC profile always takes precedence over
+            //   any metadata". `source` is the true passthrough mode.
+            // - icc-profile-auto is forced off for the same reason.
+            ("target-colorspace-hint", "auto"),
+            ("target-colorspace-hint-mode", "source"),
+            ("icc-profile-auto", "no"),
+            // Tone-mapping path (SDR displays only): measure scene peak for the
+            // roll-off, and use bt.2446a, the curve the mpv manual recommends
+            // for well-mastered content (the default spline reads flat).
             ("hdr-compute-peak", "yes"),
+            ("tone-mapping", "bt.2446a"),
         ] {
             if let Err(e) = mpv.set_option(name, value) {
                 tracing::warn!("mpv: option {name}={value} not applied: {e}");
+            }
+        }
+        // Debug knob for HDR diagnosis: override the render backend (e.g.
+        // RILLIO_MPV_GPU_API=vulkan; default is d3d11). Some libplacebo builds
+        // only engage HDR passthrough correctly on one API.
+        if let Ok(api) = std::env::var("RILLIO_MPV_GPU_API") {
+            tracing::info!("mpv: gpu-api override: {api}");
+            if let Err(e) = mpv.set_option("gpu-api", &api) {
+                tracing::warn!("mpv: option gpu-api={api} not applied: {e}");
+            }
+        }
+        // Debug knob: arbitrary extra init options as `name=value` pairs split
+        // on ';' (e.g. RILLIO_MPV_SET="target-colorspace-hint-mode=source;
+        // vf=format:dolbyvision=no"). Applied last so it can override the
+        // defaults above. Developer-only: env vars are not reachable from web
+        // content, so this does not widen the bridge allowlists.
+        if let Ok(sets) = std::env::var("RILLIO_MPV_SET") {
+            for entry in sets.split(';').filter(|s| !s.trim().is_empty()) {
+                if let Some((name, value)) = entry.split_once('=') {
+                    let (name, value) = (name.trim(), value.trim());
+                    tracing::info!("mpv: debug option {name}={value}");
+                    if let Err(e) = mpv.set_option(name, value) {
+                        tracing::warn!("mpv: debug option {name}={value} not applied: {e}");
+                    }
+                }
             }
         }
         mpv.initialize()?;

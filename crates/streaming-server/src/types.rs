@@ -184,6 +184,13 @@ pub struct Statistics {
     pub swarm_connections: u64,
     pub swarm_paused: bool,
     pub swarm_size: u64,
+    // Rillio extensions (absent from the stremio server oracle; core ignores
+    // unknown fields): the engine's torrent state and failure message, so the
+    // player can tell the user WHY a stream failed (disk full, paused after a
+    // write error, ...) instead of a bare 500.
+    pub engine_state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engine_error: Option<String>,
 }
 
 /// Create-route response: the full statistics object plus `guessedFileIdx`,
