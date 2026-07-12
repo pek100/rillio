@@ -222,14 +222,16 @@ impl Controller {
             // pass (can be ~a minute). Default network-timeout (60s) could abort
             // the open; give generous headroom.
             ("network-timeout", "600"),
-            // HDR: without this, mpv's default `gpu` vo tone-maps PQ/HLG content
-            // poorly (washed-out grey highlights). `gpu-next` (libplacebo) does
-            // proper BT.2390 tone-mapping; keep `gpu` as a fallback for a minimal
-            // libmpv build that lacks it. `target-colorspace-hint=auto` passes HDR
-            // through to an HDR-capable display and tone-maps on SDR; peak
-            // detection tunes the roll-off so highlights are not crushed to grey.
+            // HDR: `gpu-next` (libplacebo) tone-maps PQ/HLG down to SDR properly
+            // (the default `gpu` vo washes highlights to grey); keep `gpu` as a
+            // fallback for a minimal libmpv build that lacks it.
+            // target-colorspace-hint is OFF deliberately: with it on, mpv builds an
+            // HDR (PQ/BT.2020) swapchain and expects the window to PRESENT HDR, but
+            // mpv is composited inside our WebView2 window which renders SDR, so the
+            // raw PQ signal shows up washed-out grey. Off = gpu-next tone-maps the
+            // HDR source to the SDR output. hdr-compute-peak tunes the roll-off.
             ("vo", "gpu-next,gpu"),
-            ("target-colorspace-hint", "auto"),
+            ("target-colorspace-hint", "no"),
             ("hdr-compute-peak", "yes"),
         ] {
             if let Err(e) = mpv.set_option(name, value) {

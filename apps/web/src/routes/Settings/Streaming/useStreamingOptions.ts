@@ -26,15 +26,10 @@ type TorrentProfile = {
     btRequestTimeout: number
 };
 
+// No "default" (conservative 55-connection) profile: fresh installs default to
+// "ultra fast" (the streaming server reports it as the default), so the slow
+// conservative profile is removed and only soft / fast / ultra fast remain.
 const TORRENT_PROFILES: Record<string, TorrentProfile> = {
-    default: {
-        btDownloadSpeedHardLimit: 3670016,
-        btDownloadSpeedSoftLimit: 2621440,
-        btHandshakeTimeout: 20000,
-        btMaxConnections: 55,
-        btMinPeersForStable: 5,
-        btRequestTimeout: 4000
-    },
     soft: {
         btDownloadSpeedHardLimit: 1677721.6,
         btDownloadSpeedSoftLimit: 1677721.6,

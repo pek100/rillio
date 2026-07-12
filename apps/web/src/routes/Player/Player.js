@@ -28,6 +28,7 @@ const { default: SideDrawerButton } = require('./SideDrawerButton');
 const { default: SideDrawer } = require('./SideDrawer');
 const usePlayer = require('./usePlayer');
 const useStatistics = require('./useStatistics');
+const useSlowDownload = require('./useSlowDownload');
 const useVideo = require('./useVideo');
 const { default: useSubtitles } = require('./useSubtitles');
 const styles = require('./styles');
@@ -118,6 +119,37 @@ const Player = () => {
     const statisticsDetails = React.useMemo(() => {
         return streamingServer.statistics?.type === 'Ready' ? streamingServer.statistics.content : null;
     }, [streamingServer.statistics]);
+
+    // Live streaming-server settings (the torrent profile lives here). Used by
+    // the slow-download escalation to offer "Fast mode" via the EXISTING profile
+    // mechanism, not a parallel flag.
+    const streamingSettings = React.useMemo(() => {
+        return streamingServer.settings?.type === 'Ready' ? streamingServer.settings.content : null;
+    }, [streamingServer.settings]);
+
+    // Sustained-slow detection + ephemeral speed test for the Initializing panel.
+    const slowDownload = useSlowDownload({
+        core,
+        infoHash: statistics.infoHash,
+        hasStatistics: statisticsDetails !== null,
+        peers: statisticsDetails?.peers,
+        speedBytesPerSec: statisticsDetails?.downloadSpeed,
+        streamingSettings,
+    });
+
+    // "Try a different source": back to this title's streams list. The player
+    // route carries the meta type/id and the video id, which is exactly the
+    // MetaDetails streams route (/metadetails/:type/:id/:videoId).
+    const onTryDifferentSource = React.useCallback(() => {
+        const segments = [type, id, videoId]
+            .filter((segment) => typeof segment === 'string' && segment.length > 0)
+            .map((segment) => encodeURIComponent(segment));
+        if (segments.length === 0) {
+            navigate(-1);
+            return;
+        }
+        navigate(`/metadetails/${segments.join('/')}`);
+    }, [type, id, videoId, navigate]);
 
     const {
         streamSubtitles,
@@ -681,11 +713,10 @@ const Player = () => {
 
     onShortcut('statisticsMenu', () => {
         closeMenus();
-        const stream = player.selected?.stream;
-        if (streamingServer?.statistics?.type !== 'Err' && typeof stream?.infoHash === 'string' && typeof stream?.fileIdx === 'number') {
+        if (player.selected?.stream) {
             toggleStatisticsMenu();
         }
-    }, [player.selected, streamingServer.statistics, toggleStatisticsMenu]);
+    }, [player.selected, toggleStatisticsMenu]);
 
     onShortcut('playNext', () => {
         closeMenus();
@@ -856,6 +887,11 @@ const Player = () => {
                         peers={statistics.peers}
                         speed={statistics.speed}
                         completed={statistics.completed}
+                        escalated={slowDownload.escalated}
+                        connectionSlow={slowDownload.connectionSlow}
+                        fastModeAvailable={slowDownload.fastModeAvailable}
+                        onTryDifferentSource={onTryDifferentSource}
+                        onSwitchToFastMode={slowDownload.switchToFastMode}
                     />
                     :
                     null
@@ -927,7 +963,6 @@ const Player = () => {
                 metaItem={player.metaItem}
                 nextVideo={player.nextVideo}
                 stream={player.selected !== null ? player.selected.stream : null}
-                statistics={statistics}
                 onPlayRequested={onPlayRequested}
                 onPauseRequested={onPauseRequested}
                 onNextVideoRequested={onNextVideoRequested}

@@ -49,8 +49,10 @@ pub struct SettingsValues {
     pub bt_max_connections: u64,
     pub bt_handshake_timeout: u64,
     pub bt_request_timeout: u64,
-    pub bt_download_speed_soft_limit: u64,
-    pub bt_download_speed_hard_limit: u64,
+    // f64 (not u64): core reads these as f64 and the "soft" profile uses a
+    // fractional B/s value, so u64 truncation would make the UI show "custom".
+    pub bt_download_speed_soft_limit: f64,
+    pub bt_download_speed_hard_limit: f64,
     pub bt_min_peers_for_stable: u64,
     pub remote_https: String,
     pub local_addon_enabled: bool,

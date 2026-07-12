@@ -29,7 +29,9 @@ function bitDepth(pixelformat) {
 }
 
 function hdrLabel(vp) {
-    if (!vp || typeof vp.gamma !== 'string') return 'SDR';
+    // Until mpv reports video-params (vp) with a gamma we do not know the dynamic
+    // range, so show DASH rather than asserting SDR before a frame has decoded.
+    if (!vp || typeof vp.gamma !== 'string') return DASH;
     if (vp.gamma === 'pq') return 'HDR10 / Dolby Vision (PQ)';
     if (vp.gamma === 'hlg') return 'HLG';
     return `SDR (${vp.gamma})`;
@@ -47,7 +49,10 @@ function bitrate(v, unit) {
 }
 
 function hwdecLabel(v) {
-    if (typeof v !== 'string' || v === '' || v === 'no') return 'Software';
+    // Not loaded yet (missing/empty) -> unknown. mpv reports 'no' once it is
+    // actually decoding in software, which is the only time we assert "Software".
+    if (typeof v !== 'string' || v === '') return DASH;
+    if (v === 'no') return 'Software';
     return `Hardware (${v})`;
 }
 
@@ -102,35 +107,52 @@ const StatisticsMenu = React.memo(React.forwardRef(({ className, peers, speed, c
     const height = (vp && vp.h) || mpv['height'];
     const hasMedia = !!(vp || mpv['video-codec']);
     const net = details || {};
+    // Torrent transfer stats only make sense for a torrent stream; direct
+    // (non-torrent) streams have no infoHash, so we drop that whole section and
+    // let the media details (Show more) carry the menu.
+    const hasTorrent = typeof infoHash === 'string' && infoHash.length > 0;
 
     return (
         <div ref={ref} className={classNames(className, styles['statistics-menu-container'])} onMouseDown={onMouseDown}>
             <div className={styles['title']}>
                 {t('PLAYER_STATISTICS')}
             </div>
-            <div className={styles['stats']}>
-                <div className={styles['stat']}>
-                    <div className={styles['label']}>{t('PLAYER_PEERS')}</div>
-                    <div className={styles['value']}>{ peers }</div>
-                </div>
-                <div className={styles['stat']}>
-                    <div className={styles['label']}>{t('PLAYER_SPEED')}</div>
-                    <div className={styles['value']}>{`${speed} ${t('MB_S')}`}</div>
-                </div>
-                <div className={styles['stat']}>
-                    <div className={styles['label']}>{t('PLAYER_COMPLETED')}</div>
-                    <div className={styles['value']}>{ Math.min(completed, 100) } %</div>
-                </div>
-            </div>
-            <div className={styles['info-hash']}>
-                <div className={styles['label']}>{t('PLAYER_INFO_HASH')}</div>
-                <div className={styles['value']}>{ infoHash }</div>
-            </div>
+            {
+                hasTorrent ?
+                    <React.Fragment>
+                        <div className={styles['stats']}>
+                            <div className={styles['stat']}>
+                                <div className={styles['label']}>{t('PLAYER_PEERS')}</div>
+                                <div className={styles['value']}>{ peers }</div>
+                            </div>
+                            <div className={styles['stat']}>
+                                <div className={styles['label']}>{t('PLAYER_SPEED')}</div>
+                                <div className={styles['value']}>{`${speed} ${t('MB_S')}`}</div>
+                            </div>
+                            <div className={styles['stat']}>
+                                <div className={styles['label']}>{t('PLAYER_COMPLETED')}</div>
+                                <div className={styles['value']}>{ Math.min(completed, 100) } %</div>
+                            </div>
+                        </div>
+                        <div className={styles['info-hash']}>
+                            <div className={styles['label']}>{t('PLAYER_INFO_HASH')}</div>
+                            <div className={styles['value']}>{ infoHash }</div>
+                        </div>
+                    </React.Fragment>
+                    :
+                    null
+            }
             {
                 canShowMore ?
                     <div className={styles['show-more']} onClick={toggleExpanded}>
                         {expanded ? t('SHOW_LESS') : t('SHOW_MORE')}
                     </div>
+                    :
+                    null
+            }
+            {
+                !hasTorrent && !canShowMore ?
+                    <div className={styles['detail-hint']}>No statistics available for this stream.</div>
                     :
                     null
             }

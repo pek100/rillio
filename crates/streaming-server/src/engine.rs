@@ -107,15 +107,52 @@ fn add_torrent_options() -> librqbit::AddTorrentOptions {
     }
 }
 
-// opts echo (getStatistics.opts) - from the blob's getDefaults merged with our
-// settings (server.js:46886-46907). Constant here; these mirror the values M0
-// reports in /settings.values.
-const OPT_CONNECTIONS: u64 = 55;
-const OPT_HANDSHAKE_TIMEOUT: u64 = 20_000;
-const OPT_REQUEST_TIMEOUT: u64 = 4_000;
-const OPT_SWARM_MIN_PEERS: u64 = 5;
-const OPT_SWARM_MAX_SPEED: f64 = 2_621_440.0;
-const OPT_GROWLER_PULSE: u64 = 3_670_016;
+/// BitTorrent tuning knobs the web's torrent-profile selector drives (POST
+/// `/settings`) and `GET /settings` reports back, and which the stats `opts`
+/// echo reflects.
+///
+/// IMPORTANT - librqbit 8.1.1 can only honor ONE of these for real: the
+/// download-speed HARD limit, applied as the session-wide download rate cap
+/// (`Session::ratelimits`, live-tunable via `set_download_bps`). The rest are
+/// stored and reported so the profile selector round-trips, but librqbit has NO
+/// knob for them, so they are documented as report-only rather than silently
+/// pretended-applied (fail loud):
+///   - `max_connections`: librqbit hardcodes a 128 live-peer semaphore
+///     (`torrent_state/live`: `Semaphore::new(128)`); no public override exists.
+///   - soft limit / min_peers / handshake+request timeouts: no librqbit analog.
+/// See [`Engine::apply_bt_profile`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BtProfile {
+    pub max_connections: u64,
+    pub handshake_timeout: u64,
+    pub request_timeout: u64,
+    pub download_speed_soft_limit: f64,
+    pub download_speed_hard_limit: f64,
+    pub min_peers_for_stable: u64,
+}
+
+impl BtProfile {
+    /// Aggressive default so a fresh install downloads fast out of the box.
+    /// Byte-for-byte the web `TORRENT_PROFILES["ultra fast"]` entry, so a clean
+    /// profile shows "ultra fast" (not "custom") in Settings.
+    pub const ULTRA_FAST: BtProfile = BtProfile {
+        max_connections: 400,
+        handshake_timeout: 25_000,
+        request_timeout: 6_000,
+        download_speed_soft_limit: 8_388_608.0,
+        download_speed_hard_limit: 78_643_200.0,
+        min_peers_for_stable: 10,
+    };
+}
+
+/// Clamp a bytes/sec download cap (an `f64` from the web profile) to librqbit's
+/// `NonZeroU32`. Non-finite / sub-1-byte => `None` (uncapped).
+fn download_bps_from(bytes_per_sec: f64) -> Option<std::num::NonZeroU32> {
+    if !bytes_per_sec.is_finite() || bytes_per_sec < 1.0 {
+        return None;
+    }
+    std::num::NonZeroU32::new(bytes_per_sec.min(u32::MAX as f64) as u32)
+}
 
 /// Insert `(info_hash, file_id)` into the prefetch-dedup set, returning `true`
 /// only if it was newly inserted (i.e. the caller owns the one prefetch for that
@@ -148,6 +185,11 @@ pub struct Engine {
     /// prefetched, so we warm each file's Cues at most once per session. See
     /// [`Engine::mark_prefetch`] and the tail-prefetch in stream.rs.
     prefetched: Arc<Mutex<HashSet<(String, usize)>>>,
+    /// Current BitTorrent tuning profile (the web torrent-profile selector).
+    /// Only its download HARD limit is live-applied to the session; the rest is
+    /// stored for `/settings` reporting and the stats `opts` echo. See
+    /// [`BtProfile`] and [`Engine::apply_bt_profile`].
+    bt: Arc<Mutex<BtProfile>>,
 }
 
 impl Engine {
@@ -215,9 +257,15 @@ impl Engine {
             // UPLOAD cap is the useful one: on an asymmetric link, a saturated
             // upstream delays the TCP ACKs for your downloads, so capping upload
             // can raise DOWNLOAD throughput. Download cap is there for parity.
+            // The download cap defaults to the ultra-fast profile's HARD limit
+            // (~75 MiB/s, effectively uncapped for any home link), so a fresh
+            // install downloads aggressively. A user switching torrent profiles
+            // re-applies this live (see `apply_bt_profile`). The explicit env
+            // knob still wins at startup for a hard operator override.
             ratelimits: librqbit::limits::LimitsConfig {
                 upload_bps: rate_limit_from_env("RILLIO_UPLOAD_LIMIT_KBPS"),
-                download_bps: rate_limit_from_env("RILLIO_DOWNLOAD_LIMIT_KBPS"),
+                download_bps: rate_limit_from_env("RILLIO_DOWNLOAD_LIMIT_KBPS")
+                    .or_else(|| download_bps_from(BtProfile::ULTRA_FAST.download_speed_hard_limit)),
             },
             // Persist torrent state + fast-resume so a restart RESUMES instantly
             // instead of re-hashing the whole file (~a minute for a 31 GiB title).
@@ -239,7 +287,33 @@ impl Engine {
             cache_root: Arc::new(cache_root),
             last_access: Arc::new(Mutex::new(HashMap::new())),
             prefetched: Arc::new(Mutex::new(HashSet::new())),
+            bt: Arc::new(Mutex::new(BtProfile::ULTRA_FAST)),
         })
+    }
+
+    /// The current BitTorrent profile (for `GET /settings` and the stats echo).
+    pub fn bt_profile(&self) -> BtProfile {
+        self.bt.lock().map(|g| *g).unwrap_or(BtProfile::ULTRA_FAST)
+    }
+
+    /// Apply a BitTorrent profile from `POST /settings`. The download-speed HARD
+    /// limit takes effect LIVE on the whole session (all torrents, via
+    /// librqbit's `Session::ratelimits`). Every other field is stored for
+    /// reporting only - librqbit 8.1.1 exposes no knob for them (see
+    /// [`BtProfile`]), so we do NOT pretend otherwise.
+    pub fn apply_bt_profile(&self, profile: BtProfile) {
+        if let Ok(mut g) = self.bt.lock() {
+            *g = profile;
+        }
+        self.session
+            .ratelimits
+            .set_download_bps(download_bps_from(profile.download_speed_hard_limit));
+        tracing::info!(
+            "bt-profile applied: download cap ~{} B/s live (max_connections={} reported \
+             but librqbit caps live peers at 128; soft/min-peers/timeouts report-only)",
+            profile.download_speed_hard_limit,
+            profile.max_connections,
+        );
     }
 
     /// Claim the tail prefetch for `(info_hash, file_id)`. Returns `true` only
@@ -480,6 +554,9 @@ impl Engine {
     ) -> types::Statistics {
         let files = Self::files(handle);
         let stats = handle.stats();
+        // Echo the live torrent profile so the stats menu reflects the selected
+        // profile (the download cap is real; the rest is report-only).
+        let bt = self.bt_profile();
         // Live metrics: speeds (Speed.mbps is megabits/s; blob reports bytes/s,
         // ×125_000) and peer counts. `peers` = connected; `queued` = queued.
         let (download_speed, upload_speed, peers, queued) = stats
@@ -517,20 +594,20 @@ impl Engine {
             files,
             sources: vec![],
             opts: types::Options {
-                connections: Some(OPT_CONNECTIONS),
+                connections: Some(bt.max_connections),
                 dht: false,
                 growler: types::Growler {
                     flood: 0,
-                    pulse: Some(OPT_GROWLER_PULSE),
+                    pulse: Some(bt.download_speed_hard_limit as u64),
                 },
-                handshake_timeout: Some(OPT_HANDSHAKE_TIMEOUT),
+                handshake_timeout: Some(bt.handshake_timeout),
                 path: cache_path,
                 peer_search,
                 swarm_cap: types::SwarmCap {
-                    max_speed: Some(OPT_SWARM_MAX_SPEED),
-                    min_peers: Some(OPT_SWARM_MIN_PEERS),
+                    max_speed: Some(bt.download_speed_soft_limit),
+                    min_peers: Some(bt.min_peers_for_stable),
                 },
-                timeout: Some(OPT_REQUEST_TIMEOUT),
+                timeout: Some(bt.request_timeout),
                 tracker: false,
                 r#virtual: true,
             },

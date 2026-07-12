@@ -6,42 +6,41 @@ use axum::response::{IntoResponse, Redirect};
 use axum::Json;
 
 use crate::config::Config;
-use crate::engine;
+use crate::engine::{self, BtProfile, Engine};
 use crate::types::{
     DeviceInfo, NetworkInfo, SettingsOption, SettingsResponse, SettingsSelection, SettingsValues,
     Success, TorrentSettings,
 };
+use serde::Deserialize;
 
 /// Web UI the bare `/` redirects to, matching the container's behavior.
 const WEB_UI_LOCATION: &str = "https://app.strem.io/shell-v4.4/";
 
-// BitTorrent + transcode constants mirrored from the reference container's
-// `/settings.values`. They become real config in later milestones (M1 engine,
-// M6 transcode); for M0 they are fixed so the oracle diff is clean.
-const BT_MAX_CONNECTIONS: u64 = 55;
-const BT_HANDSHAKE_TIMEOUT: u64 = 20_000;
-const BT_REQUEST_TIMEOUT: u64 = 4_000;
-const BT_DOWNLOAD_SPEED_SOFT_LIMIT: u64 = 2_621_440;
-const BT_DOWNLOAD_SPEED_HARD_LIMIT: u64 = 3_670_016;
-const BT_MIN_PEERS_FOR_STABLE: u64 = 5;
 const TRANSCODE_HORSEPOWER: f64 = 0.75;
 const TRANSCODE_MAX_WIDTH: u64 = 1920;
 
-pub async fn get_settings(State(cfg): State<Config>) -> Json<SettingsResponse> {
+pub async fn get_settings(
+    State(cfg): State<Config>,
+    State(engine): State<Engine>,
+) -> Json<SettingsResponse> {
     let cache_root = cfg.cache_root.display().to_string();
     let app_path = cfg.app_path.display().to_string();
+
+    // The BitTorrent knobs are live state (the torrent-profile selector drives
+    // them via POST /settings), so they come from the engine, not fixed consts.
+    let bt = engine.bt_profile();
 
     let values = SettingsValues {
         server_version: cfg.server_version.clone(),
         app_path,
         cache_root,
         cache_size: cfg.cache_size,
-        bt_max_connections: BT_MAX_CONNECTIONS,
-        bt_handshake_timeout: BT_HANDSHAKE_TIMEOUT,
-        bt_request_timeout: BT_REQUEST_TIMEOUT,
-        bt_download_speed_soft_limit: BT_DOWNLOAD_SPEED_SOFT_LIMIT,
-        bt_download_speed_hard_limit: BT_DOWNLOAD_SPEED_HARD_LIMIT,
-        bt_min_peers_for_stable: BT_MIN_PEERS_FOR_STABLE,
+        bt_max_connections: bt.max_connections,
+        bt_handshake_timeout: bt.handshake_timeout,
+        bt_request_timeout: bt.request_timeout,
+        bt_download_speed_soft_limit: bt.download_speed_soft_limit,
+        bt_download_speed_hard_limit: bt.download_speed_hard_limit,
+        bt_min_peers_for_stable: bt.min_peers_for_stable,
         // Must be "" not null (core's empty_string_as_null).
         remote_https: String::new(),
         local_addon_enabled: false,
@@ -63,10 +62,42 @@ pub async fn get_settings(State(cfg): State<Config>) -> Json<SettingsResponse> {
     })
 }
 
-/// POST `/settings` - the client persists user changes here. M0 acknowledges
-/// without storing; real persistence lands with the engine (M1/M2) that
-/// actually consumes cacheSize/limits.
-pub async fn post_settings() -> Json<Success> {
+/// The BitTorrent fields of the client's `POST /settings` body (the torrent
+/// profile selector). Every field is optional so a partial or differently
+/// shaped body merges over the current profile instead of zeroing it, and all
+/// the non-BT fields core also sends (cacheSize, transcode, ...) are ignored.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct SettingsPatch {
+    bt_max_connections: Option<u64>,
+    bt_handshake_timeout: Option<u64>,
+    bt_request_timeout: Option<u64>,
+    bt_download_speed_soft_limit: Option<f64>,
+    bt_download_speed_hard_limit: Option<f64>,
+    bt_min_peers_for_stable: Option<u64>,
+}
+
+/// POST `/settings` - the client persists user changes here. We apply the
+/// BitTorrent profile live: the download HARD limit becomes the session-wide
+/// download cap immediately, the rest is stored for reporting (see
+/// [`Engine::apply_bt_profile`]). cacheSize/transcode remain deferred. A body
+/// that fails to parse is ignored (still acked) so the contract never 4xx's.
+pub async fn post_settings(State(engine): State<Engine>, body: axum::body::Bytes) -> Json<Success> {
+    if let Ok(patch) = serde_json::from_slice::<SettingsPatch>(&body) {
+        let cur = engine.bt_profile();
+        engine.apply_bt_profile(BtProfile {
+            max_connections: patch.bt_max_connections.unwrap_or(cur.max_connections),
+            handshake_timeout: patch.bt_handshake_timeout.unwrap_or(cur.handshake_timeout),
+            request_timeout: patch.bt_request_timeout.unwrap_or(cur.request_timeout),
+            download_speed_soft_limit: patch
+                .bt_download_speed_soft_limit
+                .unwrap_or(cur.download_speed_soft_limit),
+            download_speed_hard_limit: patch
+                .bt_download_speed_hard_limit
+                .unwrap_or(cur.download_speed_hard_limit),
+            min_peers_for_stable: patch.bt_min_peers_for_stable.unwrap_or(cur.min_peers_for_stable),
+        });
+    }
     Json(Success::ok())
 }
 

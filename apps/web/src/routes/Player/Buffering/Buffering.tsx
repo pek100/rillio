@@ -13,6 +13,13 @@ type Props = {
     peers?: number,
     speed?: number,
     completed?: number,
+    // Sustained-slow escalation (from useSlowDownload). When escalated, the panel
+    // offers actions instead of a bare "downloading slowly" note.
+    escalated?: boolean,
+    connectionSlow?: boolean | null,
+    fastModeAvailable?: boolean,
+    onTryDifferentSource?: () => void,
+    onSwitchToFastMode?: () => void,
 };
 
 // Pre-playback status panel for torrent streams. When a torrent has been added
@@ -21,7 +28,7 @@ type Props = {
 // how much has downloaded, the current speed, and how many peers we are pulling
 // from. All stats are optional-chained with defaults, so missing stats fall
 // back to a plain "Buffering" without numbers rather than crashing.
-const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress, infoHash, loaded, hasStatistics, peers, speed, completed }, ref) => {
+const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress, infoHash, loaded, hasStatistics, peers, speed, completed, escalated, connectionSlow, fastModeAvailable, onTryDifferentSource, onSwitchToFastMode }, ref) => {
     const style = useMemo(() => {
         return {
             clipPath: `inset(0 ${100 - progress}% 0 0)`,
@@ -39,6 +46,20 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress
     // A source with peers but a near-zero rate is stalled or slow; with no peers
     // it is simply still finding sources, which is a different (honest) message.
     const slow = hasStatistics === true && peerCount > 0 && speedValue < 0.5;
+
+    // Fast mode is only worth suggesting when it can actually help: it is not
+    // already active, and the bottleneck is the source rather than the
+    // connection (a slow link will not benefit from more peers).
+    const showFastMode = escalated === true && fastModeAvailable === true && connectionSlow !== true;
+    // Word the escalation from the speed test: a slow CONNECTION will not improve
+    // with another source; otherwise the SOURCE is the slow part.
+    const escalatedMessage = connectionSlow === true ?
+        'Your internet connection looks slow, so this may not improve with another source. Improving your connection will help.'
+        :
+        showFastMode ?
+            'This source is downloading slowly. Try a different source, or turn on Fast mode.'
+            :
+            'This source is downloading slowly. Try a different source.';
 
     return (
         <div ref={ref} className={classNames(className, styles['buffering'])}>
@@ -77,12 +98,48 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, progress
                             Waiting for enough of the video to download before playback can begin.
                         </div>
                         {
-                            slow ?
-                                <div className="text-xs leading-relaxed text-warning">
-                                    This source is downloading slowly, playback will start once enough has buffered.
+                            escalated === true ?
+                                <div className="pointer-events-auto mt-1 flex flex-col items-center gap-3">
+                                    <div className="text-xs leading-relaxed text-warning">
+                                        {escalatedMessage}
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={onTryDifferentSource}
+                                            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110"
+                                        >
+                                            Try a different source
+                                        </button>
+                                        {
+                                            showFastMode ?
+                                                <button
+                                                    type="button"
+                                                    onClick={onSwitchToFastMode}
+                                                    className="rounded-full bg-surface px-4 py-2 text-sm text-fg transition hover:bg-surface-hover"
+                                                >
+                                                    Switch to Fast mode
+                                                </button>
+                                                :
+                                                null
+                                        }
+                                    </div>
+                                    {
+                                        showFastMode ?
+                                            <div className="text-[0.6875rem] leading-relaxed text-fg-subtle">
+                                                Fast mode connects to more peers for higher speed, which exposes your IP to more of them. Best used with a VPN.
+                                            </div>
+                                            :
+                                            null
+                                    }
                                 </div>
                                 :
-                                null
+                                slow ?
+                                    <div className="text-xs leading-relaxed text-warning">
+                                        This source is downloading slowly, playback will start once enough has buffered.
+                                    </div>
+                                    :
+                                    null
                         }
                     </div>
                     :
