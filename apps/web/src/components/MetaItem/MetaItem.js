@@ -11,13 +11,45 @@ const { default: Button } = require('rillio/components/Button');
 const { default: Image } = require('rillio/components/Image');
 const Multiselect = require('rillio/components/Multiselect');
 const useBinaryState = require('rillio/common/useBinaryState');
+const useLibraryItemState = require('rillio/common/useLibraryItemState');
 const { ICON_FOR_TYPE } = require('rillio/common/CONSTANTS');
 const styles = require('./styles');
 
-const MetaItem = React.memo(({ className, type, name, poster, posterShape, posterChangeCursor, progress, newVideos, options, deepLinks, dataset, optionOnSelect, onDismissClick, onPlayClick, watched, ...props }) => {
+const MetaItem = React.memo(({ className, id, type, name, poster, posterShape, posterChangeCursor, progress, newVideos, options, deepLinks, dataset, optionOnSelect, onDismissClick, onPlayClick, watched, inLibrary, ...props }) => {
     const { t } = useTranslation();
     const { navigateWithOrigin } = useNavigateWithOrigin();
     const [menuOpen, onMenuOpen, onMenuClose] = useBinaryState(false);
+    // Live library membership/watched state for this card, looked up by meta id
+    // in a single shared subscription. Falls back to the serialized props until
+    // the shared store has loaded. When no id is resolvable, hasId is false and
+    // the toggle buttons are not rendered.
+    const libraryFallback = React.useMemo(() => ({
+        inLibrary: !!inLibrary,
+        watched: !!watched
+    }), [inLibrary, watched]);
+    const libraryState = useLibraryItemState(id, libraryFallback);
+    const isWatched = libraryState.hasId ? libraryState.watched : !!watched;
+    // The object AddToLibrary / MetaItemMarkAsWatched expect is a meta preview.
+    // Prefer an explicit dataset preview, otherwise reconstruct the essentials
+    // from this card's own fields (no function props, so it serializes cleanly).
+    const metaPreview = React.useMemo(() => {
+        if (dataset && typeof dataset === 'object' && typeof dataset.id === 'string') {
+            return dataset;
+        }
+
+        return typeof id === 'string' && id.length > 0 ?
+            { id, type, name, poster, posterShape }
+            :
+            null;
+    }, [dataset, id, type, name, poster, posterShape]);
+    const onToggleInLibraryClick = React.useCallback((event) => {
+        event.nativeEvent.selectPrevented = true;
+        libraryState.toggleInLibrary(metaPreview);
+    }, [libraryState.toggleInLibrary, metaPreview]);
+    const onToggleWatchedClick = React.useCallback((event) => {
+        event.nativeEvent.selectPrevented = true;
+        libraryState.toggleWatched(metaPreview);
+    }, [libraryState.toggleWatched, metaPreview]);
     const href = React.useMemo(() => {
         return deepLinks ?
             typeof deepLinks.metaDetailsStreams === 'string' ?
@@ -46,6 +78,21 @@ const MetaItem = React.memo(({ className, type, name, poster, posterShape, poste
     const menuOnClick = React.useCallback((event) => {
         event.nativeEvent.selectPrevented = true;
     }, []);
+    // Inner overlay controls (dismiss X, play) must not also trigger the card's
+    // navigate. selectPrevented is the same flag the menu uses: metaItemOnClick
+    // sees it on the bubbled native event and preventDefaults instead of opening.
+    const onDismissLayerClick = React.useCallback((event) => {
+        event.nativeEvent.selectPrevented = true;
+        if (typeof onDismissClick === 'function') {
+            onDismissClick(event);
+        }
+    }, [onDismissClick]);
+    const onPlayLayerClick = React.useCallback((event) => {
+        event.nativeEvent.selectPrevented = true;
+        if (typeof onPlayClick === 'function') {
+            onPlayClick(event);
+        }
+    }, [onPlayClick]);
     const menuOnSelect = React.useCallback((event) => {
         if (typeof optionOnSelect === 'function') {
             optionOnSelect({
@@ -71,7 +118,7 @@ const MetaItem = React.memo(({ className, type, name, poster, posterShape, poste
             <div className={classnames(styles['poster-container'], { 'poster-change-cursor': posterChangeCursor })}>
                 {
                     onDismissClick ?
-                        <div title={t('LIBRARY_RESUME_DISMISS')} className={styles['dismiss-icon-layer']} onClick={onDismissClick}>
+                        <div title={t('LIBRARY_RESUME_DISMISS')} className={styles['dismiss-icon-layer']} onClick={onDismissLayerClick}>
                             <Icon className={styles['dismiss-icon']} name={'close'} />
                             <div className={styles['dismiss-icon-backdrop']} />
                         </div>
@@ -79,9 +126,36 @@ const MetaItem = React.memo(({ className, type, name, poster, posterShape, poste
                         null
                 }
                 {
-                    watched ?
+                    isWatched ?
                         <div className={styles['watched-icon-layer']}>
                             <Icon className={styles['watched-icon']} name={'checkmark'} />
+                        </div>
+                        :
+                        null
+                }
+                {
+                    libraryState.hasId ?
+                        <div className={styles['action-buttons-layer']}>
+                            <div
+                                title={libraryState.inLibrary ? t('REMOVE_FROM_LIB') : t('ADD_TO_LIB')}
+                                className={styles['action-button']}
+                                onClick={onToggleInLibraryClick}
+                            >
+                                <Icon
+                                    className={styles['action-button-icon']}
+                                    name={libraryState.inLibrary ? 'remove-from-library' : 'add-to-library'}
+                                />
+                            </div>
+                            <div
+                                title={isWatched ? t('CTX_MARK_UNWATCHED') : t('CTX_MARK_WATCHED')}
+                                className={styles['action-button']}
+                                onClick={onToggleWatchedClick}
+                            >
+                                <Icon
+                                    className={styles['action-button-icon']}
+                                    name={isWatched ? 'eye-off' : 'eye'}
+                                />
+                            </div>
                         </div>
                         :
                         null
@@ -96,7 +170,7 @@ const MetaItem = React.memo(({ className, type, name, poster, posterShape, poste
                 </div>
                 {
                     onPlayClick ?
-                        <div title={t('CONTINUE_WATCHING')} className={styles['play-icon-layer']} onClick={onPlayClick}>
+                        <div title={t('CONTINUE_WATCHING')} className={styles['play-icon-layer']} onClick={onPlayLayerClick}>
                             <Icon className={styles['play-icon']} name={'play'} />
                             <div className={styles['play-icon-outer']} />
                             <div className={styles['play-icon-background']} />
@@ -162,6 +236,7 @@ MetaItem.displayName = 'MetaItem';
 
 MetaItem.propTypes = {
     className: PropTypes.string,
+    id: PropTypes.string,
     type: PropTypes.string,
     name: PropTypes.string,
     poster: PropTypes.string,
@@ -180,7 +255,8 @@ MetaItem.propTypes = {
     onDismissClick: PropTypes.func,
     onPlayClick: PropTypes.func,
     onClick: PropTypes.func,
-    watched: PropTypes.bool
+    watched: PropTypes.bool,
+    inLibrary: PropTypes.bool
 };
 
 module.exports = MetaItem;

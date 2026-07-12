@@ -222,6 +222,15 @@ impl Controller {
             // pass (can be ~a minute). Default network-timeout (60s) could abort
             // the open; give generous headroom.
             ("network-timeout", "600"),
+            // HDR: without this, mpv's default `gpu` vo tone-maps PQ/HLG content
+            // poorly (washed-out grey highlights). `gpu-next` (libplacebo) does
+            // proper BT.2390 tone-mapping; keep `gpu` as a fallback for a minimal
+            // libmpv build that lacks it. `target-colorspace-hint=auto` passes HDR
+            // through to an HDR-capable display and tone-maps on SDR; peak
+            // detection tunes the roll-off so highlights are not crushed to grey.
+            ("vo", "gpu-next,gpu"),
+            ("target-colorspace-hint", "auto"),
+            ("hdr-compute-peak", "yes"),
         ] {
             if let Err(e) = mpv.set_option(name, value) {
                 tracing::warn!("mpv: option {name}={value} not applied: {e}");

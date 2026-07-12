@@ -9,7 +9,7 @@ const { useServices } = require('rillio/services');
 const SeekBar = require('./SeekBar');
 const VolumeSlider = require('./VolumeSlider');
 const styles = require('./styles');
-const { useBinaryState, usePlatform } = require('rillio/common');
+const { useBinaryState, usePlatform, useFullscreen } = require('rillio/common');
 const { t } = require('i18next');
 
 const ControlBar = React.forwardRef(({
@@ -48,6 +48,9 @@ const ControlBar = React.forwardRef(({
 }, ref) => {
     const { chromecast } = useServices();
     const platform = usePlatform();
+    // Fullscreen lives here (next to the scale/fit control), not on the player's
+    // top bar, that one duplicates the window header's fullscreen in the shell.
+    const [fullscreen, requestFullscreen, exitFullscreen, , fullscreenSupported] = useFullscreen();
     const [chromecastServiceActive, setChromecastServiceActive] = React.useState(() => chromecast.active);
     const [buttonsMenuOpen, , , toggleButtonsMenu] = useBinaryState(false);
     const onSubtitlesButtonMouseDown = React.useCallback((event) => {
@@ -183,6 +186,14 @@ const ControlBar = React.forwardRef(({
                     <Button className={classnames(styles['control-bar-button'], { 'disabled': videoScale === null })} title={videoScaleLabel} tabIndex={-1} onClick={onVideoScaleChanged}>
                         <Icon className={styles['icon']} name={'scale'} />
                     </Button>
+                    {
+                        fullscreenSupported ?
+                            <Button className={styles['control-bar-button']} title={fullscreen ? t('EXIT_FULLSCREEN') : t('ENTER_FULLSCREEN')} tabIndex={-1} onClick={fullscreen ? exitFullscreen : requestFullscreen}>
+                                <Icon className={styles['icon']} name={fullscreen ? 'minimize' : 'maximize'} />
+                            </Button>
+                            :
+                            null
+                    }
                     <Button className={classnames(styles['control-bar-button'], { 'disabled': !stream })} tabIndex={-1} onMouseDown={onOptionsButtonMouseDown} onClick={onToggleOptionsMenu}>
                         <Icon className={styles['icon']} name={'more-horizontal'} />
                     </Button>

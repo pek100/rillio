@@ -31,6 +31,17 @@ mod model {
         pub search_history: Vec<SearchHistoryItem<'a>>,
         pub events: &'a Events,
         pub streaming_server_urls: Vec<StreamingServerUrlItem>,
+        /// Compact, id-keyed view of the whole library so the web app can look up
+        /// a meta item's membership/watched state at render without loading a
+        /// per-item model. `removed == false` means the item is in the library.
+        pub library: HashMap<MetaItemId, LibraryEntry>,
+    }
+
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct LibraryEntry {
+        pub removed: bool,
+        pub watched: bool,
     }
 
     #[derive(Serialize)]
@@ -124,6 +135,20 @@ mod model {
                         mtime: *mtime,
                     })
                     .sorted_by(|a, b| Ord::cmp(&a.mtime, &b.mtime))
+                    .collect(),
+                library: ctx
+                    .library
+                    .items
+                    .iter()
+                    .map(|(id, library_item)| {
+                        (
+                            id.to_owned(),
+                            LibraryEntry {
+                                removed: library_item.removed,
+                                watched: library_item.watched(),
+                            },
+                        )
+                    })
                     .collect(),
             }
         }

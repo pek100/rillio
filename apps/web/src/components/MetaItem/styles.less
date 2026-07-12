@@ -19,7 +19,7 @@
     padding: 1rem;
     overflow: visible;
 
-    &:hover, &:focus, &:global(.active), &:global(.selected) {
+    &:hover, &:focus, &:focus-within, &:global(.active), &:global(.selected) {
         outline-style: none;
         position: relative;
         z-index: 1;
@@ -30,6 +30,10 @@
 
             .dismiss-icon-layer {
                 opacity: 1;
+            }
+
+            .action-buttons-layer {
+                display: flex;
             }
 
             .poster-image-layer {
@@ -148,6 +152,50 @@
                 width: 0.75rem;
                 height: 0.75rem;
                 color: var(--primary-foreground-color);
+            }
+        }
+
+        // Hover-revealed library / watched toggles. Hidden via display (reflow),
+        // not opacity, per the design system. Square + pill radius = true circle.
+        .action-buttons-layer {
+            z-index: 2;
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+
+            .action-button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.75rem;
+                height: 1.75rem;
+                border-radius: var(--radius-pill);
+                background-color: var(--color-surface);
+                box-shadow: var(--outer-glow);
+                cursor: pointer;
+                transition: background-color 150ms var(--ease-smooth, ease), transform 150ms var(--ease-smooth, ease);
+
+                &:hover {
+                    background-color: var(--color-surface-hover);
+                    transform: scale(1.1);
+                }
+
+                &:active {
+                    transform: scale(0.95);
+                }
+
+                .action-button-icon {
+                    width: 0.9rem;
+                    height: 0.9rem;
+                    color: var(--color-fg-muted);
+                }
+
+                &:hover .action-button-icon {
+                    color: var(--color-accent);
+                }
             }
         }
 

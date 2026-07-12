@@ -7,7 +7,7 @@
 //! proxy (RILLIO_SOCKS_PROXY) hides the client IP from peers and keeps the
 //! inbound port off (no real-IP leak past the proxy). See [`Engine::new`].
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -117,6 +117,22 @@ const OPT_SWARM_MIN_PEERS: u64 = 5;
 const OPT_SWARM_MAX_SPEED: f64 = 2_621_440.0;
 const OPT_GROWLER_PULSE: u64 = 3_670_016;
 
+/// Insert `(info_hash, file_id)` into the prefetch-dedup set, returning `true`
+/// only if it was newly inserted (i.e. the caller owns the one prefetch for that
+/// pair). A poisoned lock yields `false` (skip - the prefetch is best-effort).
+/// Split out from [`Engine::mark_prefetch`] so the dedup logic is unit-testable
+/// without standing up a full librqbit session.
+fn mark_prefetch_in(
+    set: &Mutex<HashSet<(String, usize)>>,
+    info_hash: &str,
+    file_id: usize,
+) -> bool {
+    match set.lock() {
+        Ok(mut s) => s.insert((info_hash.to_owned(), file_id)),
+        Err(_) => false,
+    }
+}
+
 /// Shared torrent engine handle. Cheap to clone (`Arc` inside).
 #[derive(Clone)]
 pub struct Engine {
@@ -128,6 +144,10 @@ pub struct Engine {
     /// recently-touched (i.e. currently-playing) one is protected. See
     /// [`Engine::touch`] and [`Engine::enforce_cache_cap`].
     last_access: Arc<Mutex<HashMap<String, Instant>>>,
+    /// (infohash, file_id) pairs whose tail (MKV Cues) has already been
+    /// prefetched, so we warm each file's Cues at most once per session. See
+    /// [`Engine::mark_prefetch`] and the tail-prefetch in stream.rs.
+    prefetched: Arc<Mutex<HashSet<(String, usize)>>>,
 }
 
 impl Engine {
@@ -218,7 +238,16 @@ impl Engine {
             session,
             cache_root: Arc::new(cache_root),
             last_access: Arc::new(Mutex::new(HashMap::new())),
+            prefetched: Arc::new(Mutex::new(HashSet::new())),
         })
+    }
+
+    /// Claim the tail prefetch for `(info_hash, file_id)`. Returns `true` only
+    /// the FIRST time a pair is seen, so the caller spawns the Cues-warming task
+    /// at most once per file. A poisoned lock yields `false` (skip - the
+    /// prefetch is best-effort, never load-bearing).
+    pub fn mark_prefetch(&self, info_hash: &str, file_id: usize) -> bool {
+        mark_prefetch_in(&self.prefetched, info_hash, file_id)
     }
 
     /// Record that `info_hash` (lowercase hex) was just streamed/queried. Called
@@ -527,7 +556,25 @@ impl Engine {
 
 #[cfg(test)]
 mod tests {
-    use super::{read_listen_pref, write_listen_pref, TORRENT_PREFS_FILE};
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+
+    use super::{mark_prefetch_in, read_listen_pref, write_listen_pref, TORRENT_PREFS_FILE};
+
+    #[test]
+    fn mark_prefetch_dedups_per_infohash_and_file() {
+        let set = Mutex::new(HashSet::new());
+        // First claim of a pair wins.
+        assert!(mark_prefetch_in(&set, "abc", 0));
+        // Repeat of the same pair is refused.
+        assert!(!mark_prefetch_in(&set, "abc", 0));
+        // A different file in the same torrent is a distinct claim.
+        assert!(mark_prefetch_in(&set, "abc", 1));
+        assert!(!mark_prefetch_in(&set, "abc", 1));
+        // A different torrent, same file index, is also distinct.
+        assert!(mark_prefetch_in(&set, "def", 0));
+        assert!(!mark_prefetch_in(&set, "def", 0));
+    }
 
     /// Each test gets its own dir so parallel runs don't clobber the shared file.
     fn fresh_dir(tag: &str) -> std::path::PathBuf {

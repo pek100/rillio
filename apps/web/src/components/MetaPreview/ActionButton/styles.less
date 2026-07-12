@@ -9,7 +9,9 @@
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    border-radius: 100%;
+    // A wide icon+label button is a pill (stadium), not a circle. 100% on a
+    // variable-width row rendered as a full ellipse.
+    border-radius: var(--radius-pill);
     background-color: var(--overlay-color);
     backdrop-filter: blur(5px);
     transition: background-color 150ms var(--ease-smooth, ease), box-shadow 150ms var(--ease-smooth, ease);

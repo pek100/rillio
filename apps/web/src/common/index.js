@@ -17,6 +17,7 @@ const routesRegexp = require('./routesRegexp');
 const useAnimationFrame = require('./useAnimationFrame');
 const useBinaryState = require('./useBinaryState');
 const { default: useInterval } = require('./useInterval');
+const useLibraryItemState = require('./useLibraryItemState');
 const useLiveRef = require('./useLiveRef');
 const useModelState = require('./useModelState');
 const useNotifications = require('./useNotifications');
@@ -62,6 +63,7 @@ module.exports = {
     useBinaryState,
     useFullscreen,
     useInterval,
+    useLibraryItemState,
     useLiveRef,
     useModelState,
     useNotifications,

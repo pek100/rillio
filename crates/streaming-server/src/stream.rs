@@ -6,6 +6,7 @@
 //! `?external`/`?download`/`?subtitles` query flags.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -21,6 +22,15 @@ use crate::torrent;
 /// the embedded space after `017000` (a blob bug we reproduce for parity).
 const DLNA_CONTENT_FEATURES: &str =
     "DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=017000 00000000000000000000000000";
+
+/// Tail bytes to pull down ahead of the front read. 8 MiB fits inside
+/// librqbit's 32 MiB per-stream priority window and comfortably covers the Cues
+/// (the seek index, usually at EOF) of a typical MKV. See [`spawn_tail_prefetch`].
+const PREFETCH_TAIL_BYTES: u64 = 8 * 1024 * 1024;
+
+/// Cap on how long a single tail prefetch may run before it is abandoned, so a
+/// stalled swarm cannot leak the background task forever.
+const PREFETCH_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// `/{info_hash}/{idx}`
 pub(crate) async fn stream(
@@ -106,6 +116,12 @@ async fn handle_stream(
     };
     let file = &files[i];
 
+    // Best-effort: on the first stream of this file, warm its tail (the MKV Cues,
+    // which mpv seeks for at start) on a background task so that tail read does
+    // not race the front read and split the swarm's bandwidth. Spawns and returns
+    // immediately - it never blocks or delays this response.
+    spawn_tail_prefetch(&engine, &handle, &info_hash, i, file.length);
+
     // ?external ⇒ 307 to /:ih/:name BEFORE opening any stream (server.js:18252).
     if flags.external {
         let mut loc = format!("/{}/{}", info_hash, urlencode_path(&file.name));
@@ -175,6 +191,69 @@ async fn open_body(handle: &Handle, file_id: usize, start: u64, len: u64) -> any
         fs.seek(std::io::SeekFrom::Start(start)).await?;
     }
     Ok(Body::from_stream(ReaderStream::new(fs.take(len))))
+}
+
+/// Best-effort tail prefetch. On the first stream of `(info_hash, file_id)`,
+/// and only for files large enough to make it worthwhile, spawns a detached
+/// task that warms the last [`PREFETCH_TAIL_BYTES`] of the file (typically the
+/// MKV Cues) so mpv's tail seek does not race the front read on a slow swarm.
+///
+/// This is EXPLICITLY best-effort: it must never block or delay the stream
+/// response, and any failure or timeout is logged and swallowed, never fatal to
+/// playback. The spawned task owns its own `Arc` clone of the handle, so it is
+/// independent of this request's FileStream.
+fn spawn_tail_prefetch(
+    engine: &Engine,
+    handle: &Handle,
+    info_hash: &str,
+    file_id: usize,
+    file_len: u64,
+) {
+    // Skip small files: the tail overlaps the front read's lookahead window
+    // anyway, so priming it separately buys nothing.
+    if file_len <= PREFETCH_TAIL_BYTES * 2 {
+        return;
+    }
+    // Dedup: only the first stream of this file spawns the warm-up.
+    if !engine.mark_prefetch(info_hash, file_id) {
+        return;
+    }
+
+    let handle = Arc::clone(handle);
+    let info_hash = info_hash.to_owned();
+    let start = file_len - PREFETCH_TAIL_BYTES;
+    tokio::spawn(async move {
+        match tokio::time::timeout(PREFETCH_TIMEOUT, warm_tail(handle, file_id, start)).await {
+            Ok(Ok(read)) => {
+                tracing::debug!("tail-prefetch {info_hash}#{file_id}: warmed {read} tail bytes")
+            }
+            Ok(Err(e)) => {
+                tracing::debug!("tail-prefetch {info_hash}#{file_id}: read failed: {e:#}")
+            }
+            Err(_) => tracing::warn!(
+                "tail-prefetch {info_hash}#{file_id}: timed out after {PREFETCH_TIMEOUT:?}"
+            ),
+        }
+    });
+}
+
+/// Open a fresh FileStream, seek near EOF, and read the tail into a discard
+/// buffer to force those pieces (the Cues) to download. Each read parks until
+/// its covering piece is verified, which is exactly the point - dropping the
+/// stream after the loop releases the priority. Returns bytes actually read.
+async fn warm_tail(handle: Handle, file_id: usize, start: u64) -> anyhow::Result<u64> {
+    let mut fs = handle.stream(file_id)?;
+    fs.seek(std::io::SeekFrom::Start(start)).await?;
+    let mut buf = vec![0u8; 256 * 1024];
+    let mut read: u64 = 0;
+    while read < PREFETCH_TAIL_BYTES {
+        let n = fs.read(&mut buf).await?;
+        if n == 0 {
+            break; // EOF
+        }
+        read += n as u64;
+    }
+    Ok(read)
 }
 
 /// Resolve the `:idx` union (server.js:18213-18249):

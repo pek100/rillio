@@ -850,6 +850,12 @@ const Player = () => {
                         className={classnames(styles['layer'], styles['buffering-layer'])}
                         logo={player?.metaItem?.content?.logo}
                         progress={statistics.progress}
+                        infoHash={statistics.infoHash}
+                        loaded={video.state.loaded}
+                        hasStatistics={statisticsDetails !== null}
+                        peers={statistics.peers}
+                        speed={statistics.speed}
+                        completed={statistics.completed}
                     />
                     :
                     null
@@ -893,7 +899,6 @@ const Player = () => {
                 className={classnames(styles['layer'], styles['nav-bar-layer'])}
                 title={player.title !== null ? player.title : ''}
                 backButton={true}
-                fullscreenButton={true}
                 hdrInfo={video.state.hdrInfo}
                 onMouseMove={onBarMouseMove}
                 onMouseOver={onBarMouseMove}
