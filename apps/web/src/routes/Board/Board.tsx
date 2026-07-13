@@ -1,20 +1,41 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const classnames = require('classnames');
-const debounce = require('lodash.debounce');
-const useTranslate = require('rillio/common/useTranslate');
-const { useStreamingServer, useNotifications, withCoreSuspender, getVisibleChildrenRange, useProfile } = require('rillio/common');
-const { ContinueWatchingItem, EventModal, MainNavBars, MetaItem, MetaRow } = require('rillio/components');
-const useBoard = require('./useBoard');
-const useContinueWatchingPreview = require('./useContinueWatchingPreview');
-const styles = require('./styles');
-const { default: StreamingServerWarning } = require('./StreamingServerWarning');
-const { default: HeroCarousel } = require('./HeroCarousel');
+/**
+ * Board - the home route. Clean-room rewrite (Phase 3 / Wave B): the shell, hero and
+ * row orchestration are authored here in TypeScript on Tailwind utilities over our
+ * semantic tokens; it consumes the already-rewritten kit-based MetaRow / MetaItem /
+ * ContinueWatchingItem verbatim. Every hook and the windowing contract are reused
+ * exactly as before: useBoard's loadBoardRows({start,end}) lazy loading, the hero
+ * fed from the first Ready catalog, the boardCatalogsOffset that accounts for the
+ * hero + continue-watching rows shifting the visible-child -> catalog index map, the
+ * THRESHOLD=5 debounced scroll re-run, and the streaming-server warning gating.
+ *
+ * The one thing NOT expressed in Tailwind is the per-breakpoint poster trim: it
+ * targets MetaRow's hashed `.meta-item` class, so it stays in styles.less (see the
+ * note there). Board pins the row-shape marker classes from that module on each row.
+ */
+
+import React from 'react';
+import debounce from 'lodash.debounce';
+import useTranslate from 'rillio/common/useTranslate';
+import { useStreamingServer, useNotifications, withCoreSuspender, getVisibleChildrenRange, useProfile } from 'rillio/common';
+import { ContinueWatchingItem, EventModal, MainNavBars, MetaItem, MetaRow } from 'rillio/components';
+import useBoard from './useBoard';
+import useContinueWatchingPreview from './useContinueWatchingPreview';
+import StreamingServerWarning from './StreamingServerWarning';
+import HeroCarousel from './HeroCarousel';
+import styles from './styles.less';
 
 const HERO_SLIDES = 6;
 
 const THRESHOLD = 5;
+
+// Row rhythm: 1rem top / 2rem bottom, tightened to 1.5rem bottom at the minimum
+// width. Kept as a shared string so every row (catalog, continue-watching,
+// placeholder, error) matches exactly.
+const ROW_SPACING = 'mt-4 mb-8 max-[640px]:mb-6';
+
+const cx = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(' ');
 
 const Board = () => {
     const t = useTranslate();
@@ -23,7 +44,7 @@ const Board = () => {
     const [board, loadBoardRows] = useBoard();
     const notifications = useNotifications();
     const profile = useProfile();
-    const scrollContainerRef = React.useRef();
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
     const showStreamingServerWarning = React.useMemo(() => {
         return streamingServer.settings !== null && streamingServer.settings.type === 'Err' && (
             isNaN(profile.settings.streamingServerWarningDismissed.getTime()) ||
@@ -32,7 +53,7 @@ const Board = () => {
     // Feed the hero from the first catalog that has loaded (Cinemeta's Popular
     // /Top row), so it costs no extra fetch. Only items with a backdrop qualify.
     const heroItems = React.useMemo(() => {
-        const catalog = board.catalogs.find((catalog) => (
+        const catalog = board.catalogs.find((catalog: any) => (
             catalog.content?.type === 'Ready' &&
             Array.isArray(catalog.content.content) &&
             catalog.content.content.length > 0
@@ -42,7 +63,7 @@ const Board = () => {
         }
 
         return catalog.content.content
-            .filter((item) => typeof item.background === 'string' && item.background.length > 0)
+            .filter((item: any) => typeof item.background === 'string' && item.background.length > 0)
             .slice(0, HERO_SLIDES);
     }, [board.catalogs]);
     // The hero and the continue-watching row precede the catalog rows inside the
@@ -67,20 +88,20 @@ const Board = () => {
         onVisibleRangeChange();
     }, [board.catalogs, onVisibleRangeChange]);
     return (
-        <div className={styles['board-container']}>
+        <div className="flex h-[calc(100%-var(--safe-area-inset-bottom))] w-full flex-col max-[640px]:relative max-[640px]:z-0">
             <EventModal />
-            <MainNavBars className={styles['board-content-container']} route={'board'}>
-                <div ref={scrollContainerRef} className={styles['board-content']} onScroll={onScroll}>
+            <MainNavBars className="flex-1 self-stretch bg-transparent" route={'board'}>
+                <div ref={scrollContainerRef} className="h-full w-full overflow-y-auto px-4" onScroll={onScroll}>
                     {
                         heroItems.length > 0 ?
-                            <HeroCarousel className={classnames(styles['hero-carousel'], 'animation-fade-in')} items={heroItems} />
+                            <HeroCarousel className={cx('mt-2 mb-8', 'animation-fade-in')} items={heroItems} />
                             :
                             null
                     }
                     {
                         continueWatchingPreview.items.length > 0 ?
                             <MetaRow
-                                className={classnames(styles['board-row'], styles['continue-watching-row'], 'animation-fade-in')}
+                                className={cx(ROW_SPACING, styles['continue-watching-row'], 'animation-fade-in')}
                                 title={t.string('BOARD_CONTINUE_WATCHING')}
                                 catalog={continueWatchingPreview}
                                 itemComponent={ContinueWatchingItem}
@@ -89,13 +110,13 @@ const Board = () => {
                             :
                             null
                     }
-                    {board.catalogs.map((catalog, index) => {
+                    {board.catalogs.map((catalog: any, index: number) => {
                         switch (catalog.content?.type) {
                             case 'Ready': {
                                 return (
                                     <MetaRow
                                         key={index}
-                                        className={classnames(styles['board-row'], styles[`board-row-${catalog.content.content[0].posterShape}`], 'animation-fade-in')}
+                                        className={cx(ROW_SPACING, styles[`row-${catalog.content.content[0].posterShape}`], 'animation-fade-in')}
                                         catalog={catalog}
                                         itemComponent={MetaItem}
                                     />
@@ -106,7 +127,7 @@ const Board = () => {
                                     return (
                                         <MetaRow
                                             key={index}
-                                            className={classnames(styles['board-row'], 'animation-fade-in')}
+                                            className={cx(ROW_SPACING, 'animation-fade-in')}
                                             catalog={catalog}
                                             message={catalog.content.content}
                                         />
@@ -118,7 +139,7 @@ const Board = () => {
                                 return (
                                     <MetaRow.Placeholder
                                         key={index}
-                                        className={classnames(styles['board-row'], styles['board-row-poster'], 'animation-fade-in')}
+                                        className={cx(ROW_SPACING, styles['row-poster'], 'animation-fade-in')}
                                         catalog={catalog}
                                         title={t.catalogTitle(catalog)}
                                     />
@@ -139,9 +160,9 @@ const Board = () => {
 };
 
 const BoardFallback = () => (
-    <div className={styles['board-container']}>
-        <MainNavBars className={styles['board-content-container']} route={'board'} />
+    <div className="flex h-[calc(100%-var(--safe-area-inset-bottom))] w-full flex-col">
+        <MainNavBars className="flex-1 self-stretch bg-transparent" route={'board'} />
     </div>
 );
 
-module.exports = withCoreSuspender(Board, BoardFallback);
+export default withCoreSuspender(Board, BoardFallback);

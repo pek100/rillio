@@ -1,17 +1,27 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
+/**
+ * StreamingServerWarning - the floating island shown on Board when the streaming
+ * server errored and the dismissal date has passed. Clean-room rewrite (Phase 3 /
+ * Wave B) onto Tailwind + the foundation-kit Button. Board owns the outer placement
+ * (passed via className); this component owns the island's flat surface + actions.
+ * The core dispatch (UpdateSettings with a future streamingServerWarningDismissed)
+ * and the withCoreSuspender gate are reused verbatim.
+ */
+
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import classnames from 'classnames';
-import { Button } from 'rillio/components';
+import { Button } from 'rillio/components/ui/button';
+import { cn } from 'rillio/components/ui/cn';
 import { useCore } from 'rillio/core';
 import useProfile from 'rillio/common/useProfile';
 import { withCoreSuspender } from 'rillio/common/CoreSuspender';
-import styles from './StreamingServerWarning.less';
 
 type Props = {
     className?: string;
 };
+
+const ACTION_CLASS = 'h-9 flex-none rounded-full bg-surface-hover px-4 text-fg transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97]';
 
 const StreamingServerWarning = ({ className }: Props) => {
     const { t } = useTranslation();
@@ -53,43 +63,46 @@ const StreamingServerWarning = ({ className }: Props) => {
     }, [updateSettings]);
 
     return (
-        <div className={classnames(className, styles['warning-container'])}>
-            <div className={styles['warning-statement']}>
+        <div className={cn(className, 'flex flex-row items-center gap-4 rounded-card bg-surface p-4 shadow-elevated max-[640px]:flex-col max-[640px]:px-2 max-[640px]:text-center')}>
+            <div className="max-h-[2.4em] flex-1 text-[1.2rem] font-medium text-fg">
                 {t('SETTINGS_SERVER_UNAVAILABLE')}
             </div>
-            <div className={styles['actions']}>
+            <div className="flex gap-3 max-[640px]:justify-around">
                 <a
                     href='https://www.stremio.com/download-service'
                     target='_blank'
                     rel='noreferrer'
                 >
                     <Button
-                        className={styles['action']}
+                        variant="ghost"
+                        className={ACTION_CLASS}
                         title={t('SERVICE_INSTALL')}
                         tabIndex={-1}
                     >
-                        <div className={styles['label']}>
+                        <div className="text-[1.2rem] font-medium text-fg">
                             {t('SERVICE_INSTALL')}
                         </div>
                     </Button>
                 </a>
                 <Button
-                    className={styles['action']}
+                    variant="ghost"
+                    className={ACTION_CLASS}
                     title={t('WARNING_STREAMING_SERVER_LATER')}
                     onClick={onLater}
                     tabIndex={-1}
                 >
-                    <div className={styles['label']}>
+                    <div className="text-[1.2rem] font-medium text-fg">
                         {t('WARNING_STREAMING_SERVER_LATER')}
                     </div>
                 </Button>
                 <Button
-                    className={styles['action']}
+                    variant="ghost"
+                    className={ACTION_CLASS}
                     title={t('DONT_SHOW_AGAIN')}
                     onClick={onDismiss}
                     tabIndex={-1}
                 >
-                    <div className={styles['label']}>
+                    <div className="text-[1.2rem] font-medium text-fg">
                         {t('DONT_SHOW_AGAIN')}
                     </div>
                 </Button>

@@ -1,6 +1,17 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
-@import (reference) '~@stremio/stremio-colors/less/stremio-colors.less';
+// Board's clean-room rewrite lives in Board.tsx on Tailwind utilities. This CSS
+// module is retained for the ONE thing Tailwind cannot express: the per-breakpoint
+// poster trim. MetaRow renders a fixed CATALOG_PREVIEW_SIZE items fit-to-width, so
+// on narrower viewports the ones that no longer fit are hidden. The hidden target is
+// MetaRow's hashed `.meta-item` class (real posters + fill placeholders) and
+// MetaRowPlaceholder's `.meta-item` (skeletons), composed in here via `:import` -
+// the same cross-module contract MetaRow.tsx documents it must keep. The marker
+// classes below (row-poster/row-square/row-landscape/continue-watching-row) carry no
+// look of their own; Board.tsx pins them on each row purely to scope this trim.
+// Everything else (container, padding, hero/row margins, warning placement) is
+// Tailwind in Board.tsx.
+
 @import (reference) '~rillio/common/screen-sizes.less';
 
 :import('~rillio/components/MetaRow/styles.less') {
@@ -11,226 +22,152 @@
     meta-item-placeholder: meta-item;
 }
 
-.board-container {
-    width: 100%;
-    height: calc(100% - var(--safe-area-inset-bottom));
-    display: flex;
-    flex-direction: column;
-
-    .board-content-container {
-        flex: 1;
-        align-self: stretch;
-        background: transparent;
-
-        .board-content {
-            height: 100%;
-            width: 100%;
-            padding: 0 1rem;
-            overflow-y: auto;
-
-            .hero-carousel {
-                margin: 0.5rem 0 2rem;
-            }
-
-            .board-row {
-                margin-top: 1rem;
-                margin-bottom: 2rem;
+@media only screen and (max-width: @large) {
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+10) {
+                display: none;
             }
         }
     }
 
-    .board-warning-container {
-        position: absolute;
-        bottom: calc(var(--safe-area-inset-bottom) + 0.5rem);
-        left: calc(var(--safe-area-inset-left) + 0.5rem);
-        right: calc(var(--safe-area-inset-right) + 0.5rem);
-    }
-}
-
-@media only screen and (max-width: @large) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+10) {
-                            display: none;
-                        }
-                    }
-                }
-
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+9) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+9) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @normal) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+9) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+9) {
+                display: none;
+            }
+        }
+    }
 
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+8) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+8) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @medium) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+8) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+8) {
+                display: none;
+            }
+        }
+    }
 
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+7) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+7) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @small) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+7) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+7) {
+                display: none;
+            }
+        }
+    }
 
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+6) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+6) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @xsmall) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+6) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+6) {
+                display: none;
+            }
+        }
+    }
 
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+5) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+5) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @xxsmall) {
-    .board-container {
-        .board-content-container {
-            .board-content {
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+5) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+5) {
+                display: none;
+            }
+        }
+    }
 
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+4) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+4) {
+                display: none;
             }
         }
     }
 }
 
 @media only screen and (max-width: @minimum) {
-    .board-container {
-        position: relative;
-        z-index: 0;
-
-        .board-content-container {
-            .board-content {
-                .board-row {
-                    margin-bottom: 1.5rem;
-                }
-
-                .board-row-poster, .board-row-square, .continue-watching-row {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+4) {
-                            display: none;
-                        }
-                    }
-                }
-
-                .board-row-landscape {
-                    .meta-item, .meta-item-placeholder {
-                        &:nth-child(n+3) {
-                            display: none;
-                        }
-                    }
-                }
+    .row-poster, .row-square, .continue-watching-row {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+4) {
+                display: none;
             }
         }
-        
-        .board-warning-container {
-            bottom: calc(var(--vertical-nav-bar-size) + 0.5rem);
-            height: 7rem;
+    }
+
+    .row-landscape {
+        .meta-item, .meta-item-placeholder {
+            &:nth-child(n+3) {
+                display: none;
+            }
         }
     }
 }
 
+// The floating streaming-server warning: absolute inset placement with safe-area
+// insets, rebased above the bottom nav rail at the minimum width, and nudged clear
+// of the left rail in phone-landscape. The orientation query + safe-area math is why
+// this stays here rather than as Tailwind arbitrary variants.
+.board-warning-container {
+    position: absolute;
+    bottom: calc(var(--safe-area-inset-bottom) + 0.5rem);
+    left: calc(var(--safe-area-inset-left) + 0.5rem);
+    right: calc(var(--safe-area-inset-right) + 0.5rem);
+}
+
+@media only screen and (max-width: @minimum) {
+    .board-warning-container {
+        bottom: calc(var(--vertical-nav-bar-size) + 0.5rem);
+        height: 7rem;
+    }
+}
+
 @media @phone-landscape {
-    .board-container {
-        .board-warning-container {
-            left: calc(var(--safe-area-inset-left) + var(--vertical-nav-bar-size) + 0.5rem);
-        }
+    .board-warning-container {
+        left: calc(var(--safe-area-inset-left) + var(--vertical-nav-bar-size) + 0.5rem);
     }
 }
