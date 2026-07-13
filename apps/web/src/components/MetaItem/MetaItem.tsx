@@ -299,8 +299,8 @@ const MetaItem = React.memo(({
                 }
                 {
                     typeof newVideos === 'number' && newVideos > 0 ?
-                        {/* Zero-size anchor: without overflow-visible the global
-                            `* { overflow: hidden }` reset clips the badges entirely. */}
+                        // Zero-size anchor: without overflow-visible the global
+                        // `* { overflow: hidden }` reset clips the badges entirely.
                         <div className="absolute right-0 top-0 z-[-1] overflow-visible">
                             <div className="absolute right-2 top-2 h-5 w-9 rounded-[0.25rem] bg-fg opacity-40" />
                             <div className="absolute right-3 top-3 h-5 w-9 rounded-[0.25rem] bg-fg opacity-60" />
