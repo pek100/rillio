@@ -1,7 +1,29 @@
+// Copyright (C) 2017-2026 Smart code 203358507
+
+/**
+ * ContextMenu - a faithful custom right-click menu, ported to .tsx/Tailwind.
+ *
+ * Why NOT the kit's Radix ContextMenu: this component's two Player call sites depend
+ * on behavior Radix cannot express without a leaky adaptation:
+ *   - a MULTI-ref trigger (`on: ref[]`): the right-click-over-video menu arms three
+ *     dynamic sibling layers at once (video surface / buffering / error overlay), only
+ *     one of which is mounted at a time. Radix `ContextMenuTrigger` wraps a single
+ *     element, so this would require a virtual-anchor hook re-attaching `contextmenu`
+ *     to each ref and driving a DropdownMenu at a synthetic cursor anchor.
+ *   - `lock`-to-edge anchoring: the SubtitleVariant menu opens flush to an element
+ *     EDGE (not the cursor). Radix ContextMenu always positions at the cursor, so this
+ *     too would mean hand-wiring a controlled DropdownMenu with a virtual anchor.
+ * Rebuilding both on Radix reimplements exactly the collision-aware positioning this
+ * file already does cleanly, while adding a portal + focus-trap that could fight the
+ * Player immersion / closePrevented contract. Per the mandate, a faithful custom port
+ * beats a leaky Radix adaptation, so the custom positioning stays; only its hashed
+ * CSS-module classes (now Tailwind) and the legacy `Transition` (now the motion
+ * `Presence` fade) are replaced.
+ */
+
 import React, { memo, RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Transition from '../Transition';
-import styles from './ContextMenu.less';
+import Presence from '../Presence';
 
 const PADDING = 8;
 
@@ -112,15 +134,15 @@ const ContextMenu = ({ children, on, autoClose, lock }: Props) => {
     }, [on, onContextMenu, handleKeyDown]);
 
     return createPortal((
-        <Transition when={active} name={'fade'}>
+        <Presence when={active}>
             <div
-                className={styles['context-menu-container']}
+                className={'fixed inset-0'}
                 onMouseDown={close}
                 onTouchStart={close}
             >
                 <div
                     ref={ref}
-                    className={styles['context-menu']}
+                    className={'fixed rounded-(--border-radius) bg-(--modal-background-color) shadow-(--outer-glow)'}
                     style={style}
                     onMouseDown={stopPropagation}
                     onTouchStart={stopPropagation}
@@ -129,7 +151,7 @@ const ContextMenu = ({ children, on, autoClose, lock }: Props) => {
                     {children}
                 </div>
             </div>
-        </Transition>
+        </Presence>
     ), document.body);
 };
 

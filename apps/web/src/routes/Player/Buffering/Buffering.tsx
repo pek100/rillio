@@ -1,7 +1,12 @@
 import React, { forwardRef, useLayoutEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
 import { Image } from 'rillio/components';
-import styles from './Buffering.less';
+
+// The pre-playback logo: a centered symbol that fills left-to-right by clip-path with
+// download progress (foreground copy) over a dim static copy, both gently breathing.
+// Ported from the former Buffering.less; the breathe keyframe lives in tailwind.css.
+const LOGO = 'absolute block h-auto max-h-60 w-auto max-w-60 ' +
+    'animate-[buffering-pulse_2s_infinite] [transition:clip-path_0.1s_ease-in-out]';
 
 type Props = {
     className: string,
@@ -76,7 +81,7 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, title, p
             'This source is downloading slowly. Try a different source.';
 
     return (
-        <div ref={ref} className={classNames(className, styles['buffering'])}>
+        <div ref={ref} className={classNames(className, 'flex items-center justify-center')}>
             {
                 showTitle ?
                     <div
@@ -88,7 +93,7 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, title, p
                     :
                     <>
                         <Image
-                            className={styles['logo']}
+                            className={LOGO}
                             style={style}
                             src={logo}
                             alt={' '}
@@ -96,7 +101,7 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, title, p
                             onError={() => setLogoBroken(true)}
                         />
                         <Image
-                            className={classNames(styles['logo'], styles['background'])}
+                            className={classNames(LOGO, 'opacity-20!')}
                             src={logo}
                             alt={' '}
                             fallbackSrc={require('/assets/images/symbol.svg')}

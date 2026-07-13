@@ -3,14 +3,14 @@
 /**
  * Transient on-screen HUD that flashes a property change (subtitle delay / video
  * scale) for ~1s then fades. Diff-driven off videoState; the ignore-first-value and
- * 1s auto-hide are preserved. Restyled onto Tailwind tokens; the app's Transition
- * fade primitive is kept (its batched migration to motion is out of scope here).
+ * 1s auto-hide are preserved. Restyled onto Tailwind tokens; the fade is the motion
+ * Presence primitive (300ms, matching the old Transition fade duration here).
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { t } from 'i18next';
-import { Transition } from 'rillio/components';
+import { Presence } from 'rillio/components';
 import { useBinaryState } from 'rillio/common';
 
 type Property = {
@@ -84,13 +84,13 @@ const Indicator = ({ className, videoState, disabled }: Props) => {
     }, [videoState]);
 
     return (
-        <Transition when={shown && !disabled} name={'fade'} duration={300}>
+        <Presence when={shown && !disabled} duration={300}>
             <div className={classNames(className, 'absolute flex h-16 select-none items-center justify-center')}>
                 <div className={'flex h-full flex-none items-center justify-center rounded-full bg-(--modal-background-color) px-8 text-center font-bold text-fg'}>
                     {label} {value}
                 </div>
             </div>
-        </Transition>
+        </Presence>
     );
 };
 

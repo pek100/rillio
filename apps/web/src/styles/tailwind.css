@@ -122,3 +122,33 @@
     0%   { opacity: 0; transform: translateX(-0.25rem); }
     100% { opacity: 1; transform: translateX(0); }
 }
+
+/* Player buffering logo breathe (ported verbatim from the former Buffering.less).
+ * The pre-playback logo gently pulses opacity + scale while it fills by clip-path
+ * with download progress. Outside @theme so v4 never tree-shakes it; used via
+ * `animate-[buffering-pulse_2s_infinite]`. */
+@keyframes buffering-pulse {
+    0%   { opacity: 0.4; transform: scale(1); }
+    50%  { opacity: 1;   transform: scale(1.05); }
+    100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* Slider window-grab drag model (ported from the former Slider styles.less). While
+ * a slider thumb is held, the Slider adds `active-slider-within` to <html> and grabs
+ * the pointer at the window level; body pointer-events are disabled so the drag is
+ * not interrupted by hovering other elements. These need <html>/<body> selectors, so
+ * they live here as global rules rather than as per-element Tailwind utilities. */
+html.active-slider-within { cursor: grabbing; }
+html.active-slider-within body { pointer-events: none; }
+
+/* Player immersion (ported verbatim from the former Player/styles.less). After the
+ * idle timeout the Player container gets `data-immersed`; the cursor is hidden and
+ * every chrome layer tagged `player-immersion-fade` fades out. The `:not(
+ * .active-slider-within)` gate keeps the control bar visible while a slider is being
+ * dragged (body pointer-events are off then, so the idle timer keeps firing). This is
+ * an ancestor-state cascade, so it stays a global rule. */
+html:not(.active-slider-within) .player-container[data-immersed] { cursor: none; }
+html:not(.active-slider-within) .player-container[data-immersed] .player-immersion-fade {
+    opacity: 0;
+    transition: opacity 200ms;
+}
