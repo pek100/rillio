@@ -14,7 +14,7 @@ type Props = {
 };
 
 const kbdClass =
-    'flex-none relative inline-flex h-10 min-w-10 items-center justify-center px-4 ' +
+    'flex-none inline-flex h-10 min-w-10 items-center justify-center px-4 ' +
     'text-base font-medium text-fg rounded-[0.25em] bg-[var(--overlay-color)] ' +
     'shadow-[0_4px_0_1px_rgba(255,255,255,0.1)]';
 
@@ -51,7 +51,7 @@ const Keys = ({ keys }: Props) => {
                         </kbd>
                         {
                             index < (filteredKeys.length - 1) && (
-                                <div className="relative flex w-10 items-center justify-center text-base text-fg">
+                                <div className="flex w-10 items-center justify-center text-base text-fg">
                                     {
                                         isRange ? t('SETTINGS_SHORTCUT_TO') : '+'
                                     }

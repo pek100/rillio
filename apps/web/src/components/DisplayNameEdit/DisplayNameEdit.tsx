@@ -83,7 +83,7 @@ const DisplayNameEdit = ({ className, value, maxLength = 40, onCommit }: Props) 
                         </div>
                         <Button
                             variant="ghost"
-                            className="size-auto flex-none bg-transparent p-0 opacity-50 transition-opacity hover:bg-transparent group-hover:opacity-100 [&:hover_svg]:text-fg"
+                            className="size-auto flex-none p-0 opacity-50 transition-opacity hover:bg-transparent group-hover:opacity-100 [&:hover_svg]:text-fg"
                             title={t('EDIT') || 'Edit name'}
                             onClick={startEdit}
                         >

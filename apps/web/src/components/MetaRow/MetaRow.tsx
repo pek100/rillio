@@ -67,7 +67,7 @@ const MetaRow: MetaRowType = ({ className, title, catalog, message, itemComponen
                             title={t.string('BUTTON_SEE_ALL')}
                             className="h-10 max-w-48 flex-none flex-row items-center gap-0 rounded-full pl-4 pr-2 text-base font-medium opacity-60 hover:bg-[var(--overlay-color)] hover:opacity-100"
                         >
-                            <div className="max-h-[1.2em] flex-[0_1_auto] text-base font-medium text-fg">{t.string('BUTTON_SEE_ALL')}</div>
+                            <div className="max-h-[1.2em] flex-[0_1_auto] text-fg">{t.string('BUTTON_SEE_ALL')}</div>
                             <ChevronRight className="ml-2 h-6 flex-none text-fg" />
                         </Button>
                         :

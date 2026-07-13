@@ -18,14 +18,14 @@ const Combos = ({ combos }: Props) => {
     const { t } = useTranslation();
 
     return (
-        <div className="relative flex flex-wrap justify-end gap-y-4 overflow-visible">
+        <div className="flex flex-wrap justify-end gap-y-4">
             {
                 combos.map((keys, index) => (
-                    <div className="relative flex overflow-visible" key={index}>
+                    <div className="flex" key={index}>
                         <Keys keys={keys} />
                         {
                             index < (combos.length - 1) && (
-                                <div className="relative flex w-14 items-center justify-center text-base text-fg opacity-60">
+                                <div className="flex w-14 items-center justify-center text-base text-fg opacity-60">
                                     { t('SETTINGS_SHORTCUT_OR') }
                                 </div>
                             )

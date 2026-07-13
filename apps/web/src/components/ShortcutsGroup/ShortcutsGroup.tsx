@@ -21,16 +21,16 @@ const ShortcutsGroup = ({ className, label, shortcuts }: Props) => {
     const { t } = useTranslation();
 
     return (
-        <div className={cn('relative flex w-[35rem] flex-1 flex-col gap-8 overflow-visible', className)}>
+        <div className={cn('flex w-[35rem] flex-1 flex-col gap-8', className)}>
             <div className="flex flex-none text-base font-normal text-fg opacity-60">
                 {t(label)}
             </div>
 
-            <div className="relative flex flex-col gap-8 overflow-visible">
+            <div className="flex flex-col gap-8">
                 {
                     shortcuts.map(({ name, label, combos }) => (
-                        <div className="relative flex items-baseline justify-between gap-8 overflow-visible" key={name}>
-                            <div className="relative overflow-hidden text-ellipsis text-base text-fg">
+                        <div className="flex items-baseline justify-between gap-8" key={name}>
+                            <div className="overflow-hidden text-ellipsis text-base text-fg">
                                 {t(label)}
                             </div>
                             <Combos combos={combos} />
