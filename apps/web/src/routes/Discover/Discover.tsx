@@ -140,7 +140,7 @@ const Discover = () => {
         <MainNavBars className="h-[calc(100%-var(--safe-area-inset-bottom))] bg-transparent" route={'discover'}>
             <div className="flex h-full w-full flex-row mb-[calc(var(--bottom-overlay-size)*-1)]">
                 <div className="flex flex-1 flex-col self-stretch [contain:strict]">
-                    <div className="z-[2] flex flex-none flex-row gap-6 self-stretch overflow-visible p-6">
+                    <div className="z-[2] flex flex-none flex-row gap-6 self-stretch p-6">
                         {selectInputs.map((input, index) => (
                             <FilterSelect
                                 key={index}
@@ -148,20 +148,18 @@ const Discover = () => {
                                 wrapperClassName="min-w-0 shrink grow-0 basis-60 [&:nth-child(n+4)]:hidden max-[640px]:[&:nth-child(n+2)]:hidden"
                             />
                         ))}
-                        <div className="flex flex-1 justify-end">
-                            <IconButton
-                                size="lg"
-                                title={t('ALL_FILTERS')}
-                                onClick={openInputsModal}
-                                className={cn(
-                                    'bg-[var(--overlay-color)] opacity-100 hover:bg-surface-hover active:scale-95 [&_svg]:size-[1.4rem] [&_svg]:text-fg',
-                                    showFilterButton ? 'flex' : 'hidden',
-                                    collapseOnNarrow && 'max-[640px]:flex',
-                                )}
-                            >
-                                <SlidersHorizontal />
-                            </IconButton>
-                        </div>
+                        <IconButton
+                            size="lg"
+                            title={t('ALL_FILTERS')}
+                            onClick={openInputsModal}
+                            className={cn(
+                                'ml-auto bg-[var(--overlay-color)] opacity-100 hover:bg-surface-hover active:scale-95 [&_svg]:size-[1.4rem] [&_svg]:text-fg',
+                                showFilterButton ? 'flex' : 'hidden',
+                                collapseOnNarrow && 'max-[640px]:flex',
+                            )}
+                        >
+                            <SlidersHorizontal />
+                        </IconButton>
                     </div>
                     {
                         discover.catalog !== null && !discover.catalog.installed ?

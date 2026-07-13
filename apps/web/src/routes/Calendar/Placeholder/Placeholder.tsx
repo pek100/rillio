@@ -15,7 +15,7 @@ const Placeholder = () => {
     const { t } = useTranslation();
 
     return (
-        <div className={'relative flex min-h-full w-full flex-col items-center justify-center overflow-y-auto max-[1000px]:px-8 max-[1000px]:py-4'}>
+        <div className={'flex min-h-full w-full flex-col items-center justify-center overflow-y-auto max-[1000px]:px-8 max-[1000px]:py-4'}>
             <div className={'mb-4 text-center text-[1.75rem] font-semibold text-fg-muted'}>
                 {t('CALENDAR_NOT_LOGGED_IN')}
             </div>
@@ -28,13 +28,13 @@ const Placeholder = () => {
             </div>
             <div className={'mb-4 flex flex-row items-center gap-16 max-[640px]:flex-col max-[640px]:gap-4'}>
                 <div className={'flex w-72 flex-row items-center gap-6'}>
-                    <Megaphone className={'h-[3.25rem] w-[3.25rem] flex-none text-fg-subtle'} />
+                    <Megaphone className={'size-[3.25rem] flex-none text-fg-subtle'} />
                     <div className={'flex-auto text-base font-medium text-fg'}>
                         {t('NOT_LOGGED_IN_NOTIFICATIONS')}
                     </div>
                 </div>
                 <div className={'flex w-72 flex-row items-center gap-6'}>
-                    <Calendar className={'h-[3.25rem] w-[3.25rem] flex-none text-fg-subtle'} />
+                    <Calendar className={'size-[3.25rem] flex-none text-fg-subtle'} />
                     <div className={'flex-auto text-base font-medium text-fg'}>
                         {t('NOT_LOGGED_IN_CALENDAR')}
                     </div>

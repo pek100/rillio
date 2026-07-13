@@ -59,7 +59,7 @@ const Cell = ({ selected, monthInfo, date, items, onClick }: Props) => {
             )}
             onClick={onCellClick}
         >
-            <div className={cn('relative flex items-start', today && 'p-[0.3rem]')}>
+            <div className={cn('flex items-start', today && 'p-[0.3rem]')}>
                 <div className={cn(
                     'flex-none flex items-center justify-center rounded-full font-medium',
                     today ? 'h-6 w-6 bg-accent text-bg' : 'h-8 w-8 text-fg',
@@ -83,7 +83,7 @@ const Cell = ({ selected, monthInfo, date, items, onClick }: Props) => {
                             onClick={(event) => onPosterClick(event, deepLinks.metaDetailsStreams)}
                         >
                             <Play
-                                className={'absolute z-[1] h-8 w-8 rounded-full bg-accent p-2 text-bg opacity-0 transition-opacity duration-150 ease-smooth group-hover:opacity-100'}
+                                className={'absolute z-[1] size-8 rounded-full bg-accent p-2 text-bg opacity-0 transition-opacity duration-150 ease-smooth group-hover:opacity-100'}
                             />
                             <Image
                                 className={'h-auto max-h-full aspect-[2/3] object-cover rounded-[inherit] transition-opacity duration-150 ease-smooth group-hover:opacity-50'}
@@ -96,7 +96,7 @@ const Cell = ({ selected, monthInfo, date, items, onClick }: Props) => {
             </HorizontalScroll>
             {
                 items.length > 0 ?
-                    <MoreHorizontal className={'hidden h-8 w-8 shrink-0 self-center p-2 text-fg-subtle'} />
+                    <MoreHorizontal className={'hidden size-8 shrink-0 self-center p-2 text-fg-subtle'} />
                     :
                     null
             }

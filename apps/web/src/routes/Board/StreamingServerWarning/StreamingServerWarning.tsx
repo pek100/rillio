@@ -21,7 +21,7 @@ type Props = {
     className?: string;
 };
 
-const ACTION_CLASS = 'h-9 flex-none rounded-full bg-surface-hover px-4 text-fg transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97]';
+const ACTION_CLASS = 'h-9 flex-none bg-surface-hover px-4 text-[1.2rem] font-medium text-fg transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97]';
 
 const StreamingServerWarning = ({ className }: Props) => {
     const { t } = useTranslation();
@@ -79,9 +79,7 @@ const StreamingServerWarning = ({ className }: Props) => {
                         title={t('SERVICE_INSTALL')}
                         tabIndex={-1}
                     >
-                        <div className="text-[1.2rem] font-medium text-fg">
-                            {t('SERVICE_INSTALL')}
-                        </div>
+                        {t('SERVICE_INSTALL')}
                     </Button>
                 </a>
                 <Button
@@ -91,9 +89,7 @@ const StreamingServerWarning = ({ className }: Props) => {
                     onClick={onLater}
                     tabIndex={-1}
                 >
-                    <div className="text-[1.2rem] font-medium text-fg">
-                        {t('WARNING_STREAMING_SERVER_LATER')}
-                    </div>
+                    {t('WARNING_STREAMING_SERVER_LATER')}
                 </Button>
                 <Button
                     variant="ghost"
@@ -102,9 +98,7 @@ const StreamingServerWarning = ({ className }: Props) => {
                     onClick={onDismiss}
                     tabIndex={-1}
                 >
-                    <div className="text-[1.2rem] font-medium text-fg">
-                        {t('DONT_SHOW_AGAIN')}
-                    </div>
+                    {t('DONT_SHOW_AGAIN')}
                 </Button>
             </div>
         </div>

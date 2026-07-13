@@ -54,14 +54,14 @@ const Item = ({ selected, monthInfo, date, items, profile, onClick }: Props) => 
         <div
             ref={ref}
             className={cn(
-                'relative flex flex-none flex-col overflow-hidden rounded-card bg-surface border-[0.15rem] transition-[border-color,background-color] duration-150 ease-smooth',
+                'flex flex-none flex-col overflow-hidden rounded-card bg-surface border-[0.15rem] transition-[border-color,background-color] duration-150 ease-smooth',
                 active ? 'border-accent' : 'border-transparent hover:border-line',
             )}
             key={date.day}
             onClick={onItemClick}
         >
             <div className={cn(
-                'relative flex h-14 flex-none items-center px-4 text-base font-semibold',
+                'flex h-14 flex-none items-center px-4 text-base font-semibold',
                 today ? 'bg-accent text-bg' : 'text-fg',
             )}>
                 {toDayMonth(date)}
@@ -72,7 +72,7 @@ const Item = ({ selected, monthInfo, date, items, profile, onClick }: Props) => 
                         <Button
                             key={id}
                             variant={'ghost'}
-                            className={'group relative flex h-12 w-full flex-none flex-row items-center justify-between gap-4 rounded-none px-4 py-0 text-sm font-medium text-fg last:rounded-b-card'}
+                            className={'group flex h-12 w-full flex-none flex-row items-center justify-between gap-4 rounded-none px-4 py-0 text-sm font-medium text-fg last:rounded-b-card'}
                             href={deepLinks.metaDetailsStreams}
                             onClick={(event) => onVideoClick(event, deepLinks.metaDetailsStreams)}
                         >
@@ -82,7 +82,7 @@ const Item = ({ selected, monthInfo, date, items, profile, onClick }: Props) => 
                             <div className={'block flex-none text-fg-muted group-hover:hidden'}>
                                 S{season}E{episode}
                             </div>
-                            <Play className={'hidden h-8 w-8 flex-none rounded-full bg-accent p-2 text-bg group-hover:block'} />
+                            <Play className={'hidden size-8 flex-none rounded-full bg-accent p-2 text-bg group-hover:block'} />
                         </Button>
                     ))
                 }

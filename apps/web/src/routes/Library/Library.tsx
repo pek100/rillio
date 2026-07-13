@@ -111,7 +111,7 @@ const Library = ({ model }: { model: LibraryModel }) => {
     return (
         <MainNavBars className="h-[calc(100%-var(--safe-area-inset-bottom))] bg-transparent" route={model}>
             <div className="flex h-full w-full flex-col mb-[calc(var(--bottom-overlay-size)*-1)]">
-                <div className="z-[2] flex flex-none flex-row items-center gap-6 self-stretch overflow-visible p-6 max-[640px]:justify-between">
+                <div className="z-[2] flex flex-none flex-row items-center gap-6 self-stretch p-6 max-[640px]:justify-between">
                     <div className="flex-[0_1_15rem] rounded-full bg-[var(--overlay-color)] transition-colors hover:bg-surface-hover">
                         <Select value={typeSelect.value} onValueChange={typeSelect.onSelect}>
                             <SelectTrigger className="h-11 w-full justify-between bg-transparent px-6 text-base">
