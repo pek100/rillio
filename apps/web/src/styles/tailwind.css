@@ -225,6 +225,7 @@ html:not(.active-slider-within) .player-container[data-immersed] .player-immersi
     --color-reddit: #FF4500;
     --color-imdb: #f5c518;
     --color-trakt: rgb(255, 255, 255);
+    --color-discord: #5865F2;
 
     /* Placeholder skeleton colors (the two LESS @color-surface-* refs resolved to
      * their literal hsla() values). */
@@ -425,4 +426,59 @@ html body {
 @keyframes video-selected-border {
     0%   { border-color: var(--color-accent); }
     100% { border-color: transparent; }
+}
+
+/* Router view-stack structure (ported from router/styles.css). These are the
+ * absolute-positioning + stacking + modal-top selectors that own the .routes-
+ * container / .route-container / .route-content / .modals-container layout; they
+ * are structural relationships Tailwind utilities cannot express (child-index and
+ * :not(:last-child) targeting), so they stay as plain global rules here. */
+.routes-container {
+    position: relative;
+    z-index: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.routes-container .route-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+}
+
+.routes-container .route-container:not(:last-child) {
+    display: none;
+}
+
+/* A modal route floats over the page beneath it, which stays visible. */
+.routes-container.modal-top .route-container:nth-last-child(2) {
+    display: block;
+}
+
+.routes-container .route-container .route-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.routes-container .route-container .modals-container {
+    width: 0;
+    height: 0;
+}
+
+.routes-container .route-container .modals-container .modal-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    overflow: hidden;
 }

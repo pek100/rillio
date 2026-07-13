@@ -4,16 +4,15 @@
  * MetaRow - a titled catalog row. Per the UI-rewrite decisions this KEEPS the fixed
  * fit-to-width N-item layout (not a scroller), so the placeholder-fill width
  * stabilization survives. Ported to TypeScript; the SEE ALL control is now the
- * foundation-kit Button. The structural LESS module is retained because Board and
- * Search compose its `.meta-item` (+ poster-shape) classes to hide/space items per
- * breakpoint - that cross-module contract must hold until those routes are rewritten.
+ * foundation-kit Button. The structural LESS module is gone (LESS purge, Stage B):
+ * Board and Search no longer compose a `.meta-item` class, they hide/space items per
+ * breakpoint via the shared arbitrary-variant hide classes described below.
  *
  * itemComponent injection, CATALOG_PREVIEW_SIZE slicing, the ReactIs guard and the
  * fill-with-placeholders logic are reused verbatim.
  *
- * The former structural LESS module is gone (LESS purge, Stage B). The per-breakpoint
- * poster trim is NOT here: callers (Board / Search) pass structural arbitrary-variant
- * hide classes on the row's own className (they target `>*:last-child>*:nth-child(...)`,
+ * The per-breakpoint poster trim is NOT here: callers (Board / Search) pass structural
+ * arbitrary-variant hide classes on the row's own className (they target `>*:last-child>*:nth-child(...)`,
  * i.e. the items container's children), so no per-item API is needed. Each item's
  * fit-to-width flex-basis is set from its posterShape.
  */

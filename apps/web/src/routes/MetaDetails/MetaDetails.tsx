@@ -170,7 +170,7 @@ const MetaDetails = () => {
                             renderFallback={renderBackgroundImageFallback}
                             alt={' '}
                         />
-                        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(2,4,7,0.4)_0%,rgba(2,4,7,0.88)_50%,var(--color-bg)_100%)]" />
+                        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-bg)_40%,transparent)_0%,color-mix(in_srgb,var(--color-bg)_88%,transparent)_50%,var(--color-bg)_100%)]" />
                     </div>
                     :
                     null

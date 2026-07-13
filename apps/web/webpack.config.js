@@ -38,7 +38,6 @@ const THREAD_LOADER = {
 threadLoader.warmup(
     THREAD_LOADER.options,
     [
-        'babel-loader',
         'ts-loader',
         'css-loader',
         'postcss-loader',
@@ -63,22 +62,6 @@ module.exports = (env, argv) => ({
     },
     module: {
         rules: [
-            {
-                test: /\.js$/,
-                include: SRC,
-                use: [
-                    THREAD_LOADER,
-                    {
-                        loader: 'babel-loader',
-                        options: {
-                            presets: [
-                                '@babel/preset-env',
-                                '@babel/preset-react'
-                            ],
-                        }
-                    }
-                ]
-            },
             {
                 test: /\.(ts|tsx)$/,
                 include: SRC,

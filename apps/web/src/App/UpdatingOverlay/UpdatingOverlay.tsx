@@ -25,12 +25,12 @@ const S = {
     mark: 'flex items-center justify-center [filter:drop-shadow(0_8px_30px_rgba(255,160,51,0.2))]',
     markCanvas: 'w-[92px] h-[95px]',
     markFallback: 'w-[92px] h-[95px] animate-[updating-pulse_1.6s_ease-in-out_infinite]',
-    title: 'text-[1.15rem] font-bold tracking-[-0.01em] text-[rgba(255,255,255,0.92)]',
-    track: 'w-[220px] h-1 rounded-full bg-[rgba(255,255,255,0.08)] overflow-hidden',
+    title: 'text-[1.15rem] font-bold tracking-[-0.01em] text-fg/97',
+    track: 'w-[220px] h-1 rounded-full bg-fg/8 overflow-hidden',
     fill: 'h-full rounded-[inherit] bg-accent [transition:width_0.3s_ease]',
     fillIndeterminate: 'h-full w-[42%] rounded-[inherit] bg-accent animate-[updating-slide_1.15s_ease-in-out_infinite]',
-    hint: 'text-[0.85rem] text-[rgba(255,255,255,0.5)] [font-variant-numeric:tabular-nums]',
-    note: '-mt-2 text-[0.8rem] text-[rgba(255,255,255,0.32)]',
+    hint: 'text-[0.85rem] text-fg/53 [font-variant-numeric:tabular-nums]',
+    note: '-mt-2 text-[0.8rem] text-fg/34',
 };
 
 const UpdatingOverlay = () => {

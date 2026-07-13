@@ -149,7 +149,7 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
             </Option>
             {
                 discord.available &&
-                    <Option icon={Discord} iconClassName="text-[#5865f2]" label={'SETTINGS_DISCORD'}>
+                    <Option icon={Discord} iconClassName="text-[color:var(--color-discord)]" label={'SETTINGS_DISCORD'}>
                         <SettingsSwitch
                             {...discordToggle}
                         />

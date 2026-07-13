@@ -6,10 +6,6 @@ import type { Location } from 'react-router';
 import { useProfile } from 'rillio/common';
 import routerPaths from './routerPaths';
 import Route from './Route';
-// The router view-stack layout (.routes-container / .route-container / modal-top).
-// Plain global CSS; used to be pulled in via App/styles.less :global before the
-// LESS purge, now imported by the component that owns those class names.
-import './styles.css';
 
 type RouterPath = typeof routerPaths[number];
 type CachedView = {
