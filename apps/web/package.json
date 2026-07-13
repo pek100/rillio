@@ -23,7 +23,6 @@
         "@rillio/video": "workspace:*",
         "@stremio/stremio-colors": "5.2.0",
         "@stremio/stremio-icons": "5.10.0",
-        "a-color-picker": "1.2.1",
         "bowser": "2.14.1",
         "buffer": "6.0.3",
         "class-variance-authority": "^0.7.1",

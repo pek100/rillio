@@ -25,9 +25,6 @@ importers:
       '@stremio/stremio-icons':
         specifier: 5.10.0
         version: 5.10.0
-      a-color-picker:
-        specifier: 1.2.1
-        version: 1.2.1
       bowser:
         specifier: 2.14.1
         version: 2.14.1
@@ -2624,9 +2621,6 @@ packages:
 
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
-
-  a-color-picker@1.2.1:
-    resolution: {integrity: sha512-aMCUKd2zTDWK2YWnjz0k3YhFc9XL0jZlPIywF6XkP6i3wdq2iHTEnl1BFPZkOVDV89M12t+zeZ8m23cfzn57/Q==}
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -9553,10 +9547,6 @@ snapshots:
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
-
-  a-color-picker@1.2.1:
-    dependencies:
-      is-plain-object: 2.0.4
 
   accepts@1.3.8:
     dependencies:
