@@ -1,16 +1,28 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const Video = require('@rillio/video');
-const EventEmitter = require('eventemitter3');
+import React from 'react';
+import Video from '@rillio/video';
+import EventEmitter from 'eventemitter3';
+
+// Boundary type for the off-limits packages/video instance. The @rillio/video
+// implementation stays untyped JS; this is the minimal surface useVideo drives.
+type VideoInstance = {
+    dispatch: (action: any, options?: any) => void;
+    on: (event: string, listener: (...args: any[]) => void) => void;
+    destroy: () => void;
+};
+
+// TODO: the mpv/video prop bag is dynamic (propChanged/propValue emit arbitrary
+// prop names from packages/video); typed as any pending a real VideoState model.
+type VideoInstanceState = any;
 
 const events = new EventEmitter();
 
 const useVideo = () => {
-    const video = React.useRef(null);
-    const containerRef = React.useRef(null);
+    const video = React.useRef<VideoInstance | null>(null);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-    const [state, setState] = React.useState({
+    const [state, setState] = React.useState<VideoInstanceState>({
         manifest: null,
         stream: null,
         paused: null,
@@ -43,7 +55,7 @@ const useVideo = () => {
         fullscreen: null,
     });
 
-    const dispatch = (action, options) => {
+    const dispatch = (action: any, options?: any) => {
         if (video.current && containerRef.current) {
             try {
                 video.current.dispatch(action, {
@@ -56,7 +68,7 @@ const useVideo = () => {
         }
     };
 
-    const load = (args, options) => {
+    const load = (args: any, options?: any) => {
         dispatch({
             type: 'command',
             commandName: 'load',
@@ -71,7 +83,7 @@ const useVideo = () => {
         });
     };
 
-    const addExtraSubtitlesTracks = (tracks) => {
+    const addExtraSubtitlesTracks = (tracks: any) => {
         dispatch({
             type: 'command',
             commandName: 'addExtraSubtitlesTracks',
@@ -81,7 +93,7 @@ const useVideo = () => {
         });
     };
 
-    const addLocalSubtitles = (filename, buffer) => {
+    const addLocalSubtitles = (filename: string, buffer: ArrayBuffer) => {
         dispatch({
             type: 'command',
             commandName: 'addLocalSubtitles',
@@ -92,82 +104,82 @@ const useVideo = () => {
         });
     };
 
-    const setProp = (name, value) => {
+    const setProp = (name: string, value: any) => {
         dispatch({ type: 'setProp', propName: name, propValue: value });
     };
 
-    const setPaused = (state) => {
+    const setPaused = (state: boolean) => {
         setProp('paused', state);
     };
 
-    const setVolume = (volume) => {
+    const setVolume = (volume: number) => {
         setProp('volume', volume);
     };
 
-    const setMuted = (state) => {
+    const setMuted = (state: boolean) => {
         setProp('muted', state);
     };
 
-    const setTime = (time) => {
+    const setTime = (time: number) => {
         setProp('time', time);
     };
 
-    const setPlaybackSpeed = (rate) => {
+    const setPlaybackSpeed = (rate: number) => {
         setProp('playbackSpeed', rate);
     };
 
-    const setAudioTrack = (id) => {
+    const setAudioTrack = (id: string) => {
         setProp('selectedAudioTrackId', id);
     };
 
-    const setSubtitlesTrack = (id) => {
+    const setSubtitlesTrack = (id: string | null) => {
         setProp('selectedSubtitlesTrackId', id);
         setProp('selectedExtraSubtitlesTrackId', null);
     };
 
-    const setExtraSubtitlesTrack = (id) => {
+    const setExtraSubtitlesTrack = (id: string | null) => {
         setProp('selectedSubtitlesTrackId', null);
         setProp('selectedExtraSubtitlesTrackId', id);
     };
 
-    const setSubtitlesDelay = (delay) => {
+    const setSubtitlesDelay = (delay: number) => {
         setProp('extraSubtitlesDelay', delay);
     };
 
-    const setSubtitlesSize = (size) => {
+    const setSubtitlesSize = (size: number) => {
         setProp('subtitlesSize', size);
         setProp('extraSubtitlesSize', size);
     };
 
-    const setSubtitlesOffset = (offset) => {
+    const setSubtitlesOffset = (offset: number) => {
         setProp('subtitlesOffset', offset);
         setProp('extraSubtitlesOffset', offset);
     };
 
-    const setVideoScale = (scale) => {
+    const setVideoScale = (scale: string) => {
         setProp('videoScale', scale);
     };
 
-    const setFullscreen = (state) => {
+    const setFullscreen = (state: boolean) => {
         setProp('fullscreen', state);
     };
 
-    const setSubtitlesTextColor = (color) => {
+    const setSubtitlesTextColor = (color: string) => {
         setProp('subtitlesTextColor', color);
         setProp('extraSubtitlesTextColor', color);
     };
 
-    const setSubtitlesBackgroundColor = (color) => {
+    const setSubtitlesBackgroundColor = (color: string) => {
         setProp('subtitlesBackgroundColor', color);
         setProp('extraSubtitlesBackgroundColor', color);
     };
 
-    const setSubtitlesOutlineColor = (color) => {
+    const setSubtitlesOutlineColor = (color: string) => {
         setProp('subtitlesOutlineColor', color);
         setProp('extraSubtitlesOutlineColor', color);
     };
 
-    const onError = (error) => {
+    const onError = (error: any) => {
         events.emit('error', error);
     };
 
@@ -175,28 +187,28 @@ const useVideo = () => {
         events.emit('ended');
     };
 
-    const onSubtitlesTrackLoaded = (track) => {
+    const onSubtitlesTrackLoaded = (track: any) => {
         events.emit('subtitlesTrackLoaded', track);
     };
 
-    const onExtraSubtitlesTrackLoaded = (track) => {
+    const onExtraSubtitlesTrackLoaded = (track: any) => {
         events.emit('extraSubtitlesTrackLoaded', track);
     };
 
-    const onExtraSubtitlesTrackAdded = (track) => {
+    const onExtraSubtitlesTrackAdded = (track: any) => {
         events.emit('extraSubtitlesTrackAdded', track);
     };
 
-    const onPropChanged = (name, value) => {
-        setState((state) => ({
+    const onPropChanged = (name: string, value: any) => {
+        setState((state: VideoInstanceState) => ({
             ...state,
             [name]: value
         }));
     };
 
-    const onImplementationChanged = (manifest) => {
-        manifest.props.forEach((propName) => dispatch(({ type: 'observeProp', propName })));
-        setState((state) => ({
+    const onImplementationChanged = (manifest: any) => {
+        manifest.props.forEach((propName: string) => dispatch(({ type: 'observeProp', propName })));
+        setState((state: VideoInstanceState) => ({
             ...state,
             manifest
         }));
@@ -253,4 +265,4 @@ const useVideo = () => {
     };
 };
 
-module.exports = useVideo;
+export default useVideo;

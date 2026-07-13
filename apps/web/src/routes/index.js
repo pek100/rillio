@@ -10,7 +10,7 @@ const MetaDetails = require('./MetaDetails');
 const NotFound = require('./NotFound');
 const Search = require('./Search');
 const { default: Settings } = require('./Settings');
-const Player = require('./Player');
+const Player = require('./Player').default;
 const Intro = require('./Intro');
 
 module.exports = {

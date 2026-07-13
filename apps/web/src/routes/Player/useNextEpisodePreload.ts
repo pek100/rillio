@@ -1,10 +1,10 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const useCacheDownload = require('rillio/common/useCacheDownload');
-const useProfile = require('rillio/common/useProfile');
-const useToast = require('rillio/common/Toast/useToast');
-const { getPreloadPromptEnabled } = require('rillio/common/nextEpisodePreloadPrefs');
+import React from 'react';
+import useCacheDownload from 'rillio/common/useCacheDownload';
+import useProfile from 'rillio/common/useProfile';
+import useToast from 'rillio/common/Toast/useToast';
+import { getPreloadPromptEnabled } from 'rillio/common/nextEpisodePreloadPrefs';
 
 // Offers to preload the NEXT episode's torrent into the local cache while the
 // current one plays, so the binge transition starts instantly. The prompt shows
@@ -34,19 +34,40 @@ const END_PROMPT_REMAINING_MS = 10 * 60 * 1000;
 // must not leak into an unrelated playback hours later.
 const PAUSED_START_TTL_MS = 30 * 60 * 1000;
 
+type PendingPausedStart = {
+    videoId: string;
+    expiresAt: number;
+};
+
+type AcceptedDownload = {
+    infoHash: string | null;
+    started: boolean;
+};
+
+type UseNextEpisodePreloadArgs = {
+    player: {
+        selected: { streamRequest?: ResourceRequest | null; metaRequest?: ResourceRequest | null } | null;
+        nextVideo: { streams?: Stream[]; id?: string } | null;
+    };
+    video: {
+        state: any;
+        setPaused: (paused: boolean) => void;
+    };
+};
+
 // The paused-start handoff must survive the player route replacing itself with
 // the next episode's URL (React may remount the component on navigation), so it
 // lives at module scope, not in component state. SPA-session-scoped by design.
-let pendingPausedStart = null;
+let pendingPausedStart: PendingPausedStart | null = null;
 
-const readPendingPausedStart = () => {
+const readPendingPausedStart = (): PendingPausedStart | null => {
     if (pendingPausedStart !== null && Date.now() > pendingPausedStart.expiresAt) {
         pendingPausedStart = null;
     }
     return pendingPausedStart;
 };
 
-const useNextEpisodePreload = ({ player, video }) => {
+const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => {
     const toast = useToast();
     const profile = useProfile();
     const downloadToCache = useCacheDownload();
@@ -76,14 +97,14 @@ const useNextEpisodePreload = ({ player, video }) => {
     const [endWindowDismissed, setEndWindowDismissed] = React.useState(false);
     // The scheduled download: the grace timer plus what it needs to start (and
     // what a late cancel needs to stop). null = nothing accepted/pending.
-    const acceptTimer = React.useRef(null);
-    const acceptedDownload = React.useRef(null);
+    const acceptTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const acceptedDownload = React.useRef<AcceptedDownload | null>(null);
     const [startWindowOpen, setStartWindowOpen] = React.useState(true);
-    const startHideTimer = React.useRef(null);
+    const startHideTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     // Guards the paused-start against a stale loaded=true from the PREVIOUS
     // episode: consume only after observing not-loaded for the current one.
     const sawUnloaded = React.useRef(false);
-    const prevVideoId = React.useRef(currentVideoId);
+    const prevVideoId = React.useRef<string | null>(currentVideoId);
 
     const clearStartHideTimer = () => {
         if (startHideTimer.current !== null) {
@@ -225,7 +246,7 @@ const useNextEpisodePreload = ({ player, video }) => {
         setAnswered(true);
         setAccepted(true);
         const stream = nextStream;
-        acceptedDownload.current = { infoHash: stream !== null ? stream.infoHash : null, started: false };
+        acceptedDownload.current = { infoHash: stream !== null ? stream.infoHash ?? null : null, started: false };
         clearAcceptTimer();
         acceptTimer.current = setTimeout(() => {
             acceptTimer.current = null;
@@ -277,4 +298,4 @@ const useNextEpisodePreload = ({ player, video }) => {
     return { promptVisible, accepted, accept, dismiss, armPausedStart };
 };
 
-module.exports = useNextEpisodePreload;
+export default useNextEpisodePreload;

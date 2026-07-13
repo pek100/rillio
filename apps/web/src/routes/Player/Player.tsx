@@ -1,41 +1,44 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useParams, useNavigate } = require('react-router');
-const { useSearchParams } = require('react-router-dom');
-const debounce = require('lodash.debounce');
-const langs = require('langs');
-const { useTranslation } = require('react-i18next');
-const { default: useRouteFocused } = require('rillio/common/useRouteFocused');
-const { useCore } = require('rillio/core');
-const { useServices, useGamepad } = require('rillio/services');
-const { useContentGamepadNavigation } = require('rillio/services/GamepadNavigation');
-const { useSettings, useProfile, useFullscreen, useBinaryState, useToast, useStreamingServer, withCoreSuspender, usePlatform, onShortcut, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } = require('rillio/common');
-const { default: toPath } = require('rillio-router/toPath');
-const { Presence, ContextMenu } = require('rillio/components');
-const { default: TopBar } = require('./TopBar');
-const { default: Buffering } = require('./Buffering');
-const VolumeChangeIndicator = require('./VolumeChangeIndicator');
-const Error = require('./Error');
-const ControlBar = require('./ControlBar');
-const NextVideoPopup = require('./NextVideoPopup');
-const StatisticsMenu = require('./StatisticsMenu');
-const OptionsMenu = require('./OptionsMenu');
-const SubtitlesMenu = require('./SubtitlesMenu');
-const { default: AudioMenu } = require('./AudioMenu');
-const SpeedMenu = require('./SpeedMenu');
-const { default: SideDrawerButton } = require('./SideDrawerButton');
-const { default: SideDrawer } = require('./SideDrawer');
-const usePlayer = require('./usePlayer');
-const useStatistics = require('./useStatistics');
-const useSlowDownload = require('./useSlowDownload');
-const useNextEpisodePreload = require('./useNextEpisodePreload');
-const NextEpisodePreloadPrompt = require('./NextEpisodePreloadPrompt');
-const useVideo = require('./useVideo');
-const { default: useSubtitles } = require('./useSubtitles');
-const Video = require('./Video');
-const { default: Indicator } = require('./Indicator/Indicator');
-const { default: useMediaSession } = require('./useMediaSession');
+import React from 'react';
+import { useParams, useNavigate } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
+import debounce from 'lodash.debounce';
+import langs from 'langs';
+import { useTranslation } from 'react-i18next';
+import useRouteFocused from 'rillio/common/useRouteFocused';
+import { useCore } from 'rillio/core';
+import { useServices, useGamepad } from 'rillio/services';
+import { useContentGamepadNavigation } from 'rillio/services/GamepadNavigation';
+import { useSettings, useProfile, useFullscreen, useBinaryState, useToast, useStreamingServer, withCoreSuspender, usePlatform, onShortcut, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } from 'rillio/common';
+import { toPath } from 'rillio-router';
+import { Presence, ContextMenu } from 'rillio/components';
+import TopBar from './TopBar';
+import Buffering from './Buffering';
+import VolumeChangeIndicator from './VolumeChangeIndicator';
+import Error from './Error';
+import ControlBar from './ControlBar';
+import NextVideoPopup from './NextVideoPopup';
+import StatisticsMenu from './StatisticsMenu';
+import OptionsMenu from './OptionsMenu';
+import SubtitlesMenu from './SubtitlesMenu';
+import AudioMenu from './AudioMenu';
+import SpeedMenu from './SpeedMenu';
+import SideDrawerButton from './SideDrawerButton';
+import SideDrawer from './SideDrawer';
+import usePlayer from './usePlayer';
+import useStatistics from './useStatistics';
+import useSlowDownload from './useSlowDownload';
+import useNextEpisodePreload from './useNextEpisodePreload';
+import NextEpisodePreloadPrompt from './NextEpisodePreloadPrompt';
+import useVideo from './useVideo';
+import useSubtitles from './useSubtitles';
+import Video from './Video';
+import Indicator from './Indicator/Indicator';
+import useMediaSession from './useMediaSession';
+
+// The Google Cast SDK loads globally via a script tag; it is untyped here.
+declare const cast: any;
 
 // Player layer-stack classes, ported from the former Player/styles.less to Tailwind.
 // The immersion opacity cascade and the active-slider grab cursor stay as global rules
@@ -53,8 +56,8 @@ const SIDE_DRAWER_BUTTON_LAYER = 'player-immersion-fade fixed left-auto right-[-
 const INDICATOR_LAYER = 'absolute bottom-40 left-0 right-0 z-0';
 const MENU_LAYER = 'player-immersion-fade absolute bottom-[7.5rem] left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-(--border-radius) bg-(--modal-background-color) shadow-(--outer-glow) backdrop-blur-[15px] [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
 
-const findTrackByLang = (tracks, lang) => tracks.find((track) => track.lang === lang || langs.where('1', track.lang)?.[2] === lang);
-const findTrackById = (tracks, id) => tracks.find((track) => track.id === id);
+const findTrackByLang = (tracks: any[], lang: string) => tracks.find((track) => track.lang === lang || langs.where('1', track.lang)?.[2] === lang);
+const findTrackById = (tracks: any[], id: string) => tracks.find((track) => track.id === id);
 
 const GAMEPAD_HANDLER_ID = 'player';
 
@@ -94,11 +97,11 @@ const Player = () => {
     const [casting, setCasting] = React.useState(() => {
         return services.chromecast.active && services.chromecast.transport.getCastState() === cast.framework.CastState.CONNECTED;
     });
-    const playbackDevices = React.useMemo(() => streamingServer.playbackDevices !== null && streamingServer.playbackDevices.type === 'Ready' ? streamingServer.playbackDevices.content : [], [streamingServer]);
+    const playbackDevices = React.useMemo(() => streamingServer.playbackDevices !== null && streamingServer.playbackDevices.type === 'Ready' ? streamingServer.playbackDevices.content as PlaybackDevice[] : [], [streamingServer]);
 
-    const playerRef = React.useRef(null);
-    const bufferingRef = React.useRef();
-    const errorRef = React.useRef();
+    const playerRef = React.useRef<HTMLDivElement | null>(null);
+    const bufferingRef = React.useRef<HTMLDivElement | null>(null);
+    const errorRef = React.useRef<HTMLDivElement | null>(null);
 
     const [immersed, setImmersed] = React.useState(true);
     const setImmersedDebounced = React.useCallback(debounce(setImmersed, 3000), []);
@@ -134,14 +137,14 @@ const Player = () => {
     // Raw streaming-server statistics content for the expandable stats section
     // (downloaded/uploaded/file size), beyond the peers/speed summary.
     const statisticsDetails = React.useMemo(() => {
-        return streamingServer.statistics?.type === 'Ready' ? streamingServer.statistics.content : null;
+        return streamingServer.statistics?.type === 'Ready' ? streamingServer.statistics.content as Statistics : null;
     }, [streamingServer.statistics]);
 
     // Live streaming-server settings (the torrent profile lives here). Used by
     // the slow-download escalation to offer "Fast mode" via the EXISTING profile
     // mechanism, not a parallel flag.
     const streamingSettings = React.useMemo(() => {
-        return streamingServer.settings?.type === 'Ready' ? streamingServer.settings.content : null;
+        return streamingServer.settings?.type === 'Ready' ? streamingServer.settings.content as StreamingServerSettings : null;
     }, [streamingServer.settings]);
 
     // Sustained-slow detection + ephemeral speed test for the Initializing panel.
@@ -163,7 +166,7 @@ const Player = () => {
     // MetaDetails streams route (/metadetails/:type/:id/:videoId).
     const onTryDifferentSource = React.useCallback(() => {
         const segments = [type, id, videoId]
-            .filter((segment) => typeof segment === 'string' && segment.length > 0)
+            .filter((segment): segment is string => typeof segment === 'string' && segment.length > 0)
             .map((segment) => encodeURIComponent(segment));
         if (segments.length === 0) {
             navigate(-1);
@@ -196,25 +199,25 @@ const Player = () => {
     const nextVideoPopupDismissed = React.useRef(false);
     const defaultAudioTrackSelected = React.useRef(false);
     const playingOnExternalDevice = React.useRef(false);
-    const [error, setError] = React.useState(null);
+    const [error, setError] = React.useState<any>(null);
 
     const VIDEO_SCALES = ['contain', 'cover', 'fill'];
-    const VIDEO_SCALE_LABELS = { contain: t('PLAYER_SCALE_FIT'), cover: t('PLAYER_SCALE_CROP'), fill: t('PLAYER_SCALE_STRETCH') };
+    const VIDEO_SCALE_LABELS: Record<string, string> = { contain: t('PLAYER_SCALE_FIT'), cover: t('PLAYER_SCALE_CROP'), fill: t('PLAYER_SCALE_STRETCH') };
 
     const playbackSpeed = React.useRef(video.state.playbackSpeed || 1);
-    const pressTimer = React.useRef(null);
+    const pressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const longPress = React.useRef(false);
     // Intended paused state, so two fast clicks (a double-click) toggle
     // deterministically without racing React's re-render. See onVideoClick.
-    const intendedPaused = React.useRef(null);
+    const intendedPaused = React.useRef<boolean | null>(null);
     // Timestamp of the previous video click, for custom double-click detection.
     // The native dblclick uses the ~500ms OS window, which feels far too long.
     const lastVideoClickTime = React.useRef(0);
-    const controlBarRef = React.useRef(null);
+    const controlBarRef = React.useRef<HTMLDivElement | null>(null);
 
     const HOLD_DELAY = 400;
 
-    const handleNextVideoNavigation = React.useCallback((deepLinks, bingeWatching, ended) => {
+    const handleNextVideoNavigation = React.useCallback((deepLinks: any, bingeWatching: boolean, ended: boolean) => {
         if (ended) {
             if (bingeWatching) {
                 if (deepLinks.player) {
@@ -253,7 +256,7 @@ const Player = () => {
         }
     }, [player.nextVideo, profile.settings.bingeWatching, handleNextVideoNavigation, nextEpisodePreload.accepted, nextEpisodePreload.armPausedStart]);
 
-    const onError = React.useCallback((error) => {
+    const onError = React.useCallback((error: any) => {
         console.error('Player', error);
         if (error.critical) {
             setError(error);
@@ -271,7 +274,7 @@ const Player = () => {
                             // Disk full is user-fixable right here: deleting cached
                             // media frees the space, so point at the Cached page.
                             const diskFull = /not enough space|os error 112/i.test(stats.engineError);
-                            setError((current) => current !== null ? {
+                            setError((current: any) => current !== null ? {
                                 ...current,
                                 message: `${current.message}: ${stats.engineError}`,
                                 freeSpace: diskFull,
@@ -308,16 +311,16 @@ const Player = () => {
         video.setMuted(false);
     }, []);
 
-    const onVolumeChangeRequested = React.useCallback((volume) => {
+    const onVolumeChangeRequested = React.useCallback((volume: number) => {
         video.setVolume(volume);
     }, []);
 
-    const onSeekRequested = React.useCallback((time) => {
+    const onSeekRequested = React.useCallback((time: number) => {
         video.setTime(time);
         seek(time, video.state.duration, video.state.manifest?.name);
     }, [video.state.duration, video.state.manifest]);
 
-    const onPlaybackSpeedChanged = React.useCallback((rate, skipUpdate) => {
+    const onPlaybackSpeedChanged = React.useCallback((rate: number, skipUpdate?: boolean) => {
         video.setPlaybackSpeed(rate);
 
         if (skipUpdate) return;
@@ -333,7 +336,7 @@ const Player = () => {
         video.setVideoScale(nextScale);
     }, [video.state.videoScale]);
 
-    const onAudioTrackSelected = React.useCallback((id) => {
+    const onAudioTrackSelected = React.useCallback((id: string) => {
         video.setAudioTrack(id);
         streamStateChanged({
             audioTrack: {
@@ -399,29 +402,29 @@ const Player = () => {
         }
     }, [video.state.paused, onPlayRequested, onPauseRequested, toggleFullscreen]);
 
-    const onContainerMouseDown = React.useCallback((event) => {
-        if (!event.nativeEvent.optionsMenuClosePrevented) {
+    const onContainerMouseDown = React.useCallback((event: React.MouseEvent) => {
+        if (!(event.nativeEvent as any).optionsMenuClosePrevented) {
             closeOptionsMenu();
         }
-        if (!event.nativeEvent.subtitlesMenuClosePrevented) {
+        if (!(event.nativeEvent as any).subtitlesMenuClosePrevented) {
             closeSubtitlesMenu();
         }
-        if (!event.nativeEvent.audioMenuClosePrevented) {
+        if (!(event.nativeEvent as any).audioMenuClosePrevented) {
             closeAudioMenu();
         }
-        if (!event.nativeEvent.speedMenuClosePrevented) {
+        if (!(event.nativeEvent as any).speedMenuClosePrevented) {
             closeSpeedMenu();
         }
-        if (!event.nativeEvent.statisticsMenuClosePrevented) {
+        if (!(event.nativeEvent as any).statisticsMenuClosePrevented) {
             closeStatisticsMenu();
         }
 
         closeSideDrawer();
     }, []);
 
-    const onContainerMouseMove = React.useCallback((event) => {
+    const onContainerMouseMove = React.useCallback((event: React.MouseEvent) => {
         setImmersed(false);
-        if (!event.nativeEvent.immersePrevented) {
+        if (!(event.nativeEvent as any).immersePrevented) {
             setImmersedDebounced(true);
         } else {
             setImmersedDebounced.cancel();
@@ -433,8 +436,8 @@ const Player = () => {
         setImmersed(true);
     }, []);
 
-    const onBarMouseMove = React.useCallback((event) => {
-        event.nativeEvent.immersePrevented = true;
+    const onBarMouseMove = React.useCallback((event: React.MouseEvent) => {
+        (event.nativeEvent as any).immersePrevented = true;
     }, []);
 
     const onPlayPause = React.useCallback(() => {
@@ -448,7 +451,7 @@ const Player = () => {
         }
     }, [menusOpen, nextVideoPopupOpen, video.state.paused]);
 
-    const onSeekPrev = React.useCallback((event) => {
+    const onSeekPrev = React.useCallback((event?: { shiftKey?: boolean }) => {
         if (!menusOpen && !nextVideoPopupOpen && video.state.time !== null) {
             const seekDuration = event?.shiftKey ? settings.seekShortTimeDuration : settings.seekTimeDuration;
             const seekTime = video.state.time - seekDuration;
@@ -457,7 +460,7 @@ const Player = () => {
         }
     }, [menusOpen, nextVideoPopupOpen, video.state.time]);
 
-    const onSeekNext = React.useCallback((event) => {
+    const onSeekNext = React.useCallback((event?: { shiftKey?: boolean }) => {
         if (!menusOpen && !nextVideoPopupOpen && video.state.time !== null) {
             const seekDuration = event?.shiftKey ? settings.seekShortTimeDuration : settings.seekTimeDuration;
             setSeeking(true);
@@ -477,7 +480,7 @@ const Player = () => {
         }
     }, [menusOpen, nextVideoPopupOpen, video.state.volume]);
 
-    const onGamepadSeekAndVol = React.useCallback((axis) => {
+    const onGamepadSeekAndVol = React.useCallback((axis?: string) => {
         switch(axis) {
             case 'left': {
                 onSeekPrev();
@@ -539,7 +542,7 @@ const Player = () => {
                     casting ?
                         streamingServer.baseUrl
                         :
-                        streamingServer.selected.transportUrl
+                        streamingServer.selected!.transportUrl
                     :
                     null,
                 seriesInfo: player.seriesInfo,
@@ -609,7 +612,7 @@ const Player = () => {
     }, [video.state.playbackSpeed]);
 
     React.useEffect(() => {
-        const toastFilter = (item) => item?.dataset?.type === 'CoreEvent';
+        const toastFilter = (item: any) => item?.dataset?.type === 'CoreEvent';
         toast.addFilter(toastFilter);
         const onCastStateChange = () => {
             setCasting(services.chromecast.active && services.chromecast.transport.getCastState() === cast.framework.CastState.CONNECTED);
@@ -623,7 +626,7 @@ const Player = () => {
                 );
             }
         };
-        const onCoreEvent = (name) => {
+        const onCoreEvent = (name: string) => {
             if (name === 'PlayingOnDevice') {
                 playingOnExternalDevice.current = true;
                 onPauseRequested();
@@ -681,7 +684,7 @@ const Player = () => {
     useMediaSession(video.state, player, fullscreen, onPlayRequested, onPauseRequested, onNextVideoRequested);
 
     React.useEffect(() => {
-        const onMediaKey = (action) => {
+        const onMediaKey = (action: string) => {
             switch (action) {
                 case 'play-pause':
                     if (video.state.paused !== null) {
@@ -706,7 +709,7 @@ const Player = () => {
         return () => platform.shell.off('media-key', onMediaKey);
     }, [video.state.paused, player.nextVideo, onPlayRequested, onPauseRequested, onNextVideoRequested]);
 
-    onShortcut('seekForward', (combo) => {
+    onShortcut('seekForward', (combo: number) => {
         if (video.state.time !== null) {
             const seekDuration = combo === 1 ? settings.seekShortTimeDuration : settings.seekTimeDuration;
             setSeeking(true);
@@ -714,7 +717,7 @@ const Player = () => {
         }
     }, [video.state.time, onSeekRequested], !menusOpen);
 
-    onShortcut('seekBackward', (combo) => {
+    onShortcut('seekBackward', (combo: number) => {
         if (video.state.time !== null) {
             const seekDuration = combo === 1 ? settings.seekShortTimeDuration : settings.seekTimeDuration;
             setSeeking(true);
@@ -726,7 +729,7 @@ const Player = () => {
         video.state.muted === true ? onUnmuteRequested() : onMuteRequested();
     }, [video.state.muted], !menusOpen);
 
-    onShortcut('volume', (combo) => {
+    onShortcut('volume', (combo: number) => {
         if (video.state.volume !== null) {
             const volume = combo === 0 ? Math.min(video.state.volume + 5, 200) : Math.max(video.state.volume - 5, 0);
             onVolumeChangeRequested(volume);
@@ -754,7 +757,7 @@ const Player = () => {
         }
     }, [video.state.playbackSpeed, toggleSpeedMenu]);
 
-    onShortcut('speed', (combo) => {
+    onShortcut('speed', (combo: number) => {
         if (video.state.playbackSpeed !== null) {
             const speed = combo === 0 ? Math.max(video.state.playbackSpeed - 0.25, 0.25) : Math.min(video.state.playbackSpeed + 0.25, 2);
             onPlaybackSpeedChanged(speed);
@@ -784,12 +787,14 @@ const Player = () => {
 
     React.useLayoutEffect(() => {
         if (menusOpen) {
-            clearTimeout(pressTimer.current);
+            if (pressTimer.current !== null) {
+                clearTimeout(pressTimer.current);
+            }
             pressTimer.current = null;
             longPress.current = false;
         }
 
-        const onKeyDown = (e) => {
+        const onKeyDown = (e: KeyboardEvent) => {
             if (e.code !== 'Space' || e.repeat) return;
             if (menusOpen || e.ctrlKey || e.metaKey || e.altKey) return;
 
@@ -801,7 +806,7 @@ const Player = () => {
             }, HOLD_DELAY);
         };
 
-        const onKeyUp = (e) => {
+        const onKeyUp = (e: KeyboardEvent) => {
             if (e.code !== 'Space' && e.code !== 'ArrowRight' && e.code !== 'ArrowLeft') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
 
@@ -810,7 +815,9 @@ const Player = () => {
                 return;
             }
             if (e.code === 'Space') {
-                clearTimeout(pressTimer.current);
+                if (pressTimer.current !== null) {
+                    clearTimeout(pressTimer.current);
+                }
                 pressTimer.current = null;
                 if (longPress.current) {
                     onPlaybackSpeedChanged(playbackSpeed.current);
@@ -826,7 +833,7 @@ const Player = () => {
             }
         };
 
-        const onWheel = ({ deltaY }) => {
+        const onWheel = ({ deltaY }: WheelEvent) => {
             if (menusOpen || video.state.volume === null) return;
 
             if (deltaY > 0) {
@@ -838,10 +845,10 @@ const Player = () => {
             }
         };
 
-        const onMouseDownHold = (e) => {
+        const onMouseDownHold = (e: MouseEvent) => {
             if (e.button !== 0) return; // left mouse button only
             if (menusOpen) return;
-            if (controlBarRef.current && controlBarRef.current.contains(e.target)) return;
+            if (controlBarRef.current && controlBarRef.current.contains(e.target as Node)) return;
 
             longPress.current = false;
 
@@ -851,10 +858,12 @@ const Player = () => {
             }, HOLD_DELAY);
         };
 
-        const onMouseUp = (e) => {
+        const onMouseUp = (e: MouseEvent) => {
             if (e.button !== 0) return;
 
-            clearTimeout(pressTimer.current);
+            if (pressTimer.current !== null) {
+                clearTimeout(pressTimer.current);
+            }
 
             if (longPress.current) {
                 onPlaybackSpeedChanged(playbackSpeed.current);
@@ -862,7 +871,9 @@ const Player = () => {
         };
 
         const onBlur = () => {
-            clearTimeout(pressTimer.current);
+            if (pressTimer.current !== null) {
+                clearTimeout(pressTimer.current);
+            }
             pressTimer.current = null;
             if (longPress.current) {
                 onPlaybackSpeedChanged(playbackSpeed.current);
@@ -1075,8 +1086,8 @@ const Player = () => {
                         open={sideDrawerOpen}
                         onClose={closeSideDrawer}
                         metaItem={player.metaItem?.content}
-                        seriesInfo={player.seriesInfo}
-                        selected={player.selected?.streamRequest?.path?.id}
+                        seriesInfo={player.seriesInfo as SeriesInfo}
+                        selected={player.selected?.streamRequest?.path?.id as string}
                     />
                     :
                     null
@@ -1119,4 +1130,4 @@ const PlayerFallback = () => (
     <div className={CONTAINER} />
 );
 
-module.exports = withCoreSuspender(Player, PlayerFallback);
+export default withCoreSuspender(Player, PlayerFallback);

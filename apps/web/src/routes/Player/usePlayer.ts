@@ -1,10 +1,46 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useCore } = require('rillio/core');
-const { useModelState, useCoreSuspender } = require('rillio/common');
+import React from 'react';
+import { useCore } from 'rillio/core';
+import { useModelState, useCoreSuspender } from 'rillio/common';
 
-const map = (player) => ({
+// The player model as it is actually consumed here: the global Player type is
+// augmented with the raw model fields the UI reads that are not on it (`stream`),
+// and the deep, dynamic shapes (metaItem content, the core-injected next-video
+// `streams`) are loosened so the semantics-preserving access patterns type-check.
+type PlayerModel = Omit<Player, 'metaItem' | 'nextVideo'> & {
+    metaItem: Loadable<any> | null;
+    nextVideo: (VideoPlayer & { streams?: Stream[] }) | null;
+    stream: Loadable<any> | null;
+};
+
+// Boundary type for the (untyped-JS) CoreSuspender context value.
+type CoreSuspenderApi = {
+    getState: (model: string) => any;
+    decodeStream: (stream?: string) => Stream | null;
+};
+
+type PlayerUrlParams = {
+    stream?: string;
+    streamTransportUrl?: string;
+    metaTransportUrl?: string;
+    type?: string;
+    id?: string;
+    videoId?: string;
+};
+
+type UsePlayerResult = [
+    PlayerModel,
+    (videoParams: any) => void,
+    (partialStreamState: Partial<StreamState>) => Promise<void>,
+    (time: number | null, duration: number | null, device?: string) => void,
+    (time: number | null, duration: number | null, device?: string) => void,
+    (paused: boolean) => void,
+    () => void,
+    () => void,
+];
+
+const map = (player: any): PlayerModel => ({
     ...player,
     metaItem: player.metaItem !== null && player.metaItem.type === 'Ready' ?
         {
@@ -17,7 +53,7 @@ const map = (player) => ({
                         :
                         NaN
                 ),
-                videos: player.metaItem.content.videos.map((video) => ({
+                videos: player.metaItem.content.videos.map((video: any) => ({
                     ...video,
                     released: new Date(
                         typeof video.released === 'string' ?
@@ -32,9 +68,9 @@ const map = (player) => ({
         player.metaItem,
 });
 
-const usePlayer = (urlParams) => {
+const usePlayer = (urlParams: PlayerUrlParams): UsePlayerResult => {
     const core = useCore();
-    const { decodeStream } = useCoreSuspender();
+    const { decodeStream } = useCoreSuspender() as unknown as CoreSuspenderApi;
     const stream = decodeStream(urlParams.stream);
     const action = React.useMemo(() => {
         if (stream !== null) {
@@ -87,9 +123,9 @@ const usePlayer = (urlParams) => {
         }
     }, [urlParams]);
 
-    const player = useModelState({ model: 'player', action, map });
+    const player = useModelState({ model: 'player', action, map }) as PlayerModel;
 
-    const videoParamsChanged = React.useCallback((videoParams) => {
+    const videoParamsChanged = React.useCallback((videoParams: any) => {
         core.transport.dispatch({
             action: 'Player',
             args: {
@@ -98,7 +134,7 @@ const usePlayer = (urlParams) => {
             }
         }, 'player');
     }, []);
-    const timeChanged = React.useCallback((time, duration, device) => {
+    const timeChanged = React.useCallback((time: number | null, duration: number | null, device?: string) => {
         if (typeof time === 'number' && typeof duration === 'number' && typeof device === 'string') {
             core.transport.dispatch({
                 action: 'Player',
@@ -114,7 +150,7 @@ const usePlayer = (urlParams) => {
         }
     }, []);
 
-    const seek = React.useCallback((time, duration, device) => {
+    const seek = React.useCallback((time: number | null, duration: number | null, device?: string) => {
         if (typeof time === 'number' && typeof duration === 'number' && typeof device === 'string') {
             core.transport.dispatch({
                 action: 'Player',
@@ -138,7 +174,7 @@ const usePlayer = (urlParams) => {
             }
         }, 'player');
     }, []);
-    const pausedChanged = React.useCallback((paused) => {
+    const pausedChanged = React.useCallback((paused: boolean) => {
         core.transport.dispatch({
             action: 'Player',
             args: {
@@ -156,7 +192,7 @@ const usePlayer = (urlParams) => {
         }, 'player');
     }, []);
 
-    const streamStateChanged = React.useCallback((partialStreamState) => {
+    const streamStateChanged = React.useCallback((partialStreamState: Partial<StreamState>) => {
         return core.transport.dispatch({
             action: 'Player',
             args: {
@@ -174,4 +210,4 @@ const usePlayer = (urlParams) => {
     return [player, videoParamsChanged, streamStateChanged, timeChanged, seek, pausedChanged, ended, nextVideo];
 };
 
-module.exports = usePlayer;
+export default usePlayer;

@@ -1,7 +1,7 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const { measureConnectionSpeedOnce } = require('rillio/common/measureConnectionSpeed');
+import React from 'react';
+import { measureConnectionSpeedOnce } from 'rillio/common/measureConnectionSpeed';
 
 // When a torrent has peers but the download rate stays near zero for a sustained
 // window, the bare "Initializing" panel does not help. This hook detects that
@@ -33,17 +33,26 @@ const ULTRA_FAST_PROFILE = {
     btRequestTimeout: 6000,
 };
 
-const isUltraFast = (settings) => {
+type UseSlowDownloadArgs = {
+    core: { transport: CoreTransport } | null;
+    infoHash: string | null;
+    hasStatistics: boolean;
+    peers?: number;
+    speedBytesPerSec?: number;
+    streamingSettings: StreamingServerSettings | null;
+};
+
+const isUltraFast = (settings: StreamingServerSettings | null) => {
     return !!settings &&
         settings.btMaxConnections === ULTRA_FAST_PROFILE.btMaxConnections &&
         settings.btDownloadSpeedHardLimit === ULTRA_FAST_PROFILE.btDownloadSpeedHardLimit;
 };
 
-const useSlowDownload = ({ core, infoHash, hasStatistics, peers, speedBytesPerSec, streamingSettings }) => {
+const useSlowDownload = ({ core, infoHash, hasStatistics, peers, speedBytesPerSec, streamingSettings }: UseSlowDownloadArgs) => {
     const [escalated, setEscalated] = React.useState(false);
     // null = not yet probed / probing; true = connection slow; false = connection healthy.
-    const [connectionSlow, setConnectionSlow] = React.useState(null);
-    const slowTimer = React.useRef(null);
+    const [connectionSlow, setConnectionSlow] = React.useState<boolean | null>(null);
+    const slowTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const probeStarted = React.useRef(false);
 
     const isSlowNow = hasStatistics === true &&
@@ -97,7 +106,7 @@ const useSlowDownload = ({ core, infoHash, hasStatistics, peers, speedBytesPerSe
         probeStarted.current = true;
         let cancelled = false;
         measureConnectionSpeedOnce()
-            .then((bytesPerSec) => {
+            .then((bytesPerSec: number | null) => {
                 if (cancelled) {
                     return;
                 }
@@ -134,4 +143,4 @@ const useSlowDownload = ({ core, infoHash, hasStatistics, peers, speedBytesPerSe
     return { escalated, connectionSlow, fastModeAvailable, switchToFastMode };
 };
 
-module.exports = useSlowDownload;
+export default useSlowDownload;

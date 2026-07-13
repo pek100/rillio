@@ -1,9 +1,9 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useCore } = require('rillio/core');
+import React from 'react';
+import { useCore } from 'rillio/core';
 
-const useStatistics = (player, streamingServer) => {
+const useStatistics = (player: { stream: Loadable<any> | null }, streamingServer: StreamingServer) => {
     const core = useCore();
 
     const [progress, setProgress] = React.useState(0);
@@ -25,7 +25,7 @@ const useStatistics = (player, streamingServer) => {
 
     const statistics = React.useMemo(() => {
         return streamingServer.statistics?.type === 'Ready' ?
-            streamingServer.statistics.content
+            streamingServer.statistics.content as Statistics
             :
             null;
     }, [streamingServer.statistics]);
@@ -102,4 +102,4 @@ const useStatistics = (player, streamingServer) => {
     };
 };
 
-module.exports = useStatistics;
+export default useStatistics;

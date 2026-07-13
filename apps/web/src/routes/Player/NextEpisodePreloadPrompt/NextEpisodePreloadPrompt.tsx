@@ -1,7 +1,6 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const PropTypes = require('prop-types');
+import React from 'react';
 
 // Bottom-right prompt offering to preload the next episode into the cache.
 // Styled to match the app's toasts (see common/Toast/ToastItem/styles.less:
@@ -13,7 +12,14 @@ const PropTypes = require('prop-types');
 // waiting for an answer. Mouse handlers are forwarded so hovering it keeps the
 // player overlay awake (same contract as the control bar's immersePrevented).
 
-const NextEpisodePreloadPrompt = ({ onAccept, onDismiss, onMouseMove, onMouseOver }) => {
+type Props = {
+    onAccept?: React.MouseEventHandler<HTMLButtonElement>;
+    onDismiss?: React.MouseEventHandler<HTMLButtonElement>;
+    onMouseMove?: React.MouseEventHandler<HTMLDivElement>;
+    onMouseOver?: React.MouseEventHandler<HTMLDivElement>;
+};
+
+const NextEpisodePreloadPrompt = ({ onAccept, onDismiss, onMouseMove, onMouseOver }: Props) => {
     return (
         <div
             className={'absolute bottom-28 right-6 z-10 flex w-[min(25rem,calc(100vw-3rem))] flex-col gap-2 rounded-card border border-line bg-(--modal-background-color) p-4 shadow-(--outer-glow) backdrop-blur-[10px]'}
@@ -46,11 +52,4 @@ const NextEpisodePreloadPrompt = ({ onAccept, onDismiss, onMouseMove, onMouseOve
     );
 };
 
-NextEpisodePreloadPrompt.propTypes = {
-    onAccept: PropTypes.func,
-    onDismiss: PropTypes.func,
-    onMouseMove: PropTypes.func,
-    onMouseOver: PropTypes.func,
-};
-
-module.exports = NextEpisodePreloadPrompt;
+export default NextEpisodePreloadPrompt;
