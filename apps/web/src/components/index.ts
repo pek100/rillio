@@ -18,7 +18,6 @@ import SearchBar from './SearchBar';
 import SharePrompt from './SharePrompt';
 import Slider from './Slider';
 import ShortcutsGroup from './ShortcutsGroup';
-import TextInput from './TextInput';
 import Video from './Video';
 import ActionsGroup from './ActionsGroup';
 
@@ -44,7 +43,6 @@ export {
     SharePrompt,
     Slider,
     ShortcutsGroup,
-    TextInput,
     Video,
     ActionsGroup
 };
