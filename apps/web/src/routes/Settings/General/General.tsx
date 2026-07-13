@@ -117,27 +117,16 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
             }
             <Link
                 label={t('SETTINGS_SUPPORT')}
-                href={'https://stremio.zendesk.com/hc/en-us'}
+                href={'https://github.com/pek100/rillio/issues'}
             />
             <Link
                 label={t('SETTINGS_SOURCE_CODE')}
-                href={`https://github.com/stremio/stremio-web/tree/${process.env.COMMIT_HASH}`}
+                href={'https://github.com/pek100/rillio'}
             />
             <Link
-                label={t('TERMS_OF_SERVICE')}
-                href={'https://www.stremio.com/tos'}
+                label={'Website'}
+                href={'https://rillio.app'}
             />
-            <Link
-                label={t('PRIVACY_POLICY')}
-                href={'https://www.stremio.com/privacy'}
-            />
-            {
-                profile?.auth?.user &&
-                    <Link
-                        label={t('SETTINGS_ACC_DELETE')}
-                        href={'https://stremio.zendesk.com/hc/en-us/articles/360021428911-How-to-delete-my-account'}
-                    />
-            }
             {
                 profile?.auth?.user?.email &&
                     <Link

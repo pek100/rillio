@@ -140,27 +140,16 @@ const NavMenuContent = ({ onSelect }: Props) => {
                     <Icon name="magnet-link" />
                     <span className="flex-1 text-left">{t('PLAY_URL_MAGNET_LINK')}</span>
                 </Button>
-                <Button variant="ghost" className={ROW} title={t('HELP_FEEDBACK')} href="https://stremio.zendesk.com/" target="_blank">
+                <Button variant="ghost" className={ROW} title={t('HELP_FEEDBACK')} href="https://github.com/pek100/rillio/issues" target="_blank">
                     <Icon name="help" />
                     <span className="flex-1 text-left">{t('HELP_FEEDBACK')}</span>
                 </Button>
             </div>
 
             <div className="border-t border-line py-1">
-                <Button variant="ghost" className={ROW} title={t('TERMS_OF_SERVICE')} href="https://www.stremio.com/tos" target="_blank">
-                    <span className="flex-1 text-left">{t('TERMS_OF_SERVICE')}</span>
+                <Button variant="ghost" className={ROW} title="Website" href="https://rillio.app" target="_blank">
+                    <span className="flex-1 text-left">Website</span>
                 </Button>
-                <Button variant="ghost" className={ROW} title={t('PRIVACY_POLICY')} href="https://www.stremio.com/privacy" target="_blank">
-                    <span className="flex-1 text-left">{t('PRIVACY_POLICY')}</span>
-                </Button>
-                {
-                    profile.auth !== null ?
-                        <Button variant="ghost" className={ROW} title={t('USER_PANEL')} href="https://www.stremio.com/acc-settings" target="_blank">
-                            <span className="flex-1 text-left">{t('USER_PANEL')}</span>
-                        </Button>
-                        :
-                        null
-                }
             </div>
         </div>
     );

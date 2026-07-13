@@ -417,18 +417,14 @@ const Intro = () => {
                                 <IntroCheckbox
                                     ref={termsRef}
                                     id="intro-terms"
-                                    label={t('READ_AND_AGREE')}
-                                    link={t('TOS')}
-                                    href="https://www.stremio.com/tos"
+                                    label="I agree to the Terms of Service."
                                     checked={state.termsAccepted}
                                     onToggle={toggleTermsAccepted}
                                 />
                                 <IntroCheckbox
                                     ref={privacyPolicyRef}
                                     id="intro-privacy"
-                                    label={t('READ_AND_AGREE')}
-                                    link={t('PRIVACY_POLICY')}
-                                    href="https://www.stremio.com/privacy"
+                                    label="I agree to the Privacy Policy."
                                     checked={state.privacyPolicyAccepted}
                                     onToggle={togglePrivacyPolicyAccepted}
                                 />

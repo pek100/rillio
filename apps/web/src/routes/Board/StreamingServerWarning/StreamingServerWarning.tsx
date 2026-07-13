@@ -69,7 +69,7 @@ const StreamingServerWarning = ({ className }: Props) => {
             </div>
             <div className="flex gap-3 max-[640px]:justify-around">
                 <a
-                    href='https://www.stremio.com/download-service'
+                    href='https://rillio.app'
                     target='_blank'
                     rel='noreferrer'
                 >
