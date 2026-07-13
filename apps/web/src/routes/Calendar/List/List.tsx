@@ -1,8 +1,14 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
+/**
+ * Calendar agenda pane (clean-room Tailwind rewrite of List.less). A right-edge
+ * scroll column of day-grouped agenda Items (three skeletons while items are empty).
+ * Hidden on narrow layouts where the BottomSheet/Drawer takes over. filteredItems is
+ * unchanged.
+ */
+
 import React, { useMemo } from 'react';
 import { Item, ItemPlaceholder } from './Item';
-import styles from './List.less';
 
 type Props = {
     items: CalendarItem[],
@@ -18,7 +24,7 @@ const List = ({ items, selected, monthInfo, profile, onChange }: Props) => {
     }, [items]);
 
     return (
-        <div className={styles['list']}>
+        <div className={'flex w-80 flex-none flex-col gap-4 overflow-y-auto px-4 [scroll-padding-block-start:0.15rem] max-[1300px]:landscape:w-[17rem] max-[1000px]:landscape:hidden max-[1300px]:portrait:hidden'}>
             {
                 items.length === 0 ?
                     [1, 2, 3].map((index) => (

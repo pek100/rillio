@@ -1,8 +1,14 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
+/**
+ * Calendar month grid (clean-room Tailwind rewrite of Table.less). A 7-column week
+ * header (long labels, 3-char short labels on narrow widths) over a CSS grid with
+ * leading empty spacers for monthInfo.firstWeekday, then one Cell per day. All logic
+ * (weekday i18n, firstWeekday offset) is unchanged.
+ */
+
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './Table.less';
 import Cell from './Cell/Cell';
 
 const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -22,22 +28,25 @@ const Table = ({ items, selected, monthInfo, onChange }: Props) => {
     }, [monthInfo]);
 
     return (
-        <div className={styles['table']}>
-            <div className={styles['week']}>
+        <div className={'relative flex flex-auto flex-col'}>
+            <div className={'relative grid h-12 w-full flex-none grid-cols-7 items-center'}>
                 {
                     WEEK_DAYS.map((day) => (
-                        <div className={styles['day']} key={day}>
-                            <span className={styles['long']}>
+                        <div
+                            className={'relative overflow-hidden text-ellipsis whitespace-nowrap p-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-fg-muted'}
+                            key={day}
+                        >
+                            <span className={'block max-[1000px]:hidden'}>
                                 {t(day)}
                             </span>
-                            <span className={styles['short']}>
+                            <span className={'hidden max-[1000px]:block'}>
                                 {t(day).slice(0, 3)}
                             </span>
                         </div>
                     ))
                 }
             </div>
-            <div className={styles['grid']}>
+            <div className={'relative grid h-full w-full flex-auto auto-rows-fr grid-cols-7 gap-px'}>
                 {
                     cellsOffset.map((day) => (
                         <span key={day} />
