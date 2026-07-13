@@ -1,16 +1,27 @@
+// Copyright (C) 2017-2024 Smart code 203358507
+
+/**
+ * Primary desktop nav bar for the main routes (Home / Discover / Library /
+ * Calendar). Clean-room rewrite onto the foundation kit: the account hub is the
+ * kit Popover (via NavMenu), search is a URL-driven modal route (a <Link>, not
+ * internal state, per decisions.md #7), and the cached-downloads badge is anchored
+ * to the glyph with no overflow-hidden ancestor so it is never clipped.
+ *
+ * Frameless shell: the <nav> and its flex spacer carry data-tauri-drag-region so
+ * the bar drags the window; the links/buttons never do, so they stay clickable.
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Icon from '@stremio/stremio-icons/react';
 import LogoMark from 'rillio/common/LogoMark/LogoMark';
-import { cn } from 'rillio/common/cn';
 import useActiveDownloads from 'rillio/common/useActiveDownloads';
-import SearchModal from 'rillio/components/SearchModal';
+import { cn } from 'rillio/components/ui/cn';
+import { Button } from 'rillio/components/ui/button';
 import { useIsShell } from 'rillio/components/WindowControls/WindowControls';
-
-// Reused legacy components (all the auth/account logic lives here).
-const NavMenu = require('rillio/components/NavBar/HorizontalNavBar/NavMenu');
-const Button = require('rillio/components/Button').default;
+import { SEARCH_MODAL_PATH } from 'rillio/components/SearchModal';
+import NavMenu from 'rillio/components/NavBar/HorizontalNavBar/NavMenu';
 
 type Tab = { id: string; label: string; href: string };
 
@@ -22,12 +33,9 @@ const TABS: Tab[] = [
     { id: 'calendar', label: 'Calendar', href: '/calendar' },
 ];
 
-// The keyboard shortcut lives in App; it asks us to open the palette.
-export const OPEN_SEARCH_EVENT = 'rillio:open-search';
-
 // Account keeps its island chip; search + addons are bare icons.
 const ICON_BUTTON = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface/70 backdrop-blur transition-colors duration-150';
-const ICON_BUTTON_BARE = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150';
+const ICON_BUTTON_BARE = 'inline-flex size-10 shrink-0 items-center justify-center overflow-visible rounded-full transition-colors duration-150';
 
 type Props = {
     className?: string;
@@ -44,30 +52,17 @@ const TopNav = ({ className, route }: Props) => {
     const activeId = route === 'continue_watching' ? 'library' : route;
     // Pulsing dot on the Cached button while anything is downloading.
     const downloading = useActiveDownloads();
-    const [searchOpen, setSearchOpen] = React.useState(false);
     const brandRef = React.useRef<HTMLAnchorElement>(null);
 
-    const openSearch = React.useCallback(() => setSearchOpen(true), []);
-    const closeSearch = React.useCallback(() => setSearchOpen(false), []);
-
-    React.useEffect(() => {
-        window.addEventListener(OPEN_SEARCH_EVENT, openSearch);
-        return () => window.removeEventListener(OPEN_SEARCH_EVENT, openSearch);
-    }, [openSearch]);
-
-    // Popup passes `className` (its `label-container` positioning context) + the
-    // menu itself as `children`; both must be honored or the menu has no anchor
-    // and renders clipped inside the button. Button renders a <div>, so it can
-    // legally contain the menu's links (a native <button> cannot).
-    const renderAccountLabel = React.useCallback(({ ref, className: labelClassName, onClick, children }: any) => (
+    // NavMenu (kit Popover) wraps this in a PopoverTrigger asChild, so Radix injects
+    // the trigger ref/handlers/aria; we only style the island chip and reflect the
+    // open state. The kit Button (renders a <div>) can legally host the menu chip.
+    const renderAccountLabel = React.useCallback(({ active }: { active: boolean }) => (
         <Button
-            ref={ref}
-            onClick={onClick}
             title={t('Account')}
-            className={cn(labelClassName, ICON_BUTTON, 'text-fg-muted hover:text-fg hover:bg-surface-hover')}
+            className={cn(ICON_BUTTON, active ? 'bg-surface-hover text-fg' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
         >
             <Icon className="size-4" name="person-outline" />
-            {children}
         </Button>
     ), [t]);
 
@@ -102,13 +97,14 @@ const TopNav = ({ className, route }: Props) => {
             <div {...dragProps} className="flex-1" />
 
             <div className="flex shrink-0 items-center gap-2 overflow-visible">
-                <Button
-                    onClick={openSearch}
+                <Link
+                    to={SEARCH_MODAL_PATH}
                     title={t('SEARCH')}
+                    tabIndex={-1}
                     className={cn(ICON_BUTTON_BARE, 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
                 >
                     <Icon className="size-4" name="search" />
-                </Button>
+                </Link>
                 <Link
                     to="/addons"
                     title={t('ADDONS')}
@@ -121,9 +117,11 @@ const TopNav = ({ className, route }: Props) => {
                     to="/cached"
                     title={'Cached'}
                     tabIndex={-1}
-                    className={cn(ICON_BUTTON_BARE, 'relative', route === 'cached' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
+                    className={cn(ICON_BUTTON_BARE, route === 'cached' ? 'text-accent' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
                 >
-                    <span className="relative">
+                    {/* The dot anchors to the glyph and is intentionally NOT inside
+                        any overflow-hidden box, so it is never clipped. */}
+                    <span className="relative overflow-visible">
                         <Icon className="size-4" name="download" />
                         {
                             downloading ?
@@ -143,8 +141,6 @@ const TopNav = ({ className, route }: Props) => {
                 </Link>
                 <NavMenu renderLabel={renderAccountLabel} />
             </div>
-
-            {searchOpen ? <SearchModal onClose={closeSearch} /> : null}
         </nav>
     );
 };

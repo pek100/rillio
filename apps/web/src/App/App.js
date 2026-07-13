@@ -8,6 +8,11 @@ const { useCore } = require('rillio/core');
 const { Routes } = require('rillio-router');
 const { Chromecast, ServicesProvider, GamepadProvider } = require('rillio/services');
 const { FullscreenProvider, ToastProvider, TooltipProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('rillio/common');
+// Foundation-kit Radix Tooltip provider (delay/behaviour context for the kit's
+// Tooltip). Mounted alongside the legacy TooltipProvider, which still backs the
+// not-yet-migrated legacy <Tooltip> call sites. ToastProvider (from rillio/common)
+// now resolves to the Sonner-backed adapter that renders the single <Toaster/>.
+const { TooltipProvider: KitTooltipProvider } = require('rillio/components/ui/tooltip');
 const ServicesToaster = require('./ServicesToaster');
 const NotificationsToaster = require('./NotificationsToaster');
 const SearchParamsHandler = require('./SearchParamsHandler');
@@ -21,7 +26,7 @@ const { default: ErrorBoundary } = require('rillio/components/ErrorBoundary/Erro
 const UpdatingOverlay = require('./UpdatingOverlay/UpdatingOverlay');
 const SyncModal = require('./SyncModal/SyncModal');
 const { ensureDisplayName } = require('rillio/common/useDisplayName');
-const { OPEN_SEARCH_EVENT } = require('rillio/components/TopNav/TopNav');
+const { SEARCH_MODAL_PATH } = require('rillio/components/SearchModal');
 const styles = require('./styles');
 
 const ProtectedRoutes = withCoreSuspender(Routes);
@@ -51,8 +56,8 @@ const App = () => {
                 toggleGamepadModal();
                 break;
             case 'navigateSearch':
-                // Search is a modal palette now; there is no search landing page.
-                window.dispatchEvent(new CustomEvent(OPEN_SEARCH_EVENT));
+                // Search is a URL-driven modal route now (no search landing page).
+                navigate(SEARCH_MODAL_PATH);
                 break;
             case 'navigateTabs': {
                 const index = Number(key) - 1;
@@ -188,7 +193,8 @@ const App = () => {
 
     return (
         <ServicesProvider services={services}>
-            <ToastProvider className={styles['toasts-container']}>
+            <KitTooltipProvider delayDuration={300}>
+              <ToastProvider>
                 <TooltipProvider className={styles['tooltip-container']}>
                     <GamepadProvider enabled={gamepadSupportEnabled} onGuide={toggleGamepadModal}>
                         <ShortcutsProvider onShortcut={onShortcut}>
@@ -221,7 +227,8 @@ const App = () => {
                         </ShortcutsProvider>
                     </GamepadProvider>
                 </TooltipProvider>
-            </ToastProvider>
+              </ToastProvider>
+            </KitTooltipProvider>
         </ServicesProvider>
     );
 };
