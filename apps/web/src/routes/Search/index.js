@@ -1,5 +1,5 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const Search = require('./Search');
+const Search = require('./Search').default;
 
 module.exports = Search;
