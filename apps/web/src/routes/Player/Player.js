@@ -3,7 +3,6 @@
 const React = require('react');
 const { useParams, useNavigate } = require('react-router');
 const { useSearchParams } = require('react-router-dom');
-const classnames = require('classnames');
 const debounce = require('lodash.debounce');
 const langs = require('langs');
 const { useTranslation } = require('react-i18next');
@@ -13,7 +12,7 @@ const { useServices, useGamepad } = require('rillio/services');
 const { useContentGamepadNavigation } = require('rillio/services/GamepadNavigation');
 const { useSettings, useProfile, useFullscreen, useBinaryState, useToast, useStreamingServer, withCoreSuspender, usePlatform, onShortcut, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } = require('rillio/common');
 const { default: toPath } = require('rillio-router/toPath');
-const { Transition, ContextMenu } = require('rillio/components');
+const { Presence, ContextMenu } = require('rillio/components');
 const { default: TopBar } = require('./TopBar');
 const { default: Buffering } = require('./Buffering');
 const VolumeChangeIndicator = require('./VolumeChangeIndicator');
@@ -34,10 +33,25 @@ const useNextEpisodePreload = require('./useNextEpisodePreload');
 const NextEpisodePreloadPrompt = require('./NextEpisodePreloadPrompt');
 const useVideo = require('./useVideo');
 const { default: useSubtitles } = require('./useSubtitles');
-const styles = require('./styles');
 const Video = require('./Video');
 const { default: Indicator } = require('./Indicator/Indicator');
 const { default: useMediaSession } = require('./useMediaSession');
+
+// Player layer-stack classes, ported from the former Player/styles.less to Tailwind.
+// The immersion opacity cascade and the active-slider grab cursor stay as global rules
+// in styles/tailwind.css (they need html/body/ancestor selectors). Each chrome layer
+// that fades under immersion carries the `player-immersion-fade` hook; the container
+// toggles `data-immersed`, and `player-container` is the stable hook the global rule
+// targets. Layers that reposition (nav / control / side-drawer / menu / indicator) are
+// self-contained (no base inset-0) to avoid shorthand-vs-longhand ordering surprises.
+const CONTAINER = 'player-container relative z-0 h-full w-full bg-black';
+const LAYER = 'absolute inset-0 z-0';
+const BACKGROUND_IMAGE = 'h-screen w-screen object-cover opacity-60';
+const NAV_BAR_LAYER = "player-immersion-fade absolute left-(--safe-area-inset-left) right-(--safe-area-inset-right) top-0 z-0 overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-32 before:bg-gradient-to-b before:from-black/35 before:to-transparent before:content-['']";
+const CONTROL_BAR_LAYER = "player-immersion-fade absolute bottom-0 left-(--safe-area-inset-left) right-(--safe-area-inset-right) z-0 overflow-visible pb-[calc(0.5rem+var(--safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-0 before:-z-10 before:h-40 before:bg-gradient-to-t before:from-black/35 before:to-transparent before:content-['']";
+const SIDE_DRAWER_BUTTON_LAYER = 'player-immersion-fade fixed left-auto right-[-4rem] top-1/2 z-0 -translate-y-1/2 [@media(max-width:1000px)]:right-[-2rem]';
+const INDICATOR_LAYER = 'absolute bottom-40 left-0 right-0 z-0';
+const MENU_LAYER = 'player-immersion-fade absolute bottom-[7.5rem] left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-(--border-radius) bg-(--modal-background-color) shadow-(--outer-glow) backdrop-blur-[15px] [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
 
 const findTrackByLang = (tracks, lang) => tracks.find((track) => track.lang === lang || langs.where('1', track.lang)?.[2] === lang);
 const findTrackById = (tracks, id) => tracks.find((track) => track.id === id);
@@ -892,20 +906,20 @@ const Player = () => {
     }, []);
 
     return (
-        <div ref={playerRef} className={classnames(styles['player-container'], { [styles['overlayHidden']]: overlayHidden })}
+        <div ref={playerRef} className={CONTAINER} data-immersed={overlayHidden ? '' : undefined}
             onMouseDown={onContainerMouseDown}
             onMouseMove={onContainerMouseMove}
             onMouseOver={onContainerMouseMove}
             onMouseLeave={onContainerMouseLeave}>
             <Video
                 ref={video.containerRef}
-                className={styles['layer']}
+                className={LAYER}
                 onClick={onVideoClick}
             />
             {
                 !video.state.loaded ?
-                    <div className={classnames(styles['layer'], styles['background-layer'])}>
-                        <img className={styles['image']} src={player?.metaItem?.content?.background} />
+                    <div className={LAYER}>
+                        <img className={BACKGROUND_IMAGE} src={player?.metaItem?.content?.background} />
                     </div>
                     :
                     null
@@ -914,7 +928,7 @@ const Player = () => {
                 (video.state.buffering || !video.state.loaded) && !error ?
                     <Buffering
                         ref={bufferingRef}
-                        className={classnames(styles['layer'], styles['buffering-layer'])}
+                        className={LAYER}
                         logo={player?.metaItem?.content?.logo}
                         title={player?.selected?.stream?.name ?? null}
                         progress={statistics.progress}
@@ -937,7 +951,7 @@ const Player = () => {
                 error !== null ?
                     <Error
                         ref={errorRef}
-                        className={classnames(styles['layer'], styles['error-layer'])}
+                        className={LAYER}
                         stream={video.state.stream}
                         onTryDifferentSource={onTryDifferentSource}
                         {...error}
@@ -947,7 +961,7 @@ const Player = () => {
             }
             {
                 menusOpen ?
-                    <div className={styles['layer']} />
+                    <div className={LAYER} />
                     :
                     null
             }
@@ -962,7 +976,7 @@ const Player = () => {
             }
             <ContextMenu on={[video.containerRef, bufferingRef, errorRef]} autoClose>
                 <OptionsMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     stream={player?.selected?.stream}
                     playbackDevices={playbackDevices}
                     extraSubtitlesTracks={extraSubtitleTracks}
@@ -970,7 +984,7 @@ const Player = () => {
                 />
             </ContextMenu>
             <TopBar
-                className={classnames(styles['layer'], styles['nav-bar-layer'])}
+                className={NAV_BAR_LAYER}
                 title={player.title !== null ? player.title : ''}
                 hdrInfo={video.state.hdrInfo}
                 onMouseMove={onBarMouseMove}
@@ -979,7 +993,7 @@ const Player = () => {
             {
                 player.metaItem?.type === 'Ready' ?
                     <SideDrawerButton
-                        className={classnames(styles['layer'], styles['side-drawer-button-layer'])}
+                        className={SIDE_DRAWER_BUTTON_LAYER}
                         onClick={toggleSideDrawer}
                     />
                     :
@@ -987,7 +1001,7 @@ const Player = () => {
             }
             <ControlBar
                 ref={controlBarRef}
-                className={classnames(styles['layer'], styles['control-bar-layer'])}
+                className={CONTROL_BAR_LAYER}
                 paused={video.state.paused}
                 time={video.state.time}
                 duration={video.state.duration}
@@ -1021,14 +1035,14 @@ const Player = () => {
                 onTouchEnd={onContainerMouseLeave}
             />
             <Indicator
-                className={classnames(styles['layer'], styles['indicator-layer'])}
+                className={INDICATOR_LAYER}
                 videoState={video.state}
                 disabled={subtitlesMenuOpen}
             />
             {
                 nextVideoPopupOpen ?
                     <NextVideoPopup
-                        className={classnames(styles['layer'], styles['menu-layer'])}
+                        className={MENU_LAYER}
                         metaItem={player.metaItem !== null && player.metaItem.type === 'Ready' ? player.metaItem.content : null}
                         nextVideo={player.nextVideo}
                         onDismiss={onDismissNextVideoPopup}
@@ -1048,13 +1062,13 @@ const Player = () => {
                     :
                     null
             }
-            <Transition when={statisticsMenuOpen} name={'fade'}>
+            <Presence when={statisticsMenuOpen}>
                 <StatisticsMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     {...statistics}
                     details={statisticsDetails}
                 />
-            </Transition>
+            </Presence>
             {
                 player.metaItem?.type === 'Ready' ?
                     <SideDrawer
@@ -1067,42 +1081,42 @@ const Player = () => {
                     :
                     null
             }
-            <Transition when={subtitlesMenuOpen} name={'fade'}>
+            <Presence when={subtitlesMenuOpen}>
                 <SubtitlesMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     {...subtitlesMenuProps}
                 />
-            </Transition>
-            <Transition when={audioMenuOpen} name={'fade'}>
+            </Presence>
+            <Presence when={audioMenuOpen}>
                 <AudioMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     audioTracks={video.state.audioTracks}
                     selectedAudioTrackId={video.state.selectedAudioTrackId}
                     onAudioTrackSelected={onAudioTrackSelected}
                 />
-            </Transition>
-            <Transition when={speedMenuOpen} name={'fade'}>
+            </Presence>
+            <Presence when={speedMenuOpen}>
                 <SpeedMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     playbackSpeed={video.state.playbackSpeed}
                     onPlaybackSpeedChanged={onPlaybackSpeedChanged}
                 />
-            </Transition>
-            <Transition when={optionsMenuOpen} name={'fade'}>
+            </Presence>
+            <Presence when={optionsMenuOpen}>
                 <OptionsMenu
-                    className={classnames(styles['layer'], styles['menu-layer'])}
+                    className={MENU_LAYER}
                     stream={player.selected?.stream}
                     playbackDevices={playbackDevices}
                     extraSubtitlesTracks={extraSubtitleTracks}
                     selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
                 />
-            </Transition>
+            </Presence>
         </div>
     );
 };
 
 const PlayerFallback = () => (
-    <div className={classnames(styles['player-container'])} />
+    <div className={CONTAINER} />
 );
 
 module.exports = withCoreSuspender(Player, PlayerFallback);

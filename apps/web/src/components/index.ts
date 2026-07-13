@@ -13,12 +13,12 @@ import MetaPreview from './MetaPreview';
 import MetaRow from './MetaRow';
 import ModalDialog from './ModalDialog';
 import { HorizontalNavBar, VerticalNavBar } from './NavBar';
+import Presence from './Presence';
 import SearchBar from './SearchBar';
 import SharePrompt from './SharePrompt';
 import Slider from './Slider';
 import ShortcutsGroup from './ShortcutsGroup';
 import TextInput from './TextInput';
-import Transition from './Transition';
 import Video from './Video';
 import ActionsGroup from './ActionsGroup';
 
@@ -39,12 +39,12 @@ export {
     ModalDialog,
     HorizontalNavBar,
     VerticalNavBar,
+    Presence,
     SearchBar,
     SharePrompt,
     Slider,
     ShortcutsGroup,
     TextInput,
-    Transition,
     Video,
     ActionsGroup
 };

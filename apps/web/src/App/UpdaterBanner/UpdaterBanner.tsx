@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useMatch } from 'react-router';
 import { useBinaryState, usePlatform } from 'rillio/common';
-import { Button, Transition } from 'rillio/components';
+import { Button, Presence } from 'rillio/components';
 import styles from './UpdaterBanner.less';
 
 type Props = {
@@ -30,7 +30,7 @@ const UpdaterBanner = ({ className }: Props) => {
 
     return (
         <div className={className}>
-            <Transition when={visible && !isPlayer} name={'slide-up'}>
+            <Presence when={visible && !isPlayer} variant={'slideUp'}>
                 <div className={styles['updater-banner']}>
                     <div className={styles['label']}>
                         { t('UPDATER_TITLE') }
@@ -42,7 +42,7 @@ const UpdaterBanner = ({ className }: Props) => {
                         <X className={styles['icon']} />
                     </Button>
                 </div>
-            </Transition>
+            </Presence>
         </div>
     );
 };

@@ -7,7 +7,15 @@ import useRouteFocused from 'rillio/common/useRouteFocused';
 import { useBinaryState } from 'rillio/common';
 import { Button, Slider } from 'rillio/components';
 import formatTime from './formatTime';
-import styles from './SeekBar.less';
+
+// The seek bar's filled track + thumb are the accent color, with a hover-grown
+// thumb carrying an inset accent glow. These were the only reasons SeekBar had its
+// own .less (to reach the Slider's hashed part classes); they are now passed straight
+// through the Slider's per-part className props.
+const FILLED = 'bg-(--color-accent)';
+const THUMB = 'bg-(--color-accent) transition-transform duration-150 group-hover:scale-[1.2] ' +
+    "after:absolute after:inset-0 after:rounded-full after:content-[''] " +
+    'after:shadow-[0_0_0_0.25rem_var(--color-accent)_inset] after:[filter:brightness(130%)]';
 
 type Props = {
     className?: string;
@@ -58,7 +66,9 @@ const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbac
         <div className={classNames(className, 'flex flex-row items-center')}>
             <div className={labelClass}>{formatTime(seekTime !== null ? seekTime : time)}</div>
             <Slider
-                className={classNames(styles['slider'], { 'active': seekTime !== null })}
+                className={'mx-(--thumb-size) flex-1 self-stretch'}
+                filledClassName={FILLED}
+                thumbClassName={THUMB}
                 value={
                     !disabled ?
                         seekTime !== null ? seekTime : (time as number)

@@ -6,7 +6,18 @@ import debounce from 'lodash.debounce';
 import useRouteFocused from 'rillio/common/useRouteFocused';
 import { usePlatform } from 'rillio/common';
 import { Slider } from 'rillio/components';
-import styles from './VolumeSlider.less';
+
+// The volume slider's track is a neutral overlay bar, its filled range + thumb are
+// the foreground color, and the thumb grows (with a white inset glow) on hover or
+// while sliding. These were the whole reason VolumeSlider had a .less reaching the
+// Slider's hashed part classes; they are now passed via the Slider's per-part props.
+// (The >100% audio-boost band is owned by the Slider itself via the audioBoost prop.)
+const TRACK = 'bg-(--overlay-color) opacity-100';
+const FILLED = 'bg-(--color-fg)';
+const THUMB = 'bg-(--color-fg) transition-transform duration-150 ' +
+    'group-hover:scale-[1.2] group-[.active]:scale-[1.2] ' +
+    "after:absolute after:inset-0 after:rounded-full after:content-[''] " +
+    'after:shadow-[0_0_0_0.25rem_white_inset]';
 
 type Props = {
     className?: string;
@@ -51,7 +62,10 @@ const VolumeSlider = ({ className, volume, onVolumeChangeRequested, muted }: Pro
     }, []);
     return (
         <Slider
-            className={classNames(className, styles['volume-slider'], { 'active': slidingVolume !== null })}
+            className={classNames(className, { 'active': slidingVolume !== null })}
+            trackClassName={!disabled ? TRACK : undefined}
+            filledClassName={!disabled ? FILLED : undefined}
+            thumbClassName={!disabled ? THUMB : undefined}
             value={
                 !disabled ?
                     !muted ?

@@ -2,10 +2,11 @@
 
 /**
  * A selectable subtitle-variant row plus its right-click actions. Restyled onto
- * Tailwind tokens + the kit Button. The right-click menu keeps the shared rillio
- * ContextMenu (its multi-ref `on` + `lock` anchoring has no clean Radix equivalent
- * and lives outside this fence); only its item contents are re-skinned. The
- * embedded-track guard, download/copy actions and toast feedback are preserved.
+ * Tailwind tokens + the kit Button. The right-click menu uses the shared rillio
+ * ContextMenu (now a faithful custom .tsx/Tailwind port kept for its multi-ref `on`
+ * + `lock`-to-edge anchoring, which Radix cannot express cleanly); this row anchors
+ * it with `lock='bottom'`. The embedded-track guard, download/copy actions and toast
+ * feedback are preserved.
  */
 
 import React, { useCallback, useMemo, useRef } from 'react';
