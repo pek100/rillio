@@ -233,10 +233,10 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
                         type="button"
                         tabIndex={-1}
                         onClick={toggleRemainingTimeMode}
-                        className={cn(CB_ISLAND, 'h-10 cursor-pointer select-none whitespace-nowrap px-4 text-sm tabular-nums text-ice transition-colors duration-150 hover:text-white')}
+                        className={cn(CB_ISLAND, 'cursor-pointer select-none self-stretch whitespace-nowrap px-6 text-lg font-semibold tracking-tight tabular-nums text-ice transition-colors duration-150 hover:text-white')}
                     >
                         {formatTime(seekPreview !== null ? seekPreview : (time ?? null))}
-                        <span className="mx-1 text-ice-muted">/</span>
+                        <span className="mx-1.5 font-normal text-ice-muted">/</span>
                         {
                             remainingTimeMode && typeof duration === 'number' && !isNaN(duration) && typeof time === 'number' ?
                                 formatTime((duration - time) / ((playbackSpeed as number) || 1), '-')
