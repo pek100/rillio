@@ -199,7 +199,7 @@ const StreamsList = ({ className, video, type, onEpisodeSearch, ...props }: Prop
                                         // Streams exist, so addons are already installed: a quiet
                                         // little link, not the yellow call-to-action.
                                         showInstallAddonsButton ?
-                                            <Button className={'mx-auto mt-1 inline-flex h-7 items-center gap-1.5 rounded-full bg-white/5 px-3 text-xs font-medium text-fg-muted transition hover:bg-white/10 hover:text-fg'} title={t('ADDON_CATALOGUE_MORE')} href={'#/addons'}>
+                                            <Button variant="ghost" className={'mx-auto mt-1 inline-flex h-7 items-center gap-1.5 rounded-full bg-white/5 px-3 text-xs font-medium text-fg-muted transition hover:bg-white/10 hover:text-fg'} title={t('ADDON_CATALOGUE_MORE')} href={'#/addons'}>
                                                 <Icon className={'size-3.5'} name={'addons'} />
                                                 {t('ADDON_CATALOGUE_MORE')}
                                             </Button>

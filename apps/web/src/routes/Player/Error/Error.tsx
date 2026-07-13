@@ -59,6 +59,7 @@ const Error = forwardRef<HTMLDivElement, Props>(function Error({ className, code
                         {
                             freeSpace === true ?
                                 <Button
+                                    variant="ghost"
                                     href={'#/cached'}
                                     className={'rounded-full bg-surface px-5 py-2 text-sm text-fg transition hover:bg-surface-hover'}
                                 >

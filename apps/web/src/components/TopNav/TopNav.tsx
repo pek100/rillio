@@ -59,6 +59,7 @@ const TopNav = ({ className, route }: Props) => {
     // open state. The kit Button (renders a <div>) can legally host the menu chip.
     const renderAccountLabel = React.useCallback(({ active }: { active: boolean }) => (
         <Button
+            variant="ghost"
             title={t('Account')}
             className={cn(ICON_BUTTON, active ? 'bg-surface-hover text-fg' : 'text-fg-muted hover:bg-surface-hover hover:text-fg')}
         >
