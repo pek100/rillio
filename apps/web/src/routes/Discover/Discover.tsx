@@ -92,8 +92,10 @@ const Discover = () => {
     const [selectInputs, hasNextPage] = useSelectableInputs(discover) as [SelectInput[], boolean];
     const [inputsModalOpen, openInputsModal, closeInputsModal] = useBinaryState(false);
     const [addonModalOpen, openAddonModal, closeAddonModal] = useBinaryState(false);
-    // Still tracked so keyboard / gamepad focus highlights the active poster.
-    const [selectedMetaItemIndex, setSelectedMetaItemIndex] = useState(0);
+    // Tracked so keyboard / gamepad focus highlights the active poster. Starts
+    // UNSELECTED (null): pre-selecting index 0 made the first card permanently
+    // wear the hover look, so it appeared not to react to the mouse at all.
+    const [selectedMetaItemIndex, setSelectedMetaItemIndex] = useState<number | null>(null);
 
     const metasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +128,7 @@ const Discover = () => {
     useEffect(() => {
         closeInputsModal();
         closeAddonModal();
-        setSelectedMetaItemIndex(0);
+        setSelectedMetaItemIndex(null);
     }, [discover.selected]);
 
     // The bar hides the 4th+ filter (and, at the minimum width, the 2nd+); those
