@@ -196,7 +196,10 @@ const MetaItem = React.memo(({
             variant="ghost"
             {...filterInvalidDOMProps(props)}
             className={cn(
-                'group relative flex h-auto flex-col items-stretch justify-start gap-0 whitespace-normal rounded-none p-4 text-base font-normal',
+                // overflow-visible is a REAL override here: the legacy reset sets
+                // `* { overflow: hidden }` (App/styles.less), which would clip the
+                // hover-scaled action buttons and the badge layer.
+                'group relative flex h-auto flex-col items-stretch justify-start gap-0 overflow-visible whitespace-normal rounded-none p-4 text-base font-normal',
                 'hover:z-[1] hover:bg-transparent focus-within:z-[1] focus-visible:outline-none',
                 'max-sm:p-2',
                 menuOpen && 'active',
@@ -296,7 +299,9 @@ const MetaItem = React.memo(({
                 }
                 {
                     typeof newVideos === 'number' && newVideos > 0 ?
-                        <div className="absolute right-0 top-0 z-[-1]">
+                        {/* Zero-size anchor: without overflow-visible the global
+                            `* { overflow: hidden }` reset clips the badges entirely. */}
+                        <div className="absolute right-0 top-0 z-[-1] overflow-visible">
                             <div className="absolute right-2 top-2 h-5 w-9 rounded-[0.25rem] bg-fg opacity-40" />
                             <div className="absolute right-3 top-3 h-5 w-9 rounded-[0.25rem] bg-fg opacity-60" />
                             <div className="absolute right-4 top-4 flex h-5 w-9 items-center justify-center gap-0.5 rounded-[0.25rem] bg-fg">
@@ -310,7 +315,7 @@ const MetaItem = React.memo(({
             </div>
             {
                 hasName || hasOptions ?
-                    <div className="flex h-16 flex-row items-center max-sm:mt-2">
+                    <div className="flex h-16 flex-row items-center overflow-visible max-sm:mt-2">
                         <div className={cn(
                             'line-clamp-2 flex-1 text-center font-semibold text-fg',
                             hasOptions ? 'pl-6' : 'px-2',
