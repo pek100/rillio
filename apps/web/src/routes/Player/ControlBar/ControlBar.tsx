@@ -19,6 +19,7 @@ import { useBinaryState, usePlatform, useFullscreen } from 'rillio/common';
 import { IconButton } from 'rillio/components/ui';
 import { cn } from 'rillio/components/ui';
 import SeekBar from './SeekBar';
+import formatTime from './SeekBar/formatTime';
 import VolumeSlider from './VolumeSlider';
 
 // 4rem square bare-glyph button in the control-bar idiom: ice glyph (blue-tinted
@@ -108,6 +109,10 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
     const [fullscreen, requestFullscreen, exitFullscreen, , fullscreenSupported] = useFullscreen();
     const [chromecastServiceActive, setChromecastServiceActive] = useState(() => chromecast.active);
     const [buttonsMenuOpen, , , toggleButtonsMenu] = useBinaryState(false);
+    // Timecode island state: the SeekBar streams its scrub position up so the
+    // island live-updates mid-drag; remaining-time mode toggles on click.
+    const [seekPreview, setSeekPreview] = useState<number | null>(null);
+    const [remainingTimeMode, , , toggleRemainingTimeMode] = useBinaryState(false);
     const onSubtitlesButtonMouseDown = useCallback((event: React.MouseEvent) => {
         (event.nativeEvent as any).subtitlesMenuClosePrevented = true;
     }, []);
@@ -189,7 +194,7 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
                 duration={duration ?? null}
                 buffered={buffered}
                 onSeekRequested={onSeekRequested}
-                playbackSpeed={playbackSpeed}
+                onSeekPreview={setSeekPreview}
             />
             <div className={'flex flex-row items-center gap-3 px-3 pb-2 max-sm:relative max-sm:gap-[0.15rem] max-sm:overflow-visible max-sm:px-2'}>
                 <div className={CB_ISLAND}>
@@ -220,6 +225,26 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
                             : null
                     }
                 </div>
+                {
+                    // Timecode island: "current / duration" in its own pill after the
+                    // transport cluster (not on the seek bar's sides). Shows the scrub
+                    // position live while dragging; click toggles remaining-time mode.
+                    <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={toggleRemainingTimeMode}
+                        className={cn(CB_ISLAND, 'h-10 cursor-pointer select-none whitespace-nowrap px-4 text-sm tabular-nums text-ice transition-colors duration-150 hover:text-white')}
+                    >
+                        {formatTime(seekPreview !== null ? seekPreview : (time ?? null))}
+                        <span className="mx-1 text-ice-muted">/</span>
+                        {
+                            remainingTimeMode && typeof duration === 'number' && !isNaN(duration) && typeof time === 'number' ?
+                                formatTime((duration - time) / ((playbackSpeed as number) || 1), '-')
+                                :
+                                formatTime(duration ?? null)
+                        }
+                    </button>
+                }
                 <div className={'flex-1'} />
                 <IconButton className={cn(CB_BUTTON, 'hidden max-sm:flex')} onClick={toggleButtonsMenu}>
                     <MoreVertical className={CB_ICON} />

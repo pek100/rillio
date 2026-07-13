@@ -3,11 +3,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import debounce from 'lodash.debounce';
 import useRouteFocused from 'rillio/common/useRouteFocused';
-import { useBinaryState } from 'rillio/common';
 import { Slider } from 'rillio/components';
-import { Button } from 'rillio/components/ui/button';
 import { cn } from 'rillio/components/ui/cn';
-import formatTime from './formatTime';
 
 // The seek bar's filled track + thumb are the accent color, with a hover-grown
 // thumb carrying an inset accent glow. These were the only reasons SeekBar had its
@@ -16,6 +13,8 @@ import formatTime from './formatTime';
 // Track = faint light (blue-tinted ice at low alpha, not the old orange-at-20%);
 // buffered = a slightly stronger ice (reads as "downloaded", still not grey);
 // the filled range up to the scrubber and the thumb stay the accent #FFA033.
+// The timecode display lives in the ControlBar's time island (not on the bar's
+// sides); onSeekPreview streams the scrub position so the island live-updates.
 const TRACK = 'bg-ice/10 opacity-100';
 const BUFFERED = 'bg-ice/30';
 const FILLED = 'bg-(--color-accent)';
@@ -29,33 +28,38 @@ type Props = {
     duration: number | null;
     buffered?: number;
     onSeekRequested?: (time: number) => void;
-    playbackSpeed?: number | null;
+    onSeekPreview?: (time: number | null) => void;
 };
 
-const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbackSpeed }: Props) => {
+const SeekBar = ({ className, time, duration, buffered, onSeekRequested, onSeekPreview }: Props) => {
     const disabled = time === null || isNaN(time as number) || duration === null || isNaN(duration as number);
     const routeFocused = useRouteFocused();
     const [seekTime, setSeekTime] = useState<number | null>(null);
 
-    const [remainingTimeMode, , , toggleRemainingTimeMode] = useBinaryState(false);
+    const setSeekTimeAndPreview = useCallback((value: number | null) => {
+        setSeekTime(value);
+        if (typeof onSeekPreview === 'function') {
+            onSeekPreview(value);
+        }
+    }, [onSeekPreview]);
     const resetTimeDebounced = useCallback(debounce(() => {
-        setSeekTime(null);
-    }, 1500), []);
+        setSeekTimeAndPreview(null);
+    }, 1500), [setSeekTimeAndPreview]);
     const onSlide = useCallback((value: number) => {
         resetTimeDebounced.cancel();
-        setSeekTime(value);
-    }, []);
+        setSeekTimeAndPreview(value);
+    }, [setSeekTimeAndPreview]);
     const onComplete = useCallback((value: number) => {
         resetTimeDebounced();
-        setSeekTime(value);
+        setSeekTimeAndPreview(value);
         if (typeof onSeekRequested === 'function') {
             onSeekRequested(value);
         }
-    }, [onSeekRequested]);
+    }, [onSeekRequested, setSeekTimeAndPreview]);
     useLayoutEffect(() => {
         if (!routeFocused || disabled) {
             resetTimeDebounced.cancel();
-            setSeekTime(null);
+            setSeekTimeAndPreview(null);
         }
     }, [routeFocused, disabled]);
     useEffect(() => {
@@ -64,13 +68,8 @@ const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbac
         };
     }, []);
 
-    // Timecode labels: fixed width, tabular figures, rtl-ellipsis so long
-    // durations trim from the left. Matches the old --primary-foreground look.
-    const labelClass = 'w-[5.5rem] flex-none whitespace-nowrap text-center text-[1.1rem] tabular-nums text-ice/90 [direction:rtl] [text-overflow:ellipsis]';
-
     return (
         <div className={cn('flex flex-row items-center', className)}>
-            <div className={labelClass}>{formatTime(seekTime !== null ? seekTime : time)}</div>
             <Slider
                 className={'mx-(--thumb-size) flex-1 self-stretch'}
                 trackClassName={TRACK}
@@ -90,13 +89,6 @@ const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbac
                 onSlide={onSlide}
                 onComplete={onComplete}
             />
-            <Button variant="ghost" className="h-auto rounded-none p-0 hover:bg-transparent" onClick={toggleRemainingTimeMode} tabIndex={-1}>
-                <div className={labelClass}>
-                    {remainingTimeMode && duration !== null && !isNaN(duration)
-                        ? formatTime((duration - (time as number)) / (playbackSpeed as number), '-')
-                        : formatTime(duration)}
-                </div>
-            </Button>
         </div>
     );
 };
