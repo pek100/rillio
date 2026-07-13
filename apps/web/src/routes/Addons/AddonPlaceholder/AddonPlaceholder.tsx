@@ -1,33 +1,29 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
+/**
+ * Loading skeleton for an Addon row. Mirrors the flat divide-y row geometry (logo
+ * square + stacked text lines + trailing action pills) with pulsing placeholder
+ * blocks, so the skeleton-to-content swap has no layout jump.
+ */
+
 import React from 'react';
-import classnames from 'classnames';
-import styles from './AddonPlaceholder.less';
+import { cn } from 'rillio/components/ui/cn';
 
-type Props = {
-    className?: string;
-};
+const block = 'rounded-full bg-fg/10';
 
-export const AddonPlaceholder = ({ className }: Props) => {
+export const AddonPlaceholder = () => {
     return (
-        <div className={classnames(className, styles['addon-container'])}>
-            <div className={styles['content']}>
-                <div className={styles['logo-container']}>
-                    <div className={styles['placeholder-logo']} />
-                </div>
-                <div className={styles['info-container']}>
-                    <div className={styles['placeholder-pill']} />
-                    <div className={styles['placeholder-pill']} />
-                    <div className={styles['placeholder-pill']} />
-                    <div className={styles['placeholder-pill']} />
-                </div>
+        <div className="flex animate-pulse items-start gap-4 px-6 py-5 max-sm:flex-wrap">
+            <div className="size-14 shrink-0 rounded-card bg-fg/10 max-sm:mx-auto" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+                <div className={cn(block, 'h-4 w-2/5')} />
+                <div className={cn(block, 'h-3 w-3/5')} />
+                <div className={cn(block, 'h-3 w-4/5')} />
             </div>
-            <div className={styles['buttons-container']}>
-                <div className={styles['action-buttons-container']}>
-                    <div className={styles['placeholder-pill']} />
-                    <div className={styles['placeholder-pill']} />
-                </div>
-                <div className={styles['placeholder-pill']} />
+            <div className="flex shrink-0 items-center gap-2 max-sm:hidden">
+                <div className={cn(block, 'size-10')} />
+                <div className={cn(block, 'h-9 w-24')} />
+                <div className={cn(block, 'size-10')} />
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2024 Smart code 203358507
 
-const Addon = require('./Addon');
+const Addon = require('./Addon').default;
 
 module.exports = Addon;
