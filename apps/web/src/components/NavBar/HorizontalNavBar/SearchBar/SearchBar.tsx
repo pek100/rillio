@@ -31,8 +31,8 @@ const useRouteFocused = require('rillio/common/useRouteFocused').default;
 const useBinaryState = require('rillio/common/useBinaryState');
 const { default: usePlayUrl } = require('rillio/common/usePlayUrl');
 const { withCoreSuspender } = require('rillio/common/CoreSuspender');
-const useSearchHistory = require('./useSearchHistory');
-const useLocalSearch = require('./useLocalSearch');
+const useSearchHistory = require('./useSearchHistory').default;
+const useLocalSearch = require('./useLocalSearch').default;
 const debounce = require('lodash.debounce');
 
 type Props = {

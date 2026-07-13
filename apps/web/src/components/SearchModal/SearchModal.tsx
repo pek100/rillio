@@ -25,8 +25,8 @@ import { cn } from 'rillio/components/ui/cn';
 import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from 'rillio/components/ui/command';
 
 const debounce = require('lodash.debounce');
-const useSearchHistory = require('rillio/components/NavBar/HorizontalNavBar/SearchBar/useSearchHistory');
-const useLocalSearch = require('rillio/components/NavBar/HorizontalNavBar/SearchBar/useLocalSearch');
+const useSearchHistory = require('rillio/components/NavBar/HorizontalNavBar/SearchBar/useSearchHistory').default;
+const useLocalSearch = require('rillio/components/NavBar/HorizontalNavBar/SearchBar/useLocalSearch').default;
 const { default: usePlayUrl } = require('rillio/common/usePlayUrl');
 const { withCoreSuspender } = require('rillio/common/CoreSuspender');
 

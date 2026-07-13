@@ -27,7 +27,7 @@ import { Button } from 'rillio/components/ui/button';
 import { cn } from 'rillio/components/ui/cn';
 import AddonDetails from './AddonDetails';
 
-const useAddonDetails = require('./useAddonDetails');
+const useAddonDetails = require('./useAddonDetails').default;
 
 type CloseEvent = {
     type: string;

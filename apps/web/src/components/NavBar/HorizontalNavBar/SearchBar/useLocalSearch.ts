@@ -1,10 +1,10 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useCore } = require('rillio/core');
-const useModelState = require('rillio/common/useModelState');
+import React from 'react';
+import { useCore } from 'rillio/core';
+import useModelState from 'rillio/common/useModelState';
 
-const useLocalSearch = () => {
+const useLocalSearch = (): { items: LocalSearchItem[], search: (query: string) => void } => {
     const core = useCore();
 
     const action = React.useMemo(() => ({
@@ -14,9 +14,9 @@ const useLocalSearch = () => {
         }
     }), []);
 
-    const { items } = useModelState({ model: 'local_search', action });
+    const { items } = useModelState({ model: 'local_search', action }) as { items: LocalSearchItem[] };
 
-    const search = React.useCallback((query) => {
+    const search = React.useCallback((query: string) => {
         core.transport.dispatch({
             action: 'Search',
             args: {
@@ -35,4 +35,4 @@ const useLocalSearch = () => {
     };
 };
 
-module.exports = useLocalSearch;
+export default useLocalSearch;

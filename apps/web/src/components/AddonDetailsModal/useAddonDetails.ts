@@ -1,9 +1,9 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const useModelState = require('rillio/common/useModelState');
+import React from 'react';
+import useModelState from 'rillio/common/useModelState';
 
-const useAddonDetails = (transportUrl) => {
+const useAddonDetails = (transportUrl?: string) => {
     const action = React.useMemo(() => {
         if (typeof transportUrl === 'string') {
             return {
@@ -24,4 +24,4 @@ const useAddonDetails = (transportUrl) => {
     return useModelState({ model: 'addon_details', action });
 };
 
-module.exports = useAddonDetails;
+export default useAddonDetails;

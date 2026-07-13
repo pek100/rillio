@@ -27,7 +27,7 @@ import MetaLinks from './MetaLinks';
 import MetaPreviewPlaceholder from './MetaPreviewPlaceholder';
 import { Ratings } from './Ratings';
 const UrlUtils = require('url');
-const SharePrompt = require('rillio/components/SharePrompt');
+const SharePrompt = require('rillio/components/SharePrompt').default;
 const CONSTANTS = require('rillio/common/CONSTANTS');
 const routesRegexp = require('rillio/common/routesRegexp');
 const useBinaryState = require('rillio/common/useBinaryState');

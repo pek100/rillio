@@ -1,9 +1,9 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const { useCore } = require('rillio/core');
-const useModelState = require('rillio/common/useModelState');
+import { useCore } from 'rillio/core';
+import useModelState from 'rillio/common/useModelState';
 
-const map = (ctx) => ({
+const map = (ctx: any) => ({
     ...ctx.events,
 });
 
@@ -19,7 +19,7 @@ const useEvents = () => {
         });
     };
 
-    const dismissEvent = (id) => {
+    const dismissEvent = (id: string) => {
         core.transport.dispatch({
             action: 'Ctx',
             args: {
@@ -29,8 +29,10 @@ const useEvents = () => {
         });
     };
 
-    const events = useModelState({ model: 'ctx', map });
+    // useModelState is a legacy, dynamically-typed helper whose inferred param
+    // marks `action` required; this ctx read has none, so relax the arg.
+    const events = useModelState({ model: 'ctx', map } as any);
     return { events, pullEvents, dismissEvent };
 };
 
-module.exports = useEvents;
+export default useEvents;
