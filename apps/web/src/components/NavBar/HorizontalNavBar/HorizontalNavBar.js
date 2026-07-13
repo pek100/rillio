@@ -30,10 +30,12 @@ const HorizontalNavBar = React.memo(({ className, route, query, title, backButto
     // only fires on the bar itself, so buttons/search stay clickable.
     const shell = useIsShell();
     const dragProps = shell ? { 'data-tauri-drag-region': '' } : {};
-    const renderNavMenuLabel = React.useCallback(({ ref, className, onClick, children, }) => (
-        <Button ref={ref} className={classnames(className, styles['button-container'], styles['menu-button-container'])} tabIndex={-1} onClick={onClick}>
+    // NavMenu now wraps this in a Radix PopoverTrigger (asChild), which injects the
+    // ref / onClick / aria onto the Button; we only supply the chip visuals and the
+    // open-state `active` highlight.
+    const renderNavMenuLabel = React.useCallback(({ active }) => (
+        <Button className={classnames(styles['button-container'], styles['menu-button-container'], { 'active': active })} tabIndex={-1}>
             <Icon className={styles['icon']} name={'person-outline'} />
-            {children}
         </Button>
     ), []);
     useHorizontalNavGamepadNavigation(route || className, backButton);
