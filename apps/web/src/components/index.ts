@@ -1,5 +1,4 @@
 import AddonDetailsModal from './AddonDetailsModal';
-import Button from './Button';
 import ContextMenu from './ContextMenu';
 import ContinueWatchingItem from './ContinueWatchingItem';
 import DelayedRenderer from './DelayedRenderer';
@@ -23,7 +22,6 @@ import ActionsGroup from './ActionsGroup';
 
 export {
     AddonDetailsModal,
-    Button,
     ContextMenu,
     ContinueWatchingItem,
     DelayedRenderer,

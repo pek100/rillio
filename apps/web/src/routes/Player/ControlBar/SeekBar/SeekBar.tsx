@@ -5,7 +5,8 @@ import classNames from 'classnames';
 import debounce from 'lodash.debounce';
 import useRouteFocused from 'rillio/common/useRouteFocused';
 import { useBinaryState } from 'rillio/common';
-import { Button, Slider } from 'rillio/components';
+import { Slider } from 'rillio/components';
+import { Button } from 'rillio/components/ui/button';
 import formatTime from './formatTime';
 
 // The seek bar's filled track + thumb are the accent color, with a hover-grown
@@ -82,7 +83,7 @@ const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbac
                 onSlide={onSlide}
                 onComplete={onComplete}
             />
-            <Button onClick={toggleRemainingTimeMode} tabIndex={-1}>
+            <Button variant="ghost" className="h-auto rounded-none p-0 hover:bg-transparent" onClick={toggleRemainingTimeMode} tabIndex={-1}>
                 <div className={labelClass}>
                     {remainingTimeMode && duration !== null && !isNaN(duration)
                         ? formatTime((duration - (time as number)) / (playbackSpeed as number), '-')
