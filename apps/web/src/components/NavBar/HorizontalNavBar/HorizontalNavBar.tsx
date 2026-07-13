@@ -76,7 +76,7 @@ const HorizontalNavBar = memo(({ className, route, query, title, backButton, sea
             {...props}
             {...dragProps}
             className={cn(
-                'box-content flex flex-row items-center justify-between overflow-visible bg-transparent pr-6 pt-[var(--safe-area-inset-top)] h-[var(--horizontal-nav-bar-size)] max-sm:pr-0',
+                'box-content flex items-center justify-between overflow-visible bg-transparent pr-6 pt-[var(--safe-area-inset-top)] h-[var(--horizontal-nav-bar-size)] max-sm:pr-0',
                 className,
             )}
         >
@@ -97,7 +97,7 @@ const HorizontalNavBar = memo(({ className, route, query, title, backButton, sea
             }
             {
                 typeof title === 'string' && title.length > 0 ?
-                    <h2 {...dragProps} className="flex-[4_0_0] overflow-hidden text-ellipsis whitespace-nowrap px-4 text-[1.125rem] font-semibold tracking-[0.01rem] text-fg">{title}</h2>
+                    <h2 {...dragProps} className="flex-[4_0_0] overflow-hidden text-ellipsis whitespace-nowrap px-4 text-lg font-semibold tracking-[0.01rem] text-fg">{title}</h2>
                     :
                     null
             }
@@ -107,7 +107,7 @@ const HorizontalNavBar = memo(({ className, route, query, title, backButton, sea
                     :
                     null
             }
-            <div className="flex flex-row items-center gap-2 overflow-visible">
+            <div className="flex items-center gap-2 overflow-visible">
                 {
                     hdrInfo && (hdrInfo.gamma === 'pq' || hdrInfo.gamma === 'hlg') ?
                         <div className="flex flex-none select-none items-center justify-center h-10 px-2" title={hdrInfo.gamma === 'pq' ? 'HDR10' : 'HLG'}>

@@ -27,7 +27,7 @@ type Props = {
 };
 
 // Square tab; min 3.5rem tall. flex-none once the rail turns horizontal.
-const NAV_TAB = 'w-[calc(var(--vertical-nav-bar-size)-1.2rem)] h-[calc(var(--vertical-nav-bar-size)-1.2rem)] min-h-[3.5rem] max-sm:flex-none max-sm:last:hidden [@media(max-height:640px)]:last:hidden';
+const NAV_TAB = 'size-[calc(var(--vertical-nav-bar-size)-1.2rem)] min-h-[3.5rem] max-sm:flex-none max-sm:last:hidden [@media(max-height:640px)]:last:hidden';
 
 const VerticalNavBar = memo(forwardRef<HTMLElement, Props>(({ className, selected, tabs }, ref) => {
     const { t } = useTranslation();

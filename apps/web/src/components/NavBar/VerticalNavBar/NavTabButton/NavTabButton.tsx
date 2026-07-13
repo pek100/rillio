@@ -30,7 +30,7 @@ const NavTabButton = ({ className, logo, icon, label, href, selected, onClick }:
     const IconComp = (icon && NAV_ICON[icon]) || Puzzle;
     const renderLogoFallback = useCallback(() => (
         typeof icon === 'string' && icon.length > 0 ?
-            <IconComp className="h-[2.2rem] w-[2.2rem] flex-none" />
+            <IconComp className="size-[2.2rem] flex-none" />
             :
             null
     ), [icon, IconComp]);
@@ -58,7 +58,7 @@ const NavTabButton = ({ className, logo, icon, label, href, selected, onClick }:
             {
                 typeof logo === 'string' && logo.length > 0 ?
                     <Image
-                        className="h-[2.2rem] w-[2.2rem] flex-none mb-2"
+                        className="size-[2.2rem] flex-none mb-2"
                         src={logo}
                         alt={' '}
                         renderFallback={renderLogoFallback}
@@ -66,7 +66,7 @@ const NavTabButton = ({ className, logo, icon, label, href, selected, onClick }:
                     :
                     typeof icon === 'string' && icon.length > 0 ?
                         <IconComp
-                            className={cn('h-[2.2rem] w-[2.2rem] flex-none mb-2', selected ? 'text-accent opacity-100' : 'text-fg opacity-35')}
+                            className={cn('size-[2.2rem] flex-none mb-2', selected ? 'text-accent opacity-100' : 'text-fg opacity-35')}
                         />
                         :
                         null
