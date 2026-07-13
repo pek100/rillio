@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
 import { useNavigate } from 'react-router';
 import { toPath, useCloseModalRoute } from 'rillio-router';
 import { useCore } from 'rillio/core';
+import { Button, IconButton, ModalRoute, cn } from 'rillio/components/ui';
 import useCachedTorrents, { CacheEntry } from './useCachedTorrents';
-import styles from './styles.less';
 
 // Same parser the stream cards use: quality/HDR/languages are encoded in the
 // entry name (the selected file's name for single-file selections, e.g. an
@@ -149,7 +148,7 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
                     </div>
                     <QualityBadges name={entry.name} />
                 </div>
-                <div className={classNames('mt-1 text-xs tabular-nums', entry.state === 'error' ? 'text-warning' : 'text-fg-muted')}>
+                <div className={cn('mt-1 text-xs tabular-nums', entry.state === 'error' ? 'text-warning' : 'text-fg-muted')}>
                     {
                         complete ?
                             formatBytes(entry.downloaded)
@@ -177,51 +176,49 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
                 // confusable with the media Play button, and inline status text
                 // did not read as clickable. Always visible while transferring.
                 pausable ?
-                    <button
-                        type="button"
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => onSetPaused(entry.infoHash, !paused)}
                         title={paused ? 'Resume this download' : 'Pause this download'}
-                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-line bg-surface px-3.5 text-xs font-semibold text-fg-muted transition hover:bg-surface-hover hover:text-fg"
+                        className="shrink-0 bg-surface px-3.5 text-fg-muted hover:text-fg"
                     >
                         {paused ? 'Resume' : 'Pause'}
-                    </button>
+                    </Button>
                     :
                     null
             }
             {
                 typeof entry.fileIdx === 'number' ?
-                    <button
-                        type="button"
+                    <IconButton
                         onClick={() => onPlay(entry)}
                         title="Play"
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-accent transition hover:bg-surface-hover hover:brightness-110"
+                        className="size-9 text-accent opacity-100 hover:brightness-110"
                     >
                         <Icon name="play" className="size-5" />
-                    </button>
+                    </IconButton>
                     :
                     null
             }
             {
                 typeof metaLink === 'string' ?
-                    <button
-                        type="button"
+                    <IconButton
                         onClick={() => onMoreInfo(metaLink)}
                         title="More info"
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-fg-muted opacity-0 transition hover:bg-surface-hover hover:text-fg group-hover:opacity-100"
+                        className="size-9 text-fg-muted opacity-0 hover:text-fg group-hover:opacity-100"
                     >
                         <Icon name="about" className="size-5" />
-                    </button>
+                    </IconButton>
                     :
                     null
             }
-            <button
-                type="button"
+            <IconButton
                 onClick={() => onDelete(entry.infoHash)}
                 title="Delete from cache (frees disk space; can be re-downloaded)"
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-fg-muted opacity-0 transition hover:bg-surface-hover hover:text-warning group-hover:opacity-100"
+                className="size-9 text-fg-muted opacity-0 hover:text-warning group-hover:opacity-100"
             >
                 <Icon name="bin" className="size-5" />
-            </button>
+            </IconButton>
         </div>
     );
 };
@@ -275,66 +272,69 @@ const Cached = () => {
     );
 
     return (
-        <div className={styles['cached-modal']}>
-            <div className={styles['backdrop']} onClick={closeCached} />
-            <div className={classNames(styles['panel'], 'flex flex-col overflow-hidden')} role="dialog" aria-modal="true" aria-label="Cached">
-                <div className="flex items-start gap-3 px-6 pb-3 pt-5">
-                    <div className="min-w-0">
-                        <div className="flex items-baseline gap-3">
-                            <h1 className="text-xl font-semibold text-fg">Cached</h1>
-                            {
-                                entries !== null && entries.length > 0 ?
-                                    <div className="text-sm tabular-nums text-fg-muted">{formatBytes(totalBytes)} on disk</div>
-                                    :
-                                    null
-                            }
-                        </div>
-                        <div className="mt-1 text-xs text-fg-subtle">
-                            Everything the player keeps on disk. Nothing is deleted automatically.
-                        </div>
-                    </div>
-                    <div className="flex-1" />
-                    <button
-                        type="button"
-                        onClick={closeCached}
-                        title="Close"
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-fg-muted opacity-60 transition hover:bg-surface-hover hover:opacity-100"
-                    >
-                        <Icon name="close" className="size-5" />
-                    </button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                    {
-                        failed ?
-                            <div className="px-5 py-10 text-center text-sm text-fg-muted">
-                                The streaming service is not reachable.
-                            </div>
-                            :
-                            entries === null ?
-                                <div className="px-5 py-10 text-center text-sm text-fg-muted">Loading…</div>
+        <ModalRoute
+            open
+            onClose={closeCached}
+            title="Cached"
+            hideHeader
+            showClose={false}
+            className="flex h-[min(42rem,calc(100vh-6rem))] w-[min(52rem,calc(100vw-4rem))] max-w-[min(52rem,calc(100vw-4rem))] flex-col gap-0 overflow-hidden border border-line p-0"
+        >
+            <div className="flex items-start gap-3 px-6 pb-3 pt-5">
+                <div className="min-w-0">
+                    <div className="flex items-baseline gap-3">
+                        <h1 className="text-xl font-semibold text-fg">Cached</h1>
+                        {
+                            entries !== null && entries.length > 0 ?
+                                <div className="text-sm tabular-nums text-fg-muted">{formatBytes(totalBytes)} on disk</div>
                                 :
-                                entries.length === 0 ?
-                                    <div className="px-5 py-10 text-center text-sm text-fg-muted">
-                                        Nothing cached yet. Streams are kept here while you watch, and the Download button on any source stores it for later.
-                                    </div>
-                                    :
-                                    <div className="divide-y divide-surface">
-                                        {entries.map((entry) => (
-                                            <Row
-                                                key={entry.infoHash}
-                                                entry={entry}
-                                                metaLink={libraryLinks[entry.infoHash]?.metaLink ?? null}
-                                                onPlay={play}
-                                                onMoreInfo={openMetaDetails}
-                                                onSetPaused={setPaused}
-                                                onDelete={remove}
-                                            />
-                                        ))}
-                                    </div>
-                    }
+                                null
+                        }
+                    </div>
+                    <div className="mt-1 text-xs text-fg-subtle">
+                        Everything the player keeps on disk. Nothing is deleted automatically.
+                    </div>
                 </div>
+                <div className="flex-1" />
+                <IconButton
+                    onClick={closeCached}
+                    title="Close"
+                    className="size-9 text-fg-muted"
+                >
+                    <Icon name="close" className="size-5" />
+                </IconButton>
             </div>
-        </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                {
+                    failed ?
+                        <div className="px-5 py-10 text-center text-sm text-fg-muted">
+                            The streaming service is not reachable.
+                        </div>
+                        :
+                        entries === null ?
+                            <div className="px-5 py-10 text-center text-sm text-fg-muted">Loading…</div>
+                            :
+                            entries.length === 0 ?
+                                <div className="px-5 py-10 text-center text-sm text-fg-muted">
+                                    Nothing cached yet. Streams are kept here while you watch, and the Download button on any source stores it for later.
+                                </div>
+                                :
+                                <div className="divide-y divide-surface">
+                                    {entries.map((entry) => (
+                                        <Row
+                                            key={entry.infoHash}
+                                            entry={entry}
+                                            metaLink={libraryLinks[entry.infoHash]?.metaLink ?? null}
+                                            onPlay={play}
+                                            onMoreInfo={openMetaDetails}
+                                            onSetPaused={setPaused}
+                                            onDelete={remove}
+                                        />
+                                    ))}
+                                </div>
+                }
+            </div>
+        </ModalRoute>
     );
 };
 
