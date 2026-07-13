@@ -1,12 +1,11 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCore } from 'rillio/core';
-import { Button, Toggle } from 'rillio/components';
 import { usePlatform, useToast, useDiscord } from 'rillio/common';
-import { Section, Option, Link } from '../components';
+import { Button } from 'rillio/components/ui/button';
+import { Section, Option, Link, SettingsSwitch } from '../components';
 import User from './User';
 import useDataExport from './useDataExport';
-import styles from './General.less';
 
 type Props = {
     profile: Profile,
@@ -146,16 +145,22 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                         href={`https://www.strem.io/reset-password/${profile.auth.user.email}`}
                     />
             }
-            <Option className={styles['trakt-container']} icon={'trakt'} label={t('SETTINGS_TRAKT')}>
-                <Button className={'button'} title={isTraktAuthenticated ? t('LOG_OUT') : t('SETTINGS_TRAKT_AUTHENTICATE')} disabled={profile.auth === null} tabIndex={-1} onClick={onToggleTrakt}>
+            <Option className="mt-8" icon={'trakt'} iconClassName="text-[color:var(--color-trakt)]" label={t('SETTINGS_TRAKT')}>
+                <Button
+                    variant="ghost"
+                    title={isTraktAuthenticated ? t('LOG_OUT') : t('SETTINGS_TRAKT_AUTHENTICATE')}
+                    disabled={profile.auth === null}
+                    tabIndex={-1}
+                    onClick={onToggleTrakt}
+                    className="h-14 w-full rounded-full bg-surface-hover px-8 font-medium text-fg hover:brightness-110 active:scale-[0.97]"
+                >
                     {isTraktAuthenticated ? t('LOG_OUT') : t('SETTINGS_TRAKT_AUTHENTICATE')}
                 </Button>
             </Option>
             {
                 discord.available &&
-                    <Option className={styles['discord-container']} icon={'discord'} label={'SETTINGS_DISCORD'}>
-                        <Toggle
-                            tabIndex={-1}
+                    <Option icon={'discord'} iconClassName="text-[#5865f2]" label={'SETTINGS_DISCORD'}>
+                        <SettingsSwitch
                             {...discordToggle}
                         />
                     </Option>
@@ -163,5 +168,7 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
         </Section>
     </>;
 });
+
+General.displayName = 'General';
 
 export default General;

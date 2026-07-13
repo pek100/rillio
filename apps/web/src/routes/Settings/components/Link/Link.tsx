@@ -1,6 +1,7 @@
+// Copyright (C) 2017-2024 Smart code 203358507
+
 import React from 'react';
-import { Button } from 'rillio/components';
-import styles from './Link.less';
+import { Button } from 'rillio/components/ui/button';
 
 type Props = {
     label: string,
@@ -11,8 +12,15 @@ type Props = {
 
 const Link = ({ label, href, target, onClick }: Props) => {
     return (
-        <Button className={styles['link']} title={label} target={target ?? '_blank'} href={href} onClick={onClick}>
-            <div className={styles['label']}>{ label }</div>
+        <Button
+            variant="link"
+            className="h-8 flex-none self-start text-accent hover:underline hover:brightness-110"
+            title={label}
+            target={target ?? '_blank'}
+            href={href}
+            onClick={onClick}
+        >
+            {label}
         </Button>
     );
 };

@@ -3,8 +3,8 @@
 import React, { ChangeEvent, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from '@stremio/stremio-icons/react';
-import { Button, TextInput } from 'rillio/components';
-import styles from './AddItem.less';
+import { Button } from 'rillio/components/ui/button';
+import { Input } from 'rillio/components/ui/input';
 
 type Props = {
     onCancel: () => void;
@@ -24,20 +24,28 @@ const AddItem = ({ onCancel, handleAddUrl }: Props) => {
     }, [inputValue]);
 
     return (
-        <div className={styles['add-item']}>
-            <TextInput
-                className={styles['input']}
+        <div className="relative flex justify-between rounded-card border-2 border-transparent bg-surface-hover px-6 py-1.5 transition-colors hover:brightness-110 max-[640px]:px-2">
+            <Input
+                className="w-[70%]"
                 value={inputValue}
                 onChange={handleValueChange}
                 onSubmit={onSubmit}
                 placeholder={t('SETTINGS_SERVER_ADD_URL_PLACEHOLDER')}
             />
-            <div className={styles['actions']}>
-                <Button className={styles['add']} onClick={onSubmit}>
-                    <Icon name={'checkmark'} className={styles['icon']} />
+            <div className="flex gap-1">
+                <Button
+                    variant="ghost"
+                    onClick={onSubmit}
+                    className="flex w-12 items-center justify-center rounded-card bg-transparent p-1 opacity-60 hover:bg-surface-hover hover:opacity-100 [&:hover_svg]:text-success"
+                >
+                    <Icon name={'checkmark'} className="size-5 text-fg" />
                 </Button>
-                <Button className={styles['cancel']} onClick={onCancel}>
-                    <Icon name={'close'} className={styles['icon']} />
+                <Button
+                    variant="ghost"
+                    onClick={onCancel}
+                    className="flex w-12 items-center justify-center rounded-card bg-transparent p-1 opacity-60 hover:bg-surface-hover hover:opacity-100 [&:hover_svg]:text-danger"
+                >
+                    <Icon name={'close'} className="size-5 text-fg" />
                 </Button>
             </div>
         </div>

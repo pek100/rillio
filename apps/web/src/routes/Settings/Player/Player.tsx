@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
-import { ColorInput, MultiselectMenu, Toggle } from 'rillio/components';
 import { usePlatform } from 'rillio/common';
-import { Category, Option, Section } from '../components';
+import { Category, Option, Section, SettingsSelect, SettingsSwitch } from '../components';
+import ColorInput from './ColorInput';
 import usePlayerOptions from './usePlayerOptions';
 
 type Props = {
@@ -40,97 +40,83 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                 priority AND default subtitles. */}
             <Category icon={'subtitles'} label={'SETTINGS_SECTION_SUBTITLES'}>
                 <Option label={'SETTINGS_SUBTITLES_SIZE'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...subtitlesSizeSelect}
                     />
                 </Option>
                 <Option label={'SETTINGS_SUBTITLES_COLOR'}>
                     <ColorInput
-                        className={'color-input'}
                         {...subtitlesTextColorInput}
                     />
                 </Option>
                 <Option label={'SETTINGS_SUBTITLES_COLOR_BACKGROUND'}>
                     <ColorInput
-                        className={'color-input'}
                         {...subtitlesBackgroundColorInput}
                     />
                 </Option>
                 <Option label={'SETTINGS_SUBTITLES_COLOR_OUTLINE'}>
                     <ColorInput
-                        className={'color-input'}
                         {...subtitlesOutlineColorInput}
                     />
                 </Option>
             </Category>
             <Category icon={'volume-medium'} label={'SETTINGS_SECTION_AUDIO'}>
                 <Option label={'SETTINGS_DEFAULT_AUDIO_TRACK'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...audioLanguageSelect}
                     />
                 </Option>
                 <Option label={'SETTINGS_SURROUND_SOUND'}>
-                    <Toggle
-                        tabIndex={-1}
+                    <SettingsSwitch
                         {...surroundSoundToggle}
                     />
                 </Option>
             </Category>
             <Category icon={'remote'} label={'SETTINGS_SECTION_CONTROLS'}>
                 <Option label={'SETTINGS_SEEK_KEY'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...seekTimeDurationSelect}
                     />
                 </Option>
                 <Option label={'SETTINGS_SEEK_KEY_SHIFT'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...seekShortTimeDurationSelect}
                     />
                 </Option>
                 <Option label={'SETTINGS_PLAY_IN_BACKGROUND'}>
-                    <Toggle
+                    <SettingsSwitch
                         disabled={true}
-                        tabIndex={-1}
                         {...playInBackgroundToggle}
                     />
                 </Option>
             </Category>
             <Category icon={'play'} label={'SETTINGS_SECTION_AUTO_PLAY'}>
                 <Option label={'AUTO_PLAY'}>
-                    <Toggle
-                        tabIndex={-1}
+                    <SettingsSwitch
                         {...bingeWatchingToggle}
                     />
                 </Option>
                 <Option label={'SETTINGS_NEXT_VIDEO_POPUP_DURATION'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...nextVideoPopupDurationSelect}
                     />
                 </Option>
                 <Option label={'Offer to preload the next episode'}>
-                    <Toggle
-                        tabIndex={-1}
+                    <SettingsSwitch
                         {...nextEpisodePreloadToggle}
                     />
                 </Option>
             </Category>
             <Category icon={'glasses'} label={'SETTINGS_SECTION_ADVANCED'}>
                 <Option label={'SETTINGS_PLAY_IN_EXTERNAL_PLAYER'}>
-                    <MultiselectMenu
-                        className={'multiselect'}
+                    <SettingsSelect
                         {...playInExternalPlayerSelect}
                     />
                 </Option>
                 {
                     shell.active &&
                         <Option label={'SETTINGS_HWDEC'}>
-                            <Toggle
-                                tabIndex={-1}
+                            <SettingsSwitch
                                 {...hardwareDecodingToggle}
                             />
                         </Option>
@@ -138,8 +124,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                 {
                     shell.active && shell.capabilities.gpuVideoProcessing &&
                         <Option label={'SETTINGS_GPU_VIDEO_PROCESSING'}>
-                            <Toggle
-                                tabIndex={-1}
+                            <SettingsSwitch
                                 {...gpuVideoProcessingToggle}
                             />
                         </Option>
@@ -147,8 +132,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                 {
                     shell.active && platform.name === 'windows' &&
                         <Option label={'SETTINGS_VIDEO_MODE'}>
-                            <MultiselectMenu
-                                className={'multiselect'}
+                            <SettingsSelect
                                 {...videoModeSelect}
                             />
                         </Option>
@@ -156,8 +140,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                 {
                     shell.active &&
                         <Option label={'SETTINGS_PAUSE_MINIMIZED'}>
-                            <Toggle
-                                tabIndex={-1}
+                            <SettingsSwitch
                                 {...pauseOnMinimizeToggle}
                             />
                         </Option>
@@ -165,8 +148,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                 {
                     shell.active &&
                         <Option label={'SETTINGS_ASS_SUBTITLES_STYLING'}>
-                            <Toggle
-                                tabIndex={-1}
+                            <SettingsSwitch
                                 {...assSubtitlesStylingToggle}
                             />
                         </Option>
@@ -175,5 +157,7 @@ const Player = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
         </Section>
     );
 });
+
+Player.displayName = 'Player';
 
 export default Player;

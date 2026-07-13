@@ -2,7 +2,6 @@ import React, { forwardRef } from 'react';
 import { Section } from '../components';
 import { ShortcutsGroup } from 'rillio/components';
 import { useShortcuts } from 'rillio/common';
-import styles from './Shortcuts.less';
 
 const Shortcuts = forwardRef<HTMLDivElement>((_, ref) => {
     const { grouped } = useShortcuts();
@@ -13,7 +12,7 @@ const Shortcuts = forwardRef<HTMLDivElement>((_, ref) => {
                 grouped.map(({ name, label, shortcuts }) => (
                     <ShortcutsGroup
                         key={name}
-                        className={styles['shortcuts-group']}
+                        className="mb-12 w-full"
                         label={label}
                         shortcuts={shortcuts}
                     />
@@ -22,5 +21,7 @@ const Shortcuts = forwardRef<HTMLDivElement>((_, ref) => {
         </Section>
     );
 });
+
+Shortcuts.displayName = 'Shortcuts';
 
 export default Shortcuts;

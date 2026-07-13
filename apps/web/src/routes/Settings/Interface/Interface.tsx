@@ -1,7 +1,6 @@
 import React, { forwardRef } from 'react';
 import { usePlatform } from 'rillio/common';
-import { MultiselectMenu, Toggle } from 'rillio/components';
-import { Section, Option } from '../components';
+import { Section, Option, SettingsSelect, SettingsSwitch } from '../components';
 import useInterfaceOptions from './useInterfaceOptions';
 
 type Props = {
@@ -22,16 +21,14 @@ const Interface = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) =>
     return (
         <Section ref={ref} label={'INTERFACE'}>
             <Option label={'SETTINGS_UI_LANGUAGE'}>
-                <MultiselectMenu
-                    className={'multiselect'}
+                <SettingsSelect
                     {...interfaceLanguageSelect}
                 />
             </Option>
             {
                 shell.active &&
                     <Option label={'SETTINGS_QUIT_ON_CLOSE'}>
-                        <Toggle
-                            tabIndex={-1}
+                        <SettingsSwitch
                             {...quitOnCloseToggle}
                         />
                     </Option>
@@ -39,26 +36,25 @@ const Interface = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) =>
             {
                 shell.active &&
                     <Option label={'SETTINGS_FULLSCREEN_EXIT'}>
-                        <Toggle
-                            tabIndex={-1}
+                        <SettingsSwitch
                             {...escExitFullscreenToggle}
                         />
                     </Option>
             }
             <Option label={'SETTINGS_BLUR_UNWATCHED_IMAGE'}>
-                <Toggle
-                    tabIndex={-1}
+                <SettingsSwitch
                     {...hideSpoilersToggle}
                 />
             </Option>
             <Option label={'SETTINGS_GAMEPAD'}>
-                <Toggle
-                    tabIndex={-1}
+                <SettingsSwitch
                     {...gamepadSupportToggle}
                 />
             </Option>
         </Section>
     );
 });
+
+Interface.displayName = 'Interface';
 
 export default Interface;

@@ -5,7 +5,6 @@ import { useDisplayName } from 'rillio/common/useDisplayName';
 import { openSync } from 'rillio/common/syncEvents';
 import DisplayNameEdit from 'rillio/components/DisplayNameEdit';
 import { Link } from '../../components';
-import styles from './User.less';
 
 type Props = {
     profile: Profile,
@@ -36,30 +35,32 @@ const User = ({ profile }: Props) => {
     }, []);
 
     return (
-        <div className={styles['user']}>
-            <div className={styles['user-info-content']}>
-                <div
-                    className={styles['avatar-container']}
-                    style={{ backgroundImage: avatar }}
+        <div className="flex w-full flex-row items-center gap-4 max-[640px]:flex-col max-[640px]:items-start">
+            <div
+                className="mr-4 size-20 flex-none self-stretch rounded-full border-2 border-line bg-fg bg-cover bg-center bg-no-repeat opacity-90 [background-clip:content-box] [background-origin:content-box]"
+                style={{ backgroundImage: avatar }}
+            />
+            <div className="flex flex-none flex-col items-start">
+                <DisplayNameEdit
+                    className="min-h-[1.9rem] [--display-name-icon-size:1rem] [--display-name-max-width:18rem] [--display-name-size:1.4rem]"
+                    value={displayName}
+                    onCommit={setDisplayName}
                 />
-                <div className={styles['email-logout-container']}>
-                    <DisplayNameEdit className={styles['name-row']} value={displayName} onCommit={setDisplayName} />
-                    <div className={styles['email-label-container']} title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
-                        <div className={styles['email-label']}>
-                            {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
-                        </div>
+                <div className="flex flex-row items-center" title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
+                    <div className="flex-1 text-[0.95rem] text-fg opacity-50">
+                        {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
                     </div>
-                    <div className={styles['links-row']}>
-                        <Link label={'Sync & backup'} onClick={() => openSync('backup')} />
-                        <Link label={'Import from Stremio'} onClick={() => openSync('stremio')} />
-                        <Link label={'Upload to Stremio'} onClick={() => openSync('upload')} />
-                        {
-                            profile.auth !== null ?
-                                <Link label={t('LOG_OUT')} onClick={onLogout} />
-                                :
-                                null
-                        }
-                    </div>
+                </div>
+                <div className="mt-2 flex flex-row flex-wrap gap-4">
+                    <Link label={'Sync & backup'} onClick={() => openSync('backup')} />
+                    <Link label={'Import from Stremio'} onClick={() => openSync('stremio')} />
+                    <Link label={'Upload to Stremio'} onClick={() => openSync('upload')} />
+                    {
+                        profile.auth !== null ?
+                            <Link label={t('LOG_OUT')} onClick={onLogout} />
+                            :
+                            null
+                    }
                 </div>
             </div>
         </div>

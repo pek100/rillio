@@ -1,14 +1,14 @@
 // Copyright (C) 2017-2024 Smart code 203358507
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useId, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import Icon from '@stremio/stremio-icons/react';
 import { useProfile } from 'rillio/common';
 import { DEFAULT_STREAMING_SERVER_URL } from 'rillio/common/CONSTANTS';
-import { useTranslation } from 'react-i18next';
-import { Button, RadioButton } from 'rillio/components';
 import useStreamingServer from 'rillio/common/useStreamingServer';
-import Icon from '@stremio/stremio-icons/react';
-import styles from './Item.less';
-import classNames from 'classnames';
+import { Button } from 'rillio/components/ui/button';
+import { RadioGroupItem } from 'rillio/components/ui/radio-group';
+import { cn } from 'rillio/components/ui/cn';
 import useStreamingServerUrls from '../useStreamingServerUrls';
 
 type Props = {
@@ -17,6 +17,7 @@ type Props = {
 
 const Item = ({ url }: Props) => {
     const { t } = useTranslation();
+    const radioId = useId();
     const profile = useProfile();
     const streamingServer = useStreamingServer();
     const { deleteServerUrl, selectServerUrl } = useStreamingServerUrls();
@@ -29,22 +30,22 @@ const Item = ({ url }: Props) => {
         selected && selectServerUrl(DEFAULT_STREAMING_SERVER_URL);
     }, [url, selected]);
 
-    const handleSelect = useCallback(() => {
-        selectServerUrl(url);
-    }, [url]);
-
     return (
-        <div className={styles['item']}>
-            <div className={styles['content']}>
-                <RadioButton className={styles['selectable']} selected={selected} onChange={handleSelect} disabled={selected} />
-                <div className={styles['label']}>{url}</div>
-            </div>
-            <div className={styles['actions']}>
+        <div className="group relative flex justify-between rounded-card border-2 border-transparent bg-surface-hover px-6 py-3 transition-colors hover:brightness-110 max-[640px]:px-4">
+            <label htmlFor={radioId} className="flex max-w-[60%] cursor-pointer items-center justify-center gap-4">
+                <RadioGroupItem id={radioId} value={url} disabled={selected} className="overflow-visible" />
+                <div className="truncate text-fg">{url}</div>
+            </label>
+            <div className="flex gap-4 pr-16 max-[640px]:pr-12">
                 {
                     selected ?
-                        <div className={styles['status']}>
-                            <div className={classNames(styles['icon'], { [styles['ready']]: streamingServer.settings?.type === 'Ready' }, { [styles['error']]: streamingServer.settings?.type === 'Err' })} />
-                            <div className={styles['label']}>
+                        <div className="flex items-center justify-center gap-2">
+                            <div className={cn(
+                                'size-3 rounded-full',
+                                streamingServer.settings?.type === 'Ready' && 'bg-success',
+                                streamingServer.settings?.type === 'Err' && 'bg-danger',
+                            )} />
+                            <div className="truncate text-[0.8125rem] text-fg opacity-[0.62]">
                                 {
                                     streamingServer.settings === null ?
                                         'NotLoaded'
@@ -63,8 +64,13 @@ const Item = ({ url }: Props) => {
                 }
                 {
                     !defaultUrl ?
-                        <Button className={styles['delete']} onClick={handleDelete}>
-                            <Icon name={'bin'} className={styles['icon']} />
+                        <Button
+                            variant="ghost"
+                            title={t('DELETE')}
+                            onClick={handleDelete}
+                            className="absolute right-6 top-1/2 flex w-12 -translate-y-1/2 items-center justify-center rounded-card bg-transparent p-0 transition-colors hover:bg-surface-hover [&:hover_svg]:!text-danger [&:hover_svg]:!opacity-100 max-[640px]:right-4"
+                        >
+                            <Icon name={'bin'} className="size-5 text-fg opacity-0 transition-[opacity,color] group-hover:opacity-60 max-[640px]:opacity-60" />
                         </Button>
                         : null
                 }

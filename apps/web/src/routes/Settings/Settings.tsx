@@ -1,10 +1,10 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2024 Smart code 203358507
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCloseModalRoute } from 'rillio-router';
-import classnames from 'classnames';
 import throttle from 'lodash.throttle';
 import { usePlatform, useProfile, useStreamingServer, useRouteFocused, withCoreSuspender } from 'rillio/common';
+import { ModalRoute } from 'rillio/components/ui/dialog';
 import { SECTIONS } from './constants';
 import Menu from './Menu';
 import General from './General';
@@ -13,7 +13,9 @@ import Player from './Player';
 import Streaming from './Streaming';
 import Shortcuts from './Shortcuts';
 import Info from './Info';
-import styles from './Settings.less';
+
+// Per-route panel size (was Settings.less min() rules on the modal-shell panel).
+const PANEL_SIZE = 'h-[min(46rem,calc(100vh-6rem))] w-[min(64rem,calc(100vw-4rem))]';
 
 const Settings = () => {
     const routeFocused = useRouteFocused();
@@ -62,11 +64,8 @@ const Settings = () => {
         setSelectedSectionId(activeSection.id);
     }, [sections]);
 
-    const onMenuSelect = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-        const section = sections.find((section) => {
-            return section.id === event.currentTarget.dataset.section;
-        });
-
+    const onMenuSelect = useCallback((sectionId: string) => {
+        const section = sections.find((section) => section.id === sectionId);
         const container = sectionsContainerRef.current;
         section && container?.scrollTo({
             top: section.ref.current!.offsetTop - container!.offsetTop,
@@ -84,37 +83,31 @@ const Settings = () => {
         }
     }, [routeFocused]);
 
-    // /settings is a modal route: it floats over whatever page you came from.
+    // /settings is a modal route: it floats over whatever page you came from, which the
+    // router keeps mounted and visible (blurred) beneath. Radix Dialog gives Escape,
+    // outside-click, focus-trap and aria for free; onClose drives the URL view-stack.
     const closeSettings = useCloseModalRoute();
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                closeSettings();
-            }
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [closeSettings]);
-
     return (
-        <div className={styles['settings-modal']}>
-            <div className={styles['backdrop']} onClick={closeSettings} />
-            <div
-                className={classnames(styles['panel'], styles['settings-container'])}
-                role={'dialog'}
-                aria-modal={'true'}
-                aria-label={'Settings'}
-            >
-            <div className={classnames(styles['settings-content'], 'animation-fade-in')}>
+        <ModalRoute
+            open
+            onClose={closeSettings}
+            showClose={false}
+            title="Settings"
+            hideHeader
+            className={`flex flex-col gap-0 overflow-hidden border border-line p-0 max-w-none ${PANEL_SIZE}`}
+        >
+            <div className="flex h-[calc(100%-var(--safe-area-inset-bottom,0rem))] w-full flex-row max-[640px]:flex-col-reverse">
                 <Menu
                     selected={selectedSectionId}
                     streamingServer={streamingServer}
                     onSelect={onMenuSelect}
                 />
-
-                <div ref={sectionsContainerRef} className={styles['sections-container']} onScroll={onContainerScroll}>
+                <div
+                    ref={sectionsContainerRef}
+                    onScroll={onContainerScroll}
+                    className="flex-1 self-stretch overflow-y-auto px-12 max-[640px]:px-6"
+                >
                     <General
                         ref={generalSectionRef}
                         profile={profile}
@@ -138,16 +131,24 @@ const Settings = () => {
                     <Info streamingServer={streamingServer} />
                 </div>
             </div>
-            </div>
-        </div>
+        </ModalRoute>
     );
 };
 
-const SettingsFallback = () => (
-    <div className={styles['settings-modal']}>
-        <div className={styles['backdrop']} />
-        <div className={classnames(styles['panel'], styles['settings-container'])} />
-    </div>
-);
+const SettingsFallback = () => {
+    const closeSettings = useCloseModalRoute();
+    return (
+        <ModalRoute
+            open
+            onClose={closeSettings}
+            showClose={false}
+            title="Settings"
+            hideHeader
+            className={`gap-0 overflow-hidden border border-line p-0 max-w-none ${PANEL_SIZE}`}
+        >
+            {null}
+        </ModalRoute>
+    );
+};
 
 export default withCoreSuspender(Settings, SettingsFallback);

@@ -1,13 +1,12 @@
 import React, { forwardRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from '@stremio/stremio-icons/react';
-import { Button, MultiselectMenu, Toggle } from 'rillio/components';
 import { useToast } from 'rillio/common';
-import { Section, Option } from '../components';
+import { Button } from 'rillio/components/ui/button';
+import { Section, Option, SettingsSelect, SettingsSwitch } from '../components';
 import URLsManager from './URLsManager';
 import useStreamingOptions from './useStreamingOptions';
 import useFasterDownloads from './useFasterDownloads';
-import styles from './Streaming.less';
 
 type Props = {
     profile: Profile,
@@ -45,18 +44,26 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
             <URLsManager />
             {
                 streamingServerRemoteUrlInput.value !== null &&
-                    <Option className={styles['configure-input-container']} label={'SETTINGS_REMOTE_URL'}>
-                        <div className={styles['label']} title={streamingServerRemoteUrlInput.value}>{streamingServerRemoteUrlInput.value}</div>
-                        <Button className={styles['configure-button-container']} title={t('SETTINGS_COPY_REMOTE_URL')} onClick={onCopyRemoteUrl}>
-                            <Icon className={styles['icon']} name={'link'} />
-                        </Button>
+                    <Option label={'SETTINGS_REMOTE_URL'}>
+                        <div className="flex w-full items-center gap-4 overflow-hidden">
+                            <div className="flex-auto truncate px-4 text-fg" title={streamingServerRemoteUrlInput.value}>
+                                {streamingServerRemoteUrlInput.value}
+                            </div>
+                            <Button
+                                variant="ghost"
+                                title={t('SETTINGS_COPY_REMOTE_URL')}
+                                onClick={onCopyRemoteUrl}
+                                className="size-10 flex-none rounded-full bg-surface-hover p-0 text-fg opacity-100 hover:bg-surface-hover hover:brightness-110 active:scale-95"
+                            >
+                                <Icon className="size-4 text-fg" name={'link'} />
+                            </Button>
+                        </div>
                     </Option>
             }
             {
                 profile.auth !== null && profile.auth.user !== null && remoteEndpointSelect !== null &&
                     <Option label={'SETTINGS_HTTPS_ENDPOINT'}>
-                        <MultiselectMenu
-                            className={'multiselect'}
+                        <SettingsSelect
                             {...remoteEndpointSelect}
                         />
                     </Option>
@@ -64,8 +71,7 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
             {
                 cacheSizeSelect !== null &&
                     <Option label={'SETTINGS_SERVER_CACHE_SIZE'}>
-                        <MultiselectMenu
-                            className={'multiselect'}
+                        <SettingsSelect
                             {...cacheSizeSelect}
                         />
                     </Option>
@@ -73,8 +79,7 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
             {
                 torrentProfileSelect !== null &&
                     <Option label={'SETTINGS_SERVER_TORRENT_PROFILE'}>
-                        <MultiselectMenu
-                            className={'multiselect'}
+                        <SettingsSelect
                             {...torrentProfileSelect}
                         />
                     </Option>
@@ -82,8 +87,8 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
             {
                 fasterDownloads.available &&
                     <Option label={'SETTINGS_FASTER_DOWNLOADS'}>
-                        <Toggle
-                            className={styles['faster-downloads-toggle']}
+                        <SettingsSwitch
+                            className="ml-auto"
                             checked={fasterDownloads.enabled}
                             onClick={fasterDownloads.toggle}
                         />
@@ -92,8 +97,7 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
             {
                 transcodingProfileSelect !== null &&
                     <Option label={'SETTINGS_TRANSCODE_PROFILE'}>
-                        <MultiselectMenu
-                            className={'multiselect'}
+                        <SettingsSelect
                             {...transcodingProfileSelect}
                         />
                     </Option>
@@ -101,5 +105,7 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
         </Section>
     );
 });
+
+Streaming.displayName = 'Streaming';
 
 export default Streaming;

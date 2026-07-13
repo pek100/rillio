@@ -2,17 +2,19 @@
 
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './URLsManager.less';
-import { Button } from 'rillio/components';
+import Icon from '@stremio/stremio-icons/react';
+import { useProfile } from 'rillio/common';
+import { Button } from 'rillio/components/ui/button';
+import { RadioGroup } from 'rillio/components/ui/radio-group';
 import Item from './Item';
 import AddItem from './AddItem';
-import Icon from '@stremio/stremio-icons/react';
 import useStreamingServerUrls from './useStreamingServerUrls';
 
 const URLsManager = () => {
     const { t } = useTranslation();
+    const profile = useProfile();
     const [addMode, setAddMode] = useState(false);
-    const { streamingServerUrls, addServerUrl, reloadServer } = useStreamingServerUrls();
+    const { streamingServerUrls, addServerUrl, reloadServer, selectServerUrl } = useStreamingServerUrls();
 
     const onAdd = () => {
         setAddMode(true);
@@ -28,31 +30,47 @@ const URLsManager = () => {
     }, []);
 
     return (
-        <div className={styles['wrapper']}>
-            <div className={styles['header']}>
-                <div className={styles['label']}>{t('URL')}</div>
-                <div className={styles['label']}>{t('STATUS')}</div>
+        <div className="relative mb-8 flex w-full max-w-[35rem] flex-col">
+            <div className="flex items-center justify-between px-12">
+                <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-fg opacity-[0.62]">{t('URL')}</div>
+                <div className="pr-12 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-fg opacity-[0.62]">{t('STATUS')}</div>
             </div>
-            <div className={styles['content']}>
-                {
-                    streamingServerUrls.map((item: StreamingServerUrl) => (
-                        <Item key={item.url} {...item} />
-                    ))
-                }
+            <div className="flex flex-col gap-4 py-6">
+                <RadioGroup
+                    className="flex flex-col gap-4"
+                    value={profile.settings.streamingServerUrl}
+                    onValueChange={selectServerUrl}
+                >
+                    {
+                        streamingServerUrls.map((item: StreamingServerUrl) => (
+                            <Item key={item.url} url={item.url} />
+                        ))
+                    }
+                </RadioGroup>
                 {
                     addMode ?
                         <AddItem onCancel={onCancel} handleAddUrl={handleAddUrl} />
                         : null
                 }
             </div>
-            <div className={styles['footer']}>
-                <Button title={t('SETTINGS_SERVER_ADD_URL')} className={styles['add-url']} onClick={onAdd}>
-                    <Icon name={'add'} className={styles['icon']} />
+            <div className="flex justify-between">
+                <Button
+                    variant="ghost"
+                    title={t('SETTINGS_SERVER_ADD_URL')}
+                    onClick={onAdd}
+                    className="flex items-center justify-center gap-2 rounded-full bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
+                >
+                    <Icon name={'add'} className="size-4 text-fg" />
                     {t('SETTINGS_SERVER_ADD_URL')}
                 </Button>
-                <Button className={styles['reload']} title={t('RELOAD')} onClick={reloadServer}>
-                    <Icon name={'reset'} className={styles['icon']} />
-                    <div className={styles['label']}>{t('RELOAD')}</div>
+                <Button
+                    variant="ghost"
+                    title={t('RELOAD')}
+                    onClick={reloadServer}
+                    className="flex items-center justify-center gap-2 rounded-full bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
+                >
+                    <Icon name={'reset'} className="size-4 text-fg" />
+                    <div>{t('RELOAD')}</div>
                 </Button>
             </div>
         </div>

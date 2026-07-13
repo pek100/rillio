@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlatform } from 'rillio/common';
 import { Option, Section } from '../components';
-import styles from './Info.less';
 
 type Props = {
     streamingServer: StreamingServer,
@@ -18,21 +17,21 @@ const Info = ({ streamingServer }: Props) => {
     ), [streamingServer?.settings]);
 
     return (
-        <Section className={styles['info']}>
+        <Section className="hidden max-[1000px]:flex">
             <Option label={t('SETTINGS_APP_VERSION')}>
-                <div className={styles['label']}>
+                <div className="w-full truncate text-fg">
                     {process.env.VERSION}
                 </div>
             </Option>
             <Option label={t('SETTINGS_BUILD_VERSION')}>
-                <div className={styles['label']}>
+                <div className="w-full truncate text-fg">
                     {process.env.COMMIT_HASH}
                 </div>
             </Option>
             {
                 settings?.serverVersion &&
                     <Option label={t('SETTINGS_SERVER_VERSION')}>
-                        <div className={styles['label']}>
+                        <div className="w-full truncate text-fg">
                             {settings.serverVersion}
                         </div>
                     </Option>
@@ -40,7 +39,7 @@ const Info = ({ streamingServer }: Props) => {
             {
                 typeof shell.state.version === 'string' &&
                     <Option label={t('SETTINGS_SHELL_VERSION')}>
-                        <div className={styles['label']}>
+                        <div className="w-full truncate text-fg">
                             {shell.state.version}
                         </div>
                     </Option>
