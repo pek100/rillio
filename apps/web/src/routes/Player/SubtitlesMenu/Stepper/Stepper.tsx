@@ -1,10 +1,20 @@
+// Copyright (C) 2017-2026 Smart code 203358507
+
+/**
+ * Subtitle settings stepper (delay / size / vertical position). Composed on the kit
+ * IconButton (the same base the kit NumberStepper uses) rather than the standalone
+ * NumberStepper, because this variant keeps a header label ABOVE a full-width
+ * [- value +] row and shows "--" when no track is selected - neither of which the
+ * inline NumberStepper models. The press-and-hold repeat (250ms delay, 100ms interval)
+ * and min/max disable are preserved verbatim.
+ */
+
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
-import { Button } from 'rillio/components';
 import { useInterval, useTimeout } from 'rillio/common';
-import styles from './Stepper.less';
+import { IconButton } from 'rillio/components/ui';
+import { cn } from 'rillio/components/ui';
 
 const clamp = (value: number, min?: number, max?: number) => {
     const minClamped = typeof min === 'number' ? Math.max(value, min) : value;
@@ -13,16 +23,18 @@ const clamp = (value: number, min?: number, max?: number) => {
 };
 
 type Props = {
-    className: string,
-    label: string,
-    value: number,
-    unit?: string,
-    step: number,
-    min?: number,
-    max?: number,
-    disabled?: boolean,
-    onChange: (value: number) => void,
+    className?: string;
+    label: string;
+    value: number | null;
+    unit?: string;
+    step: number;
+    min?: number;
+    max?: number;
+    disabled?: boolean;
+    onChange: (value: number) => void;
 };
+
+const STEP_BUTTON = 'size-14 rounded-full bg-(--overlay-color) p-4 opacity-100 hover:bg-(--overlay-color) hover:opacity-100 hover:brightness-110 [&_svg]:size-6 [&_svg]:text-fg';
 
 const Stepper = ({ className, label, value, unit, step, min, max, disabled, onChange }: Props) => {
     const { t } = useTranslation();
@@ -50,7 +62,7 @@ const Stepper = ({ className, label, value, unit, step, min, max, disabled, onCh
     }, [disabled, value, unit]);
 
     const updateValue = useCallback((delta: number) => {
-        onChange(clamp(localValue.current + delta, min, max));
+        onChange(clamp((localValue.current as number) + delta, min, max));
     }, [onChange]);
 
     const onDecrementMouseDown = useCallback(() => {
@@ -78,30 +90,32 @@ const Stepper = ({ className, label, value, unit, step, min, max, disabled, onCh
     }, [value]);
 
     return (
-        <div className={classNames(styles['stepper'], className)}>
-            <div className={styles['header']}>
-                { t(label) }
+        <div className={cn('flex flex-col', className)}>
+            <div className={cn('mb-2 text-fg', disabled ? 'opacity-100' : 'opacity-60')}>
+                {t(label)}
             </div>
-            <div className={styles['content']}>
-                <Button
-                    className={classNames(styles['button'], { 'disabled': decreaseDisabled })}
+            <div className={cn('flex flex-row items-center rounded-full bg-(--overlay-color)', disabled && 'opacity-40')}>
+                <IconButton
+                    disabled={decreaseDisabled}
+                    className={STEP_BUTTON}
                     onMouseDown={onDecrementMouseDown}
                     onMouseUp={onDecrementMouseUp}
                     onMouseLeave={cancel}
                 >
-                    <Icon className={styles['icon']} name={'remove'} />
-                </Button>
-                <div className={styles['value']}>
-                    { valueLabel }
+                    <Icon name={'remove'} />
+                </IconButton>
+                <div className={'flex-1 text-center font-medium text-fg'}>
+                    {valueLabel}
                 </div>
-                <Button
-                    className={classNames(styles['button'], { 'disabled': increaseDisabled })}
+                <IconButton
+                    disabled={increaseDisabled}
+                    className={STEP_BUTTON}
                     onMouseDown={onIncrementMouseDown}
                     onMouseUp={onIncrementMouseUp}
                     onMouseLeave={cancel}
                 >
-                    <Icon className={styles['icon']} name={'add'} />
-                </Button>
+                    <Icon name={'add'} />
+                </IconButton>
             </div>
         </div>
     );

@@ -7,12 +7,6 @@
     active-slider-within: active-slider-within;
 }
 
-:import('~rillio/components/NavBar/HorizontalNavBar/styles.less') {
-    nav-bar-button-container: button-container;
-    nav-bar-title: title;
-    nav-bar-icon: icon;
-}
-
 @background-color: rgba(0, 0, 0, 1);
 
 html:not(.active-slider-within) {
@@ -72,20 +66,6 @@ html:not(.active-slider-within) {
                 background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0%, transparent 100%);
                 pointer-events: none;
             }
-
-            .nav-bar-button-container {
-                &:hover {
-                    background: transparent;
-                }
-
-                .nav-bar-icon {
-                    color: var(--primary-foreground-color);
-                }
-            }
-
-            .nav-bar-title {
-                color: var(--primary-foreground-color);
-            }
         }
 
         &.side-drawer-button-layer {
@@ -135,13 +115,6 @@ html:not(.active-slider-within) {
             box-shadow: var(--outer-glow);
             backdrop-filter: blur(15px);
             overflow: auto;
-        }
-
-        &.side-drawer-layer {
-            bottom: 0;
-            right: 0;
-            left: initial;
-            bottom: initial;
         }
     }
 }

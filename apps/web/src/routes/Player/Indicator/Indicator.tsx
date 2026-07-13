@@ -1,9 +1,17 @@
+// Copyright (C) 2017-2026 Smart code 203358507
+
+/**
+ * Transient on-screen HUD that flashes a property change (subtitle delay / video
+ * scale) for ~1s then fades. Diff-driven off videoState; the ignore-first-value and
+ * 1s auto-hide are preserved. Restyled onto Tailwind tokens; the app's Transition
+ * fade primitive is kept (its batched migration to motion is out of scope here).
+ */
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { t } from 'i18next';
 import { Transition } from 'rillio/components';
 import { useBinaryState } from 'rillio/common';
-import styles from './Indicator.less';
 
 type Property = {
     label: string,
@@ -19,7 +27,7 @@ const VIDEO_SCALE_KEYS: Record<string, string> = {
 const PROPERTIES: Record<string, Property> = {
     'extraSubtitlesDelay': {
         label: 'SUBTITLES_DELAY',
-        format: (value) => `${(value / 1000).toFixed(2)}s`,
+        format: (value) => `${((value as number) / 1000).toFixed(2)}s`,
     },
     'videoScale': {
         label: 'VIDEO_SCALE',
@@ -36,7 +44,7 @@ type Props = {
 };
 
 const Indicator = ({ className, videoState, disabled }: Props) => {
-    const timeout = useRef<NodeJS.Timeout | null>(null);
+    const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const prevVideoState = useRef<VideoState>(videoState);
     const initialized = useRef<Set<string>>(new Set());
 
@@ -77,8 +85,8 @@ const Indicator = ({ className, videoState, disabled }: Props) => {
 
     return (
         <Transition when={shown && !disabled} name={'fade'} duration={300}>
-            <div className={classNames(className, styles['indicator-container'])}>
-                <div className={styles['indicator']}>
+            <div className={classNames(className, 'absolute flex h-16 select-none items-center justify-center')}>
+                <div className={'relative flex h-full flex-none items-center justify-center rounded-full bg-(--modal-background-color) px-8 text-center font-bold text-fg'}>
                     <div>{label} {value}</div>
                 </div>
             </div>

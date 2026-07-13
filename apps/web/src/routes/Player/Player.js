@@ -13,7 +13,8 @@ const { useServices, useGamepad } = require('rillio/services');
 const { useContentGamepadNavigation } = require('rillio/services/GamepadNavigation');
 const { useSettings, useProfile, useFullscreen, useBinaryState, useToast, useStreamingServer, withCoreSuspender, usePlatform, onShortcut, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } = require('rillio/common');
 const { default: toPath } = require('rillio-router/toPath');
-const { HorizontalNavBar, Transition, ContextMenu } = require('rillio/components');
+const { Transition, ContextMenu } = require('rillio/components');
+const { default: TopBar } = require('./TopBar');
 const { default: Buffering } = require('./Buffering');
 const VolumeChangeIndicator = require('./VolumeChangeIndicator');
 const Error = require('./Error');
@@ -968,10 +969,9 @@ const Player = () => {
                     selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
                 />
             </ContextMenu>
-            <HorizontalNavBar
+            <TopBar
                 className={classnames(styles['layer'], styles['nav-bar-layer'])}
                 title={player.title !== null ? player.title : ''}
-                backButton={true}
                 hdrInfo={video.state.hdrInfo}
                 onMouseMove={onBarMouseMove}
                 onMouseOver={onBarMouseMove}
@@ -1055,15 +1055,18 @@ const Player = () => {
                     details={statisticsDetails}
                 />
             </Transition>
-            <Transition when={sideDrawerOpen} name={'slide-left'}>
-                <SideDrawer
-                    className={classnames(styles['layer'], styles['side-drawer-layer'])}
-                    metaItem={player.metaItem?.content}
-                    seriesInfo={player.seriesInfo}
-                    closeSideDrawer={closeSideDrawer}
-                    selected={player.selected?.streamRequest?.path?.id}
-                />
-            </Transition>
+            {
+                player.metaItem?.type === 'Ready' ?
+                    <SideDrawer
+                        open={sideDrawerOpen}
+                        onClose={closeSideDrawer}
+                        metaItem={player.metaItem?.content}
+                        seriesInfo={player.seriesInfo}
+                        selected={player.selected?.streamRequest?.path?.id}
+                    />
+                    :
+                    null
+            }
             <Transition when={subtitlesMenuOpen} name={'fade'}>
                 <SubtitlesMenu
                     className={classnames(styles['layer'], styles['menu-layer'])}

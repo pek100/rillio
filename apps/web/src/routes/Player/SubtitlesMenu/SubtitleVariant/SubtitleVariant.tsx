@@ -1,12 +1,20 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
+/**
+ * A selectable subtitle-variant row plus its right-click actions. Restyled onto
+ * Tailwind tokens + the kit Button. The right-click menu keeps the shared rillio
+ * ContextMenu (its multi-ref `on` + `lock` anchoring has no clean Radix equivalent
+ * and lives outside this fence); only its item contents are re-skinned. The
+ * embedded-track guard, download/copy actions and toast feedback are preserved.
+ */
+
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContextMenu } from 'rillio/components';
+import { ContextMenu } from 'rillio/components';
+import { Button } from 'rillio/components/ui';
 import { languages, useToast } from 'rillio/common';
-import classNames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
-import styles from './SubtitleVariant.less';
+import { cn } from 'rillio/components/ui';
 
 type SubtitlesTrack = {
     id: string,
@@ -28,6 +36,8 @@ type Props = {
 };
 
 const hasValidLabel = (label?: string) => label && label.length > 0 && !label.startsWith('http');
+
+const CTX_OPTION = 'flex min-w-64 flex-row items-center justify-start gap-4 rounded-none px-6 py-5 hover:bg-surface-hover';
 
 const SubtitleVariant = ({ track, selected, onSelect }: Props) => {
     const { t } = useTranslation();
@@ -68,31 +78,36 @@ const SubtitleVariant = ({ track, selected, onSelect }: Props) => {
     return (
         <Button
             ref={buttonRef}
+            variant={'ghost'}
             title={hoverTitle}
             onClick={onSelectClick}
-            className={classNames(styles['variant-option'], { 'selected': selected })}
+            className={cn(
+                'mb-2 flex h-16 w-full flex-row items-center rounded-card px-6 hover:bg-surface-hover',
+                selected && 'bg-accent-soft',
+            )}
         >
-            <div className={styles['info']}>
-                <div className={styles['variant-label']}>
+            <div className={'flex flex-1 flex-col gap-1'}>
+                <div className={'flex-1 truncate text-[1.1rem] leading-6 text-fg'}>
                     {variantLabel}
                 </div>
-                <div className={styles['variant-origin']}>
+                <div className={'truncate text-[0.9rem] text-fg-muted'}>
                     {t(track.origin)}
                 </div>
             </div>
-            {selected ? <div className={styles['icon']} /> : null}
+            {selected ? <div className={'ml-4 size-2 flex-none rounded-full bg-primary'} /> : null}
             {!track.embedded &&
                 <ContextMenu on={triggers} autoClose={true} lock={'bottom'}>
                     {downloadUrl ?
                         <Button
-                            className={styles['context-menu-option']}
+                            variant={'ghost'}
+                            className={CTX_OPTION}
                             title={t('CTX_DOWNLOAD_SUBTITLE')}
                             href={downloadUrl}
                             target={'_blank'}
                             download={downloadFileName}
                         >
-                            <Icon className={styles['menu-icon']} name={'download'} />
-                            <div className={styles['context-menu-option-label']}>
+                            <Icon className={'size-[1.4rem] flex-none text-fg-muted'} name={'download'} />
+                            <div className={'min-w-0 flex-1 truncate text-left font-normal text-fg'}>
                                 {t('CTX_DOWNLOAD_SUBTITLE')}
                             </div>
                         </Button>
@@ -101,12 +116,13 @@ const SubtitleVariant = ({ track, selected, onSelect }: Props) => {
                     }
                     {canCopyUrl ?
                         <Button
-                            className={styles['context-menu-option']}
+                            variant={'ghost'}
+                            className={CTX_OPTION}
                             title={t('CTX_COPY_SUBTITLE_URL')}
                             onClick={onCopyUrlClick}
                         >
-                            <Icon className={styles['menu-icon']} name={'link'} />
-                            <div className={styles['context-menu-option-label']}>
+                            <Icon className={'size-[1.4rem] flex-none text-fg-muted'} name={'link'} />
+                            <div className={'min-w-0 flex-1 truncate text-left font-normal text-fg'}>
                                 {t('CTX_COPY_SUBTITLE_URL')}
                             </div>
                         </Button>
@@ -115,12 +131,13 @@ const SubtitleVariant = ({ track, selected, onSelect }: Props) => {
                     }
                     {track.addonSubtitleId ?
                         <Button
-                            className={styles['context-menu-option']}
+                            variant={'ghost'}
+                            className={CTX_OPTION}
                             title={t('CTX_COPY_SUBTITLE_ID')}
                             onClick={onCopyIdClick}
                         >
-                            <Icon className={styles['menu-icon']} name={'share'} />
-                            <div className={styles['context-menu-option-label']}>
+                            <Icon className={'size-[1.4rem] flex-none text-fg-muted'} name={'share'} />
+                            <div className={'min-w-0 flex-1 truncate text-left font-normal text-fg'}>
                                 {t('CTX_COPY_SUBTITLE_ID')}
                             </div>
                         </Button>

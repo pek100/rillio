@@ -1,5 +1,5 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2026 Smart code 203358507
 
-const SpeedMenu = require('./SpeedMenu');
+const SpeedMenu = require('./SpeedMenu').default;
 
 module.exports = SpeedMenu;

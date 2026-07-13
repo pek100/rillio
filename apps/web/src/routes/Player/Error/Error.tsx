@@ -1,17 +1,31 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const { useTranslation } = require('react-i18next');
-const PropTypes = require('prop-types');
-const classNames = require('classnames');
-const { default: Icon } = require('@stremio/stremio-icons/react');
-const { Button } = require('rillio/components');
-const styles = require('./styles');
+/**
+ * Player error overlay. Restyled onto Tailwind tokens + the kit Button. The code===2
+ * external-player hint, the "Try a different source" accent pill, the disk-full
+ * "Free up space" (#/cached) CTA and the external-playlist download button are all
+ * preserved exactly.
+ */
 
-const Error = React.forwardRef(({ className, code, message, stream, freeSpace, onTryDifferentSource }, ref) => {
+import React, { forwardRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import Icon from '@stremio/stremio-icons/react';
+import { Button } from 'rillio/components/ui';
+import { cn } from 'rillio/components/ui';
+
+type Props = {
+    className?: string;
+    code?: number;
+    message?: string;
+    stream?: any;
+    freeSpace?: boolean;
+    onTryDifferentSource?: () => void;
+};
+
+const Error = forwardRef<HTMLDivElement, Props>(function Error({ className, code, message, stream, freeSpace, onTryDifferentSource }, ref) {
     const { t } = useTranslation();
 
-    const [playlist, fileName] = React.useMemo(() => {
+    const [playlist, fileName] = useMemo(() => {
         return [
             stream?.deepLinks?.externalPlayer?.playlist,
             stream?.deepLinks?.externalPlayer?.fileName,
@@ -19,11 +33,11 @@ const Error = React.forwardRef(({ className, code, message, stream, freeSpace, o
     }, [stream]);
 
     return (
-        <div ref={ref} className={classNames(className, styles['error'])}>
-            <div className={styles['error-label']} title={message}>{message}</div>
+        <div ref={ref} className={cn('flex flex-col items-center justify-center', className)}>
+            <div className={'max-h-[4.8em] flex-[0_1_auto] px-32 text-center text-[2rem] text-fg'} title={message}>{message}</div>
             {
                 code === 2 ?
-                    <div className={styles['error-sub']} title={t('EXTERNAL_PLAYER_HINT')}>{t('EXTERNAL_PLAYER_HINT')}</div>
+                    <div className={'mt-[0.8rem] max-h-[4.8em] flex-[0_1_auto] px-8 text-center text-[1.3rem] text-fg'} title={t('EXTERNAL_PLAYER_HINT')}>{t('EXTERNAL_PLAYER_HINT')}</div>
                     :
                     null
             }
@@ -60,14 +74,14 @@ const Error = React.forwardRef(({ className, code, message, stream, freeSpace, o
             {
                 playlist && fileName ?
                     <Button
-                        className={styles['playlist-button']}
                         title={t('PLAYER_OPEN_IN_EXTERNAL')}
                         href={playlist}
                         download={fileName}
                         target={'_blank'}
+                        className={'mt-6 flex h-14 flex-row items-center rounded-full bg-accent px-8 transition hover:brightness-110 active:scale-[0.97]'}
                     >
-                        <Icon className={styles['icon']} name={'download'} />
-                        <div className={styles['label']}>{t('PLAYER_OPEN_IN_EXTERNAL')}</div>
+                        <Icon className={'mr-4 size-6 flex-none text-fg'} name={'download'} />
+                        <div className={'max-h-[2.4em] flex-1 text-center text-[1.1rem] font-medium text-fg'}>{t('PLAYER_OPEN_IN_EXTERNAL')}</div>
                     </Button>
                     :
                     null
@@ -76,13 +90,4 @@ const Error = React.forwardRef(({ className, code, message, stream, freeSpace, o
     );
 });
 
-Error.propTypes = {
-    className: PropTypes.string,
-    code: PropTypes.number,
-    message: PropTypes.string,
-    stream: PropTypes.object,
-    freeSpace: PropTypes.bool,
-    onTryDifferentSource: PropTypes.func,
-};
-
-module.exports = Error;
+export default Error;

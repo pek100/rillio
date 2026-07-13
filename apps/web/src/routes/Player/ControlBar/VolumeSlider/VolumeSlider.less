@@ -1,6 +1,8 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2026 Smart code 203358507
 
-@import (reference) '~@stremio/stremio-colors/less/stremio-colors.less';
+// The volume slider keeps the shared rillio Slider (audioBoost >100% zone). Its
+// track / filled-track / thumb colors live on the Slider's own CSS-module classes,
+// which Tailwind cannot reach from here, so this tiny module themes them via :import.
 
 :import('~rillio/components/Slider/styles.less') {
     slider-track: track;
@@ -15,11 +17,11 @@
     }
 
     .slider-track-after {
-        background-color: var(--primary-foreground-color);
+        background-color: var(--color-fg);
     }
 
     .slider-thumb {
-        background-color: var(--primary-foreground-color);
+        background-color: var(--color-fg);
         transition: transform 150ms ease;
 
         &:after {
@@ -36,7 +38,7 @@
 
     &:hover, &:global(.active) {
         .slider-track-after {
-            background-color: var(--primary-foreground-color);
+            background-color: var(--color-fg);
         }
 
         .slider-thumb {

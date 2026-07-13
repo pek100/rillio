@@ -1,21 +1,62 @@
-// Copyright (C) 2017-2023 Smart code 203358507
+// Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const PropTypes = require('prop-types');
-const classnames = require('classnames');
-const { useTranslation } = require('react-i18next');
-const { useCore } = require('rillio/core');
-const { usePlatform, useToast } = require('rillio/common');
-const useCacheDownload = require('rillio/common/useCacheDownload');
-const Option = require('./Option');
-const styles = require('./styles');
+/**
+ * Player options action list. Used TWO ways by Player.js: as a state-driven floating
+ * menu-layer AND as the right-click-over-video content inside the shared rillio
+ * ContextMenu. Restyled onto Tailwind tokens + the kit Button; every conditional row,
+ * clipboard/toast flow, cache-download and PlayOnDevice dispatch is preserved verbatim.
+ */
 
-const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDevices, extraSubtitlesTracks, selectedExtraSubtitlesTrackId }, ref) => {
+import React, { forwardRef, memo, ReactNode, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import Icon from '@stremio/stremio-icons/react';
+import { useCore } from 'rillio/core';
+import { usePlatform, useToast } from 'rillio/common';
+import useCacheDownload from 'rillio/common/useCacheDownload';
+import { Button } from 'rillio/components/ui';
+import { cn } from 'rillio/components/ui';
+
+type OptionProps = {
+    icon: string;
+    label: ReactNode;
+    deviceId?: string;
+    disabled?: boolean;
+    onClick?: (deviceId?: string) => void;
+};
+
+const Option = ({ icon, label, deviceId, disabled, onClick }: OptionProps) => {
+    const onButtonClick = useCallback(() => {
+        if (typeof onClick === 'function') {
+            onClick(deviceId);
+        }
+    }, [onClick, deviceId]);
+    return (
+        <Button
+            variant={'ghost'}
+            disabled={disabled}
+            onClick={onButtonClick}
+            className={'mb-2 flex h-14 w-full flex-row items-center justify-start rounded-card px-4 last:mb-0 hover:bg-surface-hover'}
+        >
+            <Icon className={'mr-4 size-[1.4rem] flex-none text-fg'} name={icon} />
+            <div className={'max-h-[2.4em] flex-1 text-left font-normal text-fg'}>{label}</div>
+        </Button>
+    );
+};
+
+type Props = {
+    className?: string;
+    stream?: any;
+    playbackDevices?: Array<{ id: string; name: string; type: string }>;
+    extraSubtitlesTracks?: Array<{ id: string; url?: string; fallbackUrl?: string }>;
+    selectedExtraSubtitlesTrackId?: string;
+};
+
+const OptionsMenu = memo(forwardRef<HTMLDivElement, Props>(function OptionsMenu({ className, stream, playbackDevices = [], extraSubtitlesTracks, selectedExtraSubtitlesTrackId }, ref) {
     const { t } = useTranslation();
     const core = useCore();
     const platform = usePlatform();
     const toast = useToast();
-    const [streamingUrl, downloadUrl, magnetUrl] = React.useMemo(() => {
+    const [streamingUrl, downloadUrl, magnetUrl] = useMemo(() => {
         return stream !== null ?
             stream.deepLinks &&
             stream.deepLinks.externalPlayer &&
@@ -27,16 +68,16 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
             :
             [null, null, null];
     }, [stream]);
-    const externalDevices = React.useMemo(() => {
+    const externalDevices = useMemo(() => {
         return playbackDevices.filter(({ type }) => type === 'external');
     }, [playbackDevices]);
 
-    const subtitlesTrackUrl = React.useMemo(() => {
+    const subtitlesTrackUrl = useMemo(() => {
         const track = extraSubtitlesTracks?.find(({ id }) => id === selectedExtraSubtitlesTrackId);
         return track?.fallbackUrl ?? track?.url ?? null;
     }, [extraSubtitlesTracks, selectedExtraSubtitlesTrackId]);
 
-    const onCopyStreamButtonClick = React.useCallback(() => {
+    const onCopyStreamButtonClick = useCallback(() => {
         if (streamingUrl || downloadUrl) {
             navigator.clipboard.writeText(streamingUrl || downloadUrl)
                 .then(() => {
@@ -44,7 +85,7 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
                         type: 'success',
                         title: 'Copied',
                         message: t('PLAYER_COPY_STREAM_SUCCESS'),
-                        timeout: 3000
+                        timeout: 3000,
                     });
                 })
                 .catch((e) => {
@@ -53,12 +94,12 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
                         type: 'error',
                         title: t('ERROR'),
                         message: `${t('PLAYER_COPY_STREAM_ERROR')}: ${streamingUrl || downloadUrl}`,
-                        timeout: 3000
+                        timeout: 3000,
                     });
                 });
         }
     }, [streamingUrl, downloadUrl]);
-    const onCopyMagnetButtonClick = React.useCallback(() => {
+    const onCopyMagnetButtonClick = useCallback(() => {
         if (magnetUrl) {
             navigator.clipboard.writeText(magnetUrl)
                 .then(() => {
@@ -66,7 +107,7 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
                         type: 'success',
                         title: 'Copied',
                         message: t('PLAYER_COPY_MAGNET_LINK_SUCCESS'),
-                        timeout: 3000
+                        timeout: 3000,
                     });
                 })
                 .catch((e) => {
@@ -75,27 +116,27 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
                         type: 'error',
                         title: t('Error'),
                         message: `${t('PLAYER_COPY_MAGNET_LINK_ERROR')}: ${magnetUrl}`,
-                        timeout: 3000
+                        timeout: 3000,
                     });
                 });
         }
     }, [magnetUrl]);
-    const onDownloadVideoButtonClick = React.useCallback(() => {
+    const onDownloadVideoButtonClick = useCallback(() => {
         if (downloadUrl) {
             platform.openExternal(downloadUrl);
         }
     }, [downloadUrl]);
 
     const downloadToCache = useCacheDownload();
-    const onKeepInCacheClick = React.useCallback(() => {
+    const onKeepInCacheClick = useCallback(() => {
         downloadToCache(stream);
     }, [downloadToCache, stream]);
 
-    const onDownloadSubtitlesClick = React.useCallback(() => {
+    const onDownloadSubtitlesClick = useCallback(() => {
         subtitlesTrackUrl && platform.openExternal(subtitlesTrackUrl);
     }, [subtitlesTrackUrl]);
 
-    const onExternalDeviceRequested = React.useCallback((deviceId) => {
+    const onExternalDeviceRequested = useCallback((deviceId?: string) => {
         if (streamingUrl) {
             core.transport.dispatch({
                 action: 'StreamingServer',
@@ -104,17 +145,17 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
                     args: {
                         device: deviceId,
                         source: streamingUrl,
-                    }
-                }
+                    },
+                },
             });
         }
     }, [streamingUrl]);
-    const onMouseDown = React.useCallback((event) => {
-        event.nativeEvent.optionsMenuClosePrevented = true;
+    const onMouseDown = useCallback((event: React.MouseEvent) => {
+        (event.nativeEvent as any).optionsMenuClosePrevented = true;
     }, []);
 
     return (
-        <div ref={ref} className={classnames(className, styles['options-menu-container'])} onMouseDown={onMouseDown}>
+        <div ref={ref} className={cn('w-64 p-4', className)} onMouseDown={onMouseDown}>
             {
                 streamingUrl || downloadUrl ?
                     <Option
@@ -186,12 +227,4 @@ const OptionsMenu = React.memo(React.forwardRef(({ className, stream, playbackDe
     );
 }));
 
-OptionsMenu.propTypes = {
-    className: PropTypes.string,
-    stream: PropTypes.object,
-    playbackDevices: PropTypes.array,
-    extraSubtitlesTracks: PropTypes.array,
-    selectedExtraSubtitlesTrackId: PropTypes.string,
-};
-
-module.exports = OptionsMenu;
+export default OptionsMenu;
