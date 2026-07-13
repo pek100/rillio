@@ -28,12 +28,12 @@ const Table = ({ items, selected, monthInfo, onChange }: Props) => {
     }, [monthInfo]);
 
     return (
-        <div className={'relative flex flex-auto flex-col'}>
-            <div className={'relative grid h-12 w-full flex-none grid-cols-7 items-center'}>
+        <div className={'flex flex-auto flex-col'}>
+            <div className={'grid h-12 w-full flex-none grid-cols-7 items-center'}>
                 {
                     WEEK_DAYS.map((day) => (
                         <div
-                            className={'relative overflow-hidden text-ellipsis whitespace-nowrap p-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-fg-muted'}
+                            className={'overflow-hidden text-ellipsis whitespace-nowrap p-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-fg-muted'}
                             key={day}
                         >
                             <span className={'block max-[1000px]:hidden'}>
@@ -46,7 +46,7 @@ const Table = ({ items, selected, monthInfo, onChange }: Props) => {
                     ))
                 }
             </div>
-            <div className={'relative grid h-full w-full flex-auto auto-rows-fr grid-cols-7 gap-px'}>
+            <div className={'grid h-full w-full flex-auto auto-rows-fr grid-cols-7 gap-px'}>
                 {
                     cellsOffset.map((day) => (
                         <span key={day} />

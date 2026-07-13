@@ -23,23 +23,23 @@ const Details = ({ selected, items }: Props) => {
     }, [selected, items]);
 
     return (
-        <div className={'relative'}>
+        <div>
             {
                 videos.map(({ id, name, season, episode, deepLinks }) => (
                     <Button
                         key={id}
                         variant={'ghost'}
-                        className={'group relative flex h-16 w-full flex-none flex-row items-center justify-between gap-4 rounded-none px-6 py-0 text-sm font-medium text-fg active:bg-surface-hover'}
+                        className={'group flex h-16 w-full flex-none flex-row items-center justify-between gap-4 rounded-none px-6 py-0 text-sm font-medium text-fg active:bg-surface-hover'}
                         href={deepLinks.metaDetailsStreams}
                     >
                         <div className={'min-w-0 flex-auto overflow-hidden text-ellipsis whitespace-nowrap text-left'}>
                             {name}
                         </div>
-                        <div className={'block flex-none text-fg-muted'}>
+                        <div className={'flex-none text-fg-muted'}>
                             S{season}E{episode}
                         </div>
                         <Play
-                            className={'h-8 w-8 flex-none rounded-full p-2 text-fg transition-[background-color,color] duration-150 ease-smooth group-hover:bg-accent group-hover:text-bg group-active:bg-accent group-active:text-bg'}
+                            className={'size-8 flex-none rounded-full p-2 text-fg transition-[background-color,color] duration-150 ease-smooth group-hover:bg-accent group-hover:text-bg group-active:bg-accent group-active:text-bg'}
                         />
                     </Button>
                 ))

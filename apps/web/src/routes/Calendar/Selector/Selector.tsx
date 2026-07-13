@@ -19,7 +19,7 @@ type Props = {
     profile: Profile,
 };
 
-const NAV_BUTTON = 'relative flex h-10 w-24 flex-row items-center justify-between gap-2 rounded-full px-0 py-0 text-sm font-medium text-fg-muted hover:text-fg active:scale-[0.97]';
+const NAV_BUTTON = 'flex h-10 w-24 items-center justify-between p-0 text-sm font-medium text-fg-muted hover:text-fg active:scale-[0.97]';
 
 const Selector = ({ selected, selectable, profile }: Props) => {
     const { toMonth } = useCalendarDate(profile);
@@ -38,14 +38,14 @@ const Selector = ({ selected, selectable, profile }: Props) => {
     }, [next]);
 
     return (
-        <div className={'relative flex flex-none items-center justify-center gap-4 px-4 max-[1300px]:justify-between'}>
+        <div className={'flex flex-none items-center justify-center gap-4 px-4 max-[1300px]:justify-between'}>
             <Button variant={'ghost'} className={`${NAV_BUTTON} pl-2 pr-5`} onClick={onPrev}>
-                <ChevronLeft className={'h-4 w-4'} />
+                <ChevronLeft className={'size-4'} />
                 <div className={'overflow-hidden text-ellipsis whitespace-nowrap'}>
                     {toMonth(prev, 'short')}
                 </div>
             </Button>
-            <div className={'relative w-[8.5rem] text-center'}>
+            <div className={'w-[8.5rem] text-center'}>
                 <div className={'text-xs font-semibold leading-none tracking-[0.06em] text-fg-muted'}>
                     {selected?.year}
                 </div>
@@ -57,7 +57,7 @@ const Selector = ({ selected, selectable, profile }: Props) => {
                 <div className={'overflow-hidden text-ellipsis whitespace-nowrap'}>
                     {toMonth(next, 'short')}
                 </div>
-                <ChevronRight className={'h-4 w-4'} />
+                <ChevronRight className={'size-4'} />
             </Button>
         </div>
     );

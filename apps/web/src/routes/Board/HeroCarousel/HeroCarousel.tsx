@@ -84,7 +84,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                         <img
                             key={it.id || i}
                             className={cn(
-                                'absolute inset-0 h-full w-full object-cover object-[center_25%] opacity-0 transition-opacity duration-700 ease-[var(--ease-smooth)]',
+                                'absolute inset-0 h-full w-full object-cover object-[center_25%] opacity-0 transition-opacity duration-700 ease-smooth',
                                 i === index && 'opacity-100',
                             )}
                             src={it.background || it.poster || ''}
@@ -95,7 +95,7 @@ const HeroCarousel = ({ className, items }: Props) => {
             </div>
             <div className="pointer-events-none absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
 
-            <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(34rem,40%)] flex-col items-start gap-4 overflow-visible">
+            <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(34rem,40%)] flex-col items-start gap-4">
                 {
                     typeof item.logo === 'string' && item.logo.length > 0 ?
                         <img className="block max-h-28 max-w-[22rem] object-contain object-[left_bottom]" src={item.logo} alt={item.name} />
@@ -108,16 +108,16 @@ const HeroCarousel = ({ className, items }: Props) => {
                         :
                         null
                 }
-                <div className="flex flex-row items-center gap-3 overflow-visible">
+                <div className="flex flex-row items-center gap-3">
                     {
                         watchHref ?
                             <Button
                                 variant="default"
-                                className="h-11 gap-2 rounded-full px-6 text-[0.95rem] font-bold"
+                                className="h-11 px-6 text-[0.95rem] font-bold"
                                 href={watchHref}
                                 title={t('WATCH_NOW')}
                             >
-                                <Play className="h-[1.1rem] w-[1.1rem]" />
+                                <Play className="size-[1.1rem]" />
                                 <div className="whitespace-nowrap">{t('WATCH_NOW')}</div>
                             </Button>
                             :
@@ -127,7 +127,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                         infoHref ?
                             <Button
                                 variant="outline"
-                                className="h-11 gap-2 rounded-full bg-surface px-6 text-[0.95rem] font-bold"
+                                className="h-11 bg-surface px-6 text-[0.95rem] font-bold"
                                 href={infoHref}
                                 title={t('MORE_INFO')}
                             >
@@ -180,14 +180,14 @@ const HeroCarousel = ({ className, items }: Props) => {
 
             {
                 count > 1 ?
-                    <div className="absolute bottom-8 right-8 z-[2] flex flex-row items-center gap-[0.4rem] overflow-visible">
+                    <div className="absolute bottom-8 right-8 z-[2] flex flex-row items-center gap-[0.4rem]">
                         {
                             items.map((it, i) => (
                                 <Button
                                     key={it.id || i}
                                     variant="ghost"
                                     className={cn(
-                                        'h-2 flex-none rounded-full p-0 transition-[width,background-color] duration-150 ease-[var(--ease-smooth)]',
+                                        'h-2 flex-none p-0 transition-[width,background-color] duration-150 ease-smooth',
                                         i === index ? 'w-6 bg-accent' : 'w-2 bg-white/[0.28] hover:bg-white/[0.5]',
                                     )}
                                     title={it.name}

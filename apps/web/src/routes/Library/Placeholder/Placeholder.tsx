@@ -16,7 +16,7 @@ const Placeholder = () => {
     const { t } = useTranslation();
 
     return (
-        <div className="relative flex min-h-full w-full flex-col items-center justify-center overflow-y-auto max-[1000px]:px-8 max-[1000px]:py-4 max-[640px]:px-8 max-[640px]:py-4">
+        <div className="flex min-h-full w-full flex-col items-center justify-center overflow-y-auto max-[1000px]:px-8 max-[1000px]:py-4">
             <div className="mb-4 text-center text-[1.75rem] font-semibold text-fg opacity-50 max-[1000px]:mb-0">
                 {t('LIBRARY_NOT_LOGGED_IN')}
             </div>
