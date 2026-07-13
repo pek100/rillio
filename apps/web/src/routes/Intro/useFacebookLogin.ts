@@ -4,10 +4,15 @@ import { useCallback, useEffect, useRef } from 'react';
 import hat from 'hat';
 import { usePlatform } from 'rillio/common';
 
+type FacebookLoginResponse = {
+    email: string;
+    password: string;
+};
+
 const STREMIO_URL = 'https://www.strem.io';
 const MAX_TRIES = 25;
 
-const getCredentials = async (state: string) => {
+const getCredentials = async (state: string): Promise<FacebookLoginResponse> => {
     try {
         const response = await fetch(`${STREMIO_URL}/login-fb-get-acc/${state}`);
         const { user } = await response.json();
@@ -22,12 +27,12 @@ const getCredentials = async (state: string) => {
     }
 };
 
-const useFacebookLogin = () => {
+const useFacebookLogin = (): [() => Promise<FacebookLoginResponse>, () => void] => {
     const platform = usePlatform();
     const started = useRef(false);
     const timeout = useRef<NodeJS.Timeout | null>(null);
 
-    const start = useCallback(() => new Promise((resolve, reject) => {
+    const start = useCallback(() => new Promise<FacebookLoginResponse>((resolve, reject) => {
         started.current = true;
         const state = hat(128);
         let tries = 0;
@@ -68,4 +73,4 @@ const useFacebookLogin = () => {
     ];
 };
 
-module.exports = useFacebookLogin;
+export default useFacebookLogin;

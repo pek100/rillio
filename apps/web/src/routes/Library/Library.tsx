@@ -34,12 +34,12 @@ import {
 import { ToggleGroup, ToggleGroupItem } from 'rillio/components/ui/toggle-group';
 import HorizontalScroll from 'rillio/components/HorizontalScroll';
 
-const NotFound = require('rillio/routes/NotFound');
+const NotFound = require('rillio/routes/NotFound').default;
 const { useProfile, useNotifications, useOnScrollToBottom, withCoreSuspender } = require('rillio/common');
 const toPath = require('rillio-router/toPath').default;
 const { DelayedRenderer, EmptyState, MainNavBars, LibItem } = require('rillio/components');
-const useLibrary = require('./useLibrary');
-const useSelectableInputs = require('./useSelectableInputs');
+const useLibrary = require('./useLibrary').default;
+const useSelectableInputs = require('./useSelectableInputs').default;
 
 const SCROLL_TO_BOTTOM_TRESHOLD = 400;
 

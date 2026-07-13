@@ -19,7 +19,7 @@ const debounce = require('lodash.debounce');
 const useTranslate = require('rillio/common/useTranslate');
 const { withCoreSuspender, getVisibleChildrenRange } = require('rillio/common');
 const { MainNavBars, CatalogRows, EmptyState } = require('rillio/components');
-const useSearch = require('./useSearch');
+const useSearch = require('./useSearch').default;
 
 const THRESHOLD = 100;
 

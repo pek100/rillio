@@ -23,8 +23,8 @@ import { Dialog, DialogContent, DialogTitle } from 'rillio/components/ui/dialog'
 import { Select, SelectTrigger, SelectContent, SelectItem } from 'rillio/components/ui/select';
 const { CONSTANTS, useBinaryState, useOnScrollToBottom, withCoreSuspender } = require('rillio/common');
 const { AddonDetailsModal, DelayedRenderer, EmptyState, MainNavBars, MetaItem } = require('rillio/components');
-const useDiscover = require('./useDiscover');
-const useSelectableInputs = require('./useSelectableInputs');
+const useDiscover = require('./useDiscover').default;
+const useSelectableInputs = require('./useSelectableInputs').default;
 
 const SCROLL_TO_BOTTOM_THRESHOLD = 400;
 

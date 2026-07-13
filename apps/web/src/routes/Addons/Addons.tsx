@@ -34,10 +34,10 @@ import { AddonDetailsModal, Image, SearchBar, SharePrompt } from 'rillio/compone
 import Addon from './Addon';
 import { AddonPlaceholder } from './AddonPlaceholder';
 
-const useInstalledAddons = require('./useInstalledAddons');
-const useRemoteAddons = require('./useRemoteAddons');
-const useAddonDetailsTransportUrl = require('./useAddonDetailsTransportUrl');
-const useSelectableInputs = require('./useSelectableInputs');
+const useInstalledAddons = require('./useInstalledAddons').default;
+const useRemoteAddons = require('./useRemoteAddons').default;
+const useAddonDetailsTransportUrl = require('./useAddonDetailsTransportUrl').default;
+const useSelectableInputs = require('./useSelectableInputs').default;
 const { usePlatform, useBinaryState, withCoreSuspender } = require('rillio/common');
 const useToast = require('rillio/common/Toast/useToast');
 
