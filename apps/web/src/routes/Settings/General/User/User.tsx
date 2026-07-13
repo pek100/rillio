@@ -37,7 +37,7 @@ const User = ({ profile }: Props) => {
     return (
         <div className="flex w-full flex-row items-center gap-4 max-[640px]:flex-col max-[640px]:items-start">
             <div
-                className="mr-4 size-20 flex-none self-stretch rounded-full border-2 border-line bg-fg bg-cover bg-center bg-no-repeat opacity-90 [background-clip:content-box] [background-origin:content-box]"
+                className="mr-4 size-20 flex-none rounded-full border-2 border-line bg-fg bg-cover bg-center bg-no-repeat opacity-90 [background-clip:content-box] [background-origin:content-box]"
                 style={{ backgroundImage: avatar }}
             />
             <div className="flex flex-none flex-col items-start">
@@ -46,10 +46,8 @@ const User = ({ profile }: Props) => {
                     value={displayName}
                     onCommit={setDisplayName}
                 />
-                <div className="flex flex-row items-center" title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
-                    <div className="flex-1 text-[0.95rem] text-fg opacity-50">
-                        {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
-                    </div>
+                <div className="text-[0.95rem] text-fg opacity-50" title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
+                    {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
                 </div>
                 <div className="mt-2 flex flex-row flex-wrap gap-4">
                     <Link label={'Sync & backup'} onClick={() => openSync('backup')} />

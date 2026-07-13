@@ -53,7 +53,7 @@ const Streaming = forwardRef<HTMLDivElement, Props>(({ profile, streamingServer 
                                 variant="ghost"
                                 title={t('SETTINGS_COPY_REMOTE_URL')}
                                 onClick={onCopyRemoteUrl}
-                                className="size-10 flex-none rounded-full bg-surface-hover p-0 text-fg opacity-100 hover:bg-surface-hover hover:brightness-110 active:scale-95"
+                                className="size-10 flex-none bg-surface-hover p-0 text-fg opacity-100 hover:brightness-110 active:scale-95"
                             >
                                 <Link className="size-4 text-fg" />
                             </Button>

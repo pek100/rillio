@@ -14,10 +14,10 @@ const Category = ({ icon, label, children }: Props) => {
     const IconComp = icon;
     return (
         <div className={cn(
-            'relative mb-4 flex w-full flex-col items-start overflow-visible pb-4',
+            'mb-4 flex w-full flex-col items-start pb-4',
             '[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line',
         )}>
-            <div className="relative mb-4 flex h-11 flex-row items-center gap-3">
+            <div className="mb-4 flex h-11 items-center gap-3">
                 <IconComp className="size-5 flex-none text-fg" />
                 <div className="flex-none text-[1.05rem] font-semibold text-fg">
                     {t(label)}

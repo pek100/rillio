@@ -295,11 +295,10 @@ const Cached = () => {
                         Everything the player keeps on disk. Nothing is deleted automatically.
                     </div>
                 </div>
-                <div className="flex-1" />
                 <IconButton
                     onClick={closeCached}
                     title="Close"
-                    className="size-9 text-fg-muted"
+                    className="ml-auto size-9 text-fg-muted"
                 >
                     <X className="size-5" />
                 </IconButton>

@@ -15,14 +15,14 @@ type Props = {
 const Option = ({ className, icon, iconClassName, label, children }: Props) => {
     const IconComp = icon;
     return (
-        <div className={cn('relative mb-8 flex w-full flex-none flex-row items-center gap-8 overflow-visible', className)}>
-            <div className="relative flex flex-1 basis-1/2 flex-row items-center gap-3">
+        <div className={cn('mb-8 flex w-full flex-none items-center gap-8', className)}>
+            <div className="flex flex-1 basis-1/2 items-center gap-3">
                 {IconComp ? <IconComp className={cn('size-6 text-fg', iconClassName)} /> : null}
                 <div className="line-clamp-2 font-medium leading-6 text-fg">
                     {t(label)}
                 </div>
             </div>
-            <div className="relative flex flex-1 basis-1/2 flex-row items-center justify-center overflow-visible">
+            <div className="flex flex-1 basis-1/2 items-center justify-center">
                 {children}
             </div>
         </div>

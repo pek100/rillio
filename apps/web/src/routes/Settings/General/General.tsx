@@ -142,7 +142,7 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
                     disabled={profile.auth === null}
                     tabIndex={-1}
                     onClick={onToggleTrakt}
-                    className="h-14 w-full rounded-full bg-surface-hover px-8 font-medium text-fg hover:brightness-110 active:scale-[0.97]"
+                    className="h-14 w-full bg-surface-hover px-8 font-medium text-fg hover:brightness-110 active:scale-[0.97]"
                 >
                     {isTraktAuthenticated ? t('LOG_OUT') : t('SETTINGS_TRAKT_AUTHENTICATE')}
                 </Button>

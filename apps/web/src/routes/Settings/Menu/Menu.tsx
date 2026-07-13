@@ -19,7 +19,7 @@ const MenuButton = ({ id, label, selected, onSelect }: { id: string, label: stri
         title={label}
         onClick={() => onSelect(id)}
         className={cn(
-            'mb-1.5 h-11 flex-none justify-start self-stretch rounded-full px-5 text-[1.05rem] font-medium text-fg opacity-[0.62]',
+            'mb-1.5 h-11 flex-none justify-start self-stretch px-5 text-[1.05rem] font-medium text-fg opacity-[0.62]',
             'hover:bg-surface-hover hover:opacity-100 active:scale-[0.98]',
             selected && 'bg-surface-hover font-semibold text-accent opacity-100',
         )}
@@ -51,21 +51,21 @@ const Menu = ({ selected, streamingServer, onSelect }: Props) => {
 
             <div className="flex-1" />
 
-            <div className="my-2 flex-none overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] text-fg opacity-40" title={process.env.VERSION}>
+            <div className="my-2 flex-none truncate text-[0.8125rem] text-fg opacity-40" title={process.env.VERSION}>
                 {t('SETTINGS_APP_VERSION')}: {process.env.VERSION}
             </div>
-            <div className="my-2 flex-none overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] text-fg opacity-40" title={process.env.COMMIT_HASH}>
+            <div className="my-2 flex-none truncate text-[0.8125rem] text-fg opacity-40" title={process.env.COMMIT_HASH}>
                 {t('SETTINGS_BUILD_VERSION')}: {process.env.COMMIT_HASH}
             </div>
             {
                 settings?.serverVersion &&
-                    <div className="my-2 flex-none overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] text-fg opacity-40" title={settings.serverVersion}>
+                    <div className="my-2 flex-none truncate text-[0.8125rem] text-fg opacity-40" title={settings.serverVersion}>
                         {t('SETTINGS_SERVER_VERSION')}: {settings.serverVersion}
                     </div>
             }
             {
                 typeof shell.state.version === 'string' &&
-                    <div className="my-2 flex-none overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] text-fg opacity-40" title={shell.state.version}>
+                    <div className="my-2 flex-none truncate text-[0.8125rem] text-fg opacity-40" title={shell.state.version}>
                         {t('SETTINGS_SHELL_VERSION')}: {shell.state.version}
                     </div>
             }

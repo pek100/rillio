@@ -68,7 +68,7 @@ const Item = ({ url }: Props) => {
                             variant="ghost"
                             title={t('DELETE')}
                             onClick={handleDelete}
-                            className="absolute right-6 top-1/2 flex w-12 -translate-y-1/2 items-center justify-center rounded-card bg-transparent p-0 transition-colors hover:bg-surface-hover [&:hover_svg]:!text-danger [&:hover_svg]:!opacity-100 max-[640px]:right-4"
+                            className="absolute right-6 top-1/2 w-12 -translate-y-1/2 rounded-card p-0 transition-colors [&:hover_svg]:!text-danger [&:hover_svg]:!opacity-100 max-[640px]:right-4"
                         >
                             <Trash2 className="size-5 text-fg opacity-0 transition-[opacity,color] group-hover:opacity-60 max-[640px]:opacity-60" />
                         </Button>

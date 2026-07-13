@@ -15,7 +15,7 @@ const Section = forwardRef<HTMLDivElement, Props>(({ className, label, children 
         <div
             ref={ref}
             className={cn(
-                'relative flex max-w-[35rem] flex-col items-start overflow-visible py-12',
+                'flex max-w-[35rem] flex-col items-start py-12',
                 '[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line',
                 className,
             )}

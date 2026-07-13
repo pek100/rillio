@@ -51,7 +51,7 @@ type Action =
 
 // Shared pill-button geometry: full-width, 3.5rem tall, transitions filter (for
 // hover brightness) and transform (for the active press). Colour comes per-button.
-const FORM_BUTTON = 'w-full h-14 px-6 gap-3 rounded-full text-base font-semibold active:scale-[0.97] transition-[background-color,color,filter,opacity,transform]';
+const FORM_BUTTON = 'w-full h-14 px-6 gap-3 text-base active:scale-[0.97] transition-[background-color,color,filter,opacity,transform]';
 
 // A checkbox row (box + label + optional inline TOS/privacy link). Forwards its ref
 // to the underlying Radix checkbox button so the form machine can focus it.
@@ -373,9 +373,7 @@ const Intro = () => {
                 }}
             />
             <div className="flex-none flex flex-col items-center justify-center mb-20 max-[1000px]:items-start max-[1000px]:mb-16 animate-in fade-in slide-in-from-bottom-3 duration-700">
-                <div className="flex-none mb-12">
-                    <Logo className="h-20 w-auto opacity-90 max-[1000px]:h-16" size={78} />
-                </div>
+                <Logo className="flex-none mb-12 h-20 w-auto opacity-90 max-[1000px]:h-16" size={78} />
                 <div className="text-fg text-5xl font-semibold mb-2 max-[1000px]:text-[2.5rem]">
                     {t('WEBSITE_SLOGAN_NEW_NEW')}
                 </div>
@@ -384,7 +382,7 @@ const Intro = () => {
                 </div>
             </div>
             <div className="flex-none flex flex-row items-start justify-center w-full gap-16 max-[1000px]:flex-col-reverse max-[1000px]:items-center animate-in fade-in duration-700">
-                <div className="flex-none relative flex flex-col gap-4 w-88 max-[1000px]:w-1/2 max-[640px]:w-full">
+                <div className="flex-none flex flex-col gap-4 w-88 max-[1000px]:w-1/2 max-[640px]:w-full">
                     <CredentialsTextInput
                         ref={emailRef}
                         className="h-14 px-4 text-base"
@@ -461,7 +459,7 @@ const Intro = () => {
                         <span>{state.form === SIGNUP_FORM ? t('SIGN_UP') : t('LOG_IN')}</span>
                     </Button>
                 </div>
-                <div className="flex-none relative flex flex-col gap-4 w-88 max-[1000px]:w-1/2 max-[640px]:w-full">
+                <div className="flex-none flex flex-col gap-4 w-88 max-[1000px]:w-1/2 max-[640px]:w-full">
                     <Button
                         className={cn(FORM_BUTTON, 'bg-[var(--color-facebook)] text-fg hover:brightness-110')}
                         onClick={loginWithFacebook}

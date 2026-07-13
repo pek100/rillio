@@ -58,7 +58,7 @@ const URLsManager = () => {
                     variant="ghost"
                     title={t('SETTINGS_SERVER_ADD_URL')}
                     onClick={onAdd}
-                    className="flex items-center justify-center gap-2 rounded-full bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
+                    className="bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
                 >
                     <Plus className="size-4 text-fg" />
                     {t('SETTINGS_SERVER_ADD_URL')}
@@ -67,7 +67,7 @@ const URLsManager = () => {
                     variant="ghost"
                     title={t('RELOAD')}
                     onClick={reloadServer}
-                    className="flex items-center justify-center gap-2 rounded-full bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
+                    className="bg-surface-hover px-6 py-2 text-fg hover:brightness-110 active:scale-[0.98]"
                 >
                     <RotateCcw className="size-4 text-fg" />
                     <div>{t('RELOAD')}</div>

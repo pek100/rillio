@@ -36,14 +36,14 @@ const AddItem = ({ onCancel, handleAddUrl }: Props) => {
                 <Button
                     variant="ghost"
                     onClick={onSubmit}
-                    className="flex w-12 items-center justify-center rounded-card bg-transparent p-1 opacity-60 hover:bg-surface-hover hover:opacity-100 [&:hover_svg]:text-success"
+                    className="w-12 rounded-card p-1 opacity-60 hover:opacity-100 [&:hover_svg]:text-success"
                 >
                     <Check className="size-5 text-fg" />
                 </Button>
                 <Button
                     variant="ghost"
                     onClick={onCancel}
-                    className="flex w-12 items-center justify-center rounded-card bg-transparent p-1 opacity-60 hover:bg-surface-hover hover:opacity-100 [&:hover_svg]:text-danger"
+                    className="w-12 rounded-card p-1 opacity-60 hover:opacity-100 [&:hover_svg]:text-danger"
                 >
                     <X className="size-5 text-fg" />
                 </Button>
