@@ -1,25 +1,36 @@
-const React = require('react');
-const { default: Logo } = require('rillio/common/Logo/Logo');
-const { getTauri } = require('rillio/common/Platform/shell/isShell');
-const styles = require('./styles.less');
+// Copyright (C) 2017-2026 Smart code 203358507
 
-// Full-screen overlay shown after the user accepts a desktop update. It stays up
-// through download + install until the native shell restarts into the new
-// version. Driven by window events from the update toast (`rillio:update-start` /
-// `rillio:update-error`) plus the shell's `update-progress` Tauri event.
+/**
+ * Full-screen overlay shown after the user accepts a desktop update. It stays up
+ * through download + install until the native shell restarts into the new version.
+ * Driven by window events from the update toast (`rillio:update-start` /
+ * `rillio:update-error`) plus the shell's `update-progress` Tauri event.
+ *
+ * The looping fluid-fill mark is a shipped brand moment (the same WebGL animation as
+ * the pre-bundle loading screen, exposed on `window.__rillioFluidLogo`); it is kept
+ * exactly, canvas-driven, with the static Logo as the WebGL-unavailable fallback.
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
+import Logo from 'rillio/common/Logo/Logo';
+import { getTauri } from 'rillio/common/Platform/shell/isShell';
+import styles from './styles.less';
+
+type FluidLogo = (canvas: HTMLCanvasElement, options: { fallback: () => void }) => void;
+
 const UpdatingOverlay = () => {
-    const [active, setActive] = React.useState(false);
-    const [pct, setPct] = React.useState(null);
-    const [fellBack, setFellBack] = React.useState(false);
-    const canvasRef = React.useRef(null);
+    const [active, setActive] = useState(false);
+    const [pct, setPct] = useState<number | null>(null);
+    const [fellBack, setFellBack] = useState(false);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // Drive the looping fluid-fill mark (the same animation as the pre-bundle
     // loading screen, exposed on window) once the overlay is showing. The frame
     // loop stops itself when the canvas leaves the DOM (overlay hidden).
-    React.useEffect(() => {
+    useEffect(() => {
         if (!active) return;
         const canvas = canvasRef.current;
-        const run = globalThis.__rillioFluidLogo;
+        const run = (globalThis as unknown as { __rillioFluidLogo?: FluidLogo }).__rillioFluidLogo;
         if (canvas && typeof run === 'function') {
             run(canvas, { fallback: () => setFellBack(true) });
         } else {
@@ -27,23 +38,23 @@ const UpdatingOverlay = () => {
         }
     }, [active]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const onStart = () => { setPct(null); setActive(true); };
         const onError = () => setActive(false);
         window.addEventListener('rillio:update-start', onStart);
         window.addEventListener('rillio:update-error', onError);
 
         const TAURI = getTauri();
-        let unlisten;
+        let unlisten: (() => void) | undefined;
         let cancelled = false;
         if (TAURI?.event?.listen) {
-            TAURI.event.listen('update-progress', (event) => {
+            TAURI.event.listen('update-progress', (event: { payload?: { downloaded?: number, total?: number } }) => {
                 setActive(true);
                 const p = event?.payload;
                 if (p && p.total) {
-                    setPct(Math.max(0, Math.min(100, Math.round((p.downloaded / p.total) * 100))));
+                    setPct(Math.max(0, Math.min(100, Math.round((p.downloaded! / p.total) * 100))));
                 }
-            }).then((un) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
+            }).then((un: () => void) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
         }
 
         return () => {
@@ -78,4 +89,4 @@ const UpdatingOverlay = () => {
     );
 };
 
-module.exports = UpdatingOverlay;
+export default UpdatingOverlay;

@@ -1,12 +1,18 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-import React, { useEffect } from 'react';
-import { createPortal } from 'react-dom';
+/**
+ * Keyboard-shortcuts reference modal. Ported onto the kit Dialog: Radix gives the
+ * focus-trap, Escape-to-close, scroll-lock, outside-click dismiss and focus restore
+ * for free, so the hand-rolled portal + backdrop + keydown listener retire. Open is
+ * controlled (the modal is mounted while its binary state is open), never a
+ * DialogTrigger. ShortcutsGroup (its own cluster) is reused verbatim.
+ */
+
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
 import { useShortcuts } from 'rillio/common';
-import { Button, ShortcutsGroup } from 'rillio/components';
-import styles from './styles.less';
+import { ShortcutsGroup } from 'rillio/components';
+import { Dialog, DialogContent, DialogTitle } from 'rillio/components/ui';
 
 type Props = {
     onClose: () => void,
@@ -15,40 +21,15 @@ type Props = {
 const ShortcutsModal = ({ onClose }: Props) => {
     const { t } = useTranslation();
     const { grouped } = useShortcuts();
-    const titleId = React.useId();
-    const containerRef = React.useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const previouslyFocused = document.activeElement as HTMLElement | null;
-        containerRef.current?.focus();
+    return (
+        <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+            <DialogContent className="flex max-h-[80vh] max-w-[min(80vw,64rem)] flex-col gap-6 overflow-y-auto">
+                <DialogTitle className="pr-8 text-2xl font-semibold">
+                    {t('SETTINGS_NAV_SHORTCUTS')}
+                </DialogTitle>
 
-        const onKeyDown = ({ key }: KeyboardEvent) => {
-            key === 'Escape' && onClose();
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        return () => {
-            document.removeEventListener('keydown', onKeyDown);
-            previouslyFocused?.focus?.();
-        };
-    }, []);
-
-    return createPortal((
-        <div className={styles['shortcuts-modal']}>
-            <div className={styles['backdrop']} onClick={onClose} />
-
-            <div className={styles['container']} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} ref={containerRef}>
-                <div className={styles['header']}>
-                    <div className={styles['title']} id={titleId}>
-                        {t('SETTINGS_NAV_SHORTCUTS')}
-                    </div>
-
-                    <Button className={styles['close-button']} title={t('BUTTON_CLOSE')} onClick={onClose}>
-                        <X className={styles['icon']} />
-                    </Button>
-                </div>
-
-                <div className={styles['content']}>
+                <div className="flex flex-row flex-wrap gap-x-12 gap-y-8 overflow-visible">
                     {
                         grouped.map(({ name, label, shortcuts }) => (
                             <ShortcutsGroup
@@ -59,9 +40,9 @@ const ShortcutsModal = ({ onClose }: Props) => {
                         ))
                     }
                 </div>
-            </div>
-        </div>
-    ), document.body);
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 export default ShortcutsModal;
