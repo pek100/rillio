@@ -1,18 +1,40 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const PropTypes = require('prop-types');
-const classnames = require('classnames');
-const { t } = require('i18next');
-const { useCore } = require('rillio/core');
-const { Image, Toggle, Video } = require('rillio/components');
-const SeasonsBar = require('./SeasonsBar');
-const { default: EpisodePicker } = require('../EpisodePicker');
-const styles = require('./styles');
+/**
+ * VideosList (Phase 3 clean-room rewrite) - the series episode view.
+ *
+ * View rebuilt on Tailwind tokens + the kit Switch (notifications); the responsive
+ * auto-fill episode grid stays native CSS. All logic reused verbatim: the videos /
+ * seasons / selectedSeason / videosForSeason / seasonWatched memos, the
+ * savedScrollTop restore (useLayoutEffect) + season-change scroll effect, and the
+ * MarkVideoAsWatched / MarkSeasonAsWatched dispatches. The Video card is a shared
+ * component (its own family), consumed unchanged.
+ */
+
+import React from 'react';
+import { t } from 'i18next';
+import { useCore } from 'rillio/core';
+import { Image, Video } from 'rillio/components';
+import { Switch } from 'rillio/components/ui/switch';
+import { cn } from 'rillio/components/ui/cn';
+import SeasonsBar from './SeasonsBar';
+import EpisodePicker from '../EpisodePicker';
+
+const emptyImage = require('/assets/images/empty.svg');
 
 let savedScrollTop = 0;
 
-const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, selectedVideoId, toggleNotifications }) => {
+type Props = {
+    className?: string;
+    metaItem?: any;
+    libraryItem?: any;
+    season?: number;
+    selectedVideoId?: string;
+    seasonOnSelect?: (event: any) => void;
+    toggleNotifications?: () => void;
+};
+
+const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, selectedVideoId, toggleNotifications }: Props) => {
     const core = useCore();
     const showNotificationsToggle = React.useMemo(() => {
         return metaItem?.content?.content?.inLibrary && metaItem?.content?.content?.videos?.length;
@@ -70,7 +92,7 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
         return videosForSeason.every((video) => video.watched);
     }, [videosForSeason]);
 
-    const videosContainerRef = React.useRef(null);
+    const videosContainerRef = React.useRef<HTMLDivElement>(null);
     const isMountedRef = React.useRef(false);
 
     const saveScrollPosition = React.useCallback(() => {
@@ -119,7 +141,7 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
 
     const onSeasonSearch = (value) => {
         if (value) {
-            seasonOnSelect({
+            seasonOnSelect?.({
                 type: 'select',
                 value,
             });
@@ -127,12 +149,12 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
     };
 
     return (
-        <div className={classnames(className, styles['videos-list-container'])}>
+        <div className={cn('flex flex-col', className)}>
             {
                 !metaItem || metaItem.content.type === 'Loading' ?
                     <React.Fragment>
-                        <SeasonsBar.Placeholder className={styles['seasons-bar']} />
-                        <div className={styles['videos-container']}>
+                        <SeasonsBar.Placeholder className="mx-4 mb-4 mt-2 flex-none self-stretch" />
+                        <div className="grid flex-1 grid-cols-[repeat(auto-fill,minmax(min(24rem,100%),1fr))] content-start gap-x-4 gap-y-2 self-stretch overflow-y-auto px-4">
                             <Video.Placeholder />
                             <Video.Placeholder />
                             <Video.Placeholder />
@@ -142,25 +164,26 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
                     </React.Fragment>
                     :
                     metaItem.content.type === 'Err' || videosForSeason.length === 0 ?
-                        <div className={styles['message-container']}>
-                            <EpisodePicker className={styles['episode-picker']} onSubmit={onSeasonSearch} />
-                            <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                            <div className={styles['label']}>{t('ERR_NO_VIDEOS_FOR_META')}</div>
+                        <div className="flex flex-1 flex-col items-center self-stretch overflow-y-auto p-8">
+                            <EpisodePicker className="mb-8" onSubmit={onSeasonSearch} />
+                            <Image className="mb-4 h-40 w-40 max-w-full flex-none object-contain object-center opacity-90" src={emptyImage} alt={' '} />
+                            <div className="flex-none text-center text-[1.4rem] text-fg">{t('ERR_NO_VIDEOS_FOR_META')}</div>
                         </div>
                         :
                         <React.Fragment>
                             {
                                 showNotificationsToggle && libraryItem ?
-                                    <Toggle className={styles['notifications-toggle']} checked={!libraryItem.state.noNotif} onClick={toggleNotifications}>
-                                        {t('DETAIL_RECEIVE_NOTIF_SERIES')}
-                                    </Toggle>
+                                    <label className="flex flex-none items-center justify-start gap-4 px-6 pb-[0.65rem] pt-[1.15rem] text-fg">
+                                        <Switch checked={!libraryItem.state.noNotif} onCheckedChange={() => toggleNotifications?.()} />
+                                        <span>{t('DETAIL_RECEIVE_NOTIF_SERIES')}</span>
+                                    </label>
                                     :
                                     null
                             }
                             {
                                 seasons.length > 0 ?
                                     <SeasonsBar
-                                        className={styles['seasons-bar']}
+                                        className="mx-4 mb-4 mt-2 flex-none self-stretch"
                                         season={selectedSeason}
                                         seasons={seasons}
                                         onSelect={seasonOnSelect}
@@ -168,7 +191,7 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
                                     :
                                     null
                             }
-                            <div ref={videosContainerRef} className={styles['videos-container']}>
+                            <div ref={videosContainerRef} className="grid flex-1 grid-cols-[repeat(auto-fill,minmax(min(24rem,100%),1fr))] content-start gap-x-4 gap-y-2 self-stretch overflow-y-auto px-4">
                                 {
                                     videosForSeason.map((video, index) => (
                                         <Video
@@ -199,14 +222,4 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
     );
 };
 
-VideosList.propTypes = {
-    className: PropTypes.string,
-    metaItem: PropTypes.object,
-    libraryItem: PropTypes.object,
-    season: PropTypes.number,
-    selectedVideoId: PropTypes.string,
-    seasonOnSelect: PropTypes.func,
-    toggleNotifications: PropTypes.func,
-};
-
-module.exports = VideosList;
+export default VideosList;

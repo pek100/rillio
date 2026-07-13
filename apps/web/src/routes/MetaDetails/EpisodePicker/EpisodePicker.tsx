@@ -1,14 +1,25 @@
 // Copyright (C) 2017-2025 Smart code 203358507
 
-import React, { useCallback, useMemo, useState, ChangeEvent } from 'react';
+/**
+ * EpisodePicker (Phase 3 clean-room rewrite) - season/episode steppers + submit,
+ * shown in empty/error stream+video states to jump to a specific episode.
+ *
+ * Rebuilt on the kit NumberStepper (the one custom stepper primitive) + kit Button.
+ * The path-parse seed (from the current videoId "id:season:episode"), the
+ * disabled-when-unchanged guard, and the onSubmit(season, episode) contract are
+ * preserved verbatim.
+ */
+
+import React, { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Button, NumberInput } from 'rillio/components';
-import styles from './EpisodePicker.less';
+import { Button } from 'rillio/components/ui/button';
+import { NumberStepper } from 'rillio/components/ui/number-stepper';
+import { cn } from 'rillio/components/ui/cn';
 
 type Props = {
     className?: string,
-    seriesId: string;
+    seriesId?: string;
     onSubmit: (season: number, episode: number) => void;
 };
 
@@ -32,42 +43,24 @@ const EpisodePicker = ({ className, onSubmit }: Props) => {
     const [season, setSeason] = useState(initialSeason);
     const [episode, setEpisode] = useState(initialEpisode);
 
-    const handleSeasonChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-        setSeason(parseInt(event.target.value));
-    }, []);
-
-    const handleEpisodeChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-        setEpisode(parseInt(event.target.value));
-    }, []);
-
-    const handleSubmit = () => {
+    const handleSubmit = useCallback(() => {
         onSubmit(season, episode);
-    };
+    }, [onSubmit, season, episode]);
 
     const disabled = season === initialSeason && episode === initialEpisode;
 
     return (
-        <div className={className}>
-            <NumberInput
-                min={0}
-                label={t('SEASON')}
-                defaultValue={season}
-                onChange={handleSeasonChange}
-                showButtons
-            />
-            <NumberInput
-                min={1}
-                label={t('EPISODE')}
-                defaultValue={episode}
-                onChange={handleEpisodeChange}
-                showButtons
-            />
+        <div className={cn('flex flex-col items-center gap-3', className)}>
+            <div className="flex items-center gap-3">
+                <NumberStepper min={0} label={t('SEASON')} value={season} onValueChange={setSeason} aria-label={t('SEASON')} />
+                <NumberStepper min={1} label={t('EPISODE')} value={episode} onValueChange={setEpisode} aria-label={t('EPISODE')} />
+            </div>
             <Button
-                className={styles['button-container']}
                 onClick={handleSubmit}
                 disabled={disabled}
+                className="my-2 h-14 px-8 text-base font-bold"
             >
-                <div className={styles['label']}>{t('SIDEBAR_SHOW_STREAMS')}</div>
+                {t('SIDEBAR_SHOW_STREAMS')}
             </Button>
         </div>
     );

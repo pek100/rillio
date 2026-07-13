@@ -1,7 +1,23 @@
+// Copyright (C) 2017-2025 Smart code 203358507
+
+/**
+ * HeroMedia (Phase 3 clean-room rewrite) - the hero's 16:9 media panel, a banner
+ * carousel. Slides are the backdrop still plus each trailer as a VIDEO slide, paused
+ * by default (autoplay=0; the user presses YouTube's own play). Image slides
+ * crossfade and auto-advance gently; a video slide never auto-advances and its
+ * iframe is mounted only while active so cycling away stops playback.
+ *
+ * View rebuilt on Tailwind tokens + the kit IconButton for the arrows; the
+ * slide-model / active-index / auto-advance behavior is preserved verbatim. This
+ * keeps the current opacity crossfade rather than adopting the Embla translate
+ * slider, because the crossfade + active-only iframe mount + image-only autoplay
+ * are the load-bearing behavior here (see the route report deviation note).
+ */
+
 import React from 'react';
-import classnames from 'classnames';
 import Icon from '@stremio/stremio-icons/react';
-import styles from './styles.less';
+import { cn } from 'rillio/components/ui/cn';
+import { IconButton } from 'rillio/components/ui/button';
 
 type Props = {
     className?: string,
@@ -15,11 +31,6 @@ type Slide =
     | { type: 'image', src: string }
     | { type: 'video', ytId: string };
 
-// The hero's 16:9 media panel: a banner carousel. Slides are the backdrop image
-// plus each trailer as a VIDEO slide, paused by default (autoplay=0, the user
-// presses YouTube's own play). Image slides auto-advance gently; a video slide
-// never auto-advances (the user may be watching). The poster is portrait so it is
-// only used when there is no backdrop at all.
 const AUTO_ADVANCE_MS = 7000;
 
 const HeroMedia = ({ className, ytIds, background, poster, name }: Props) => {
@@ -48,21 +59,26 @@ const HeroMedia = ({ className, ytIds, background, poster, name }: Props) => {
     // Meta changed (new title): restart from the first slide.
     React.useEffect(() => { setActive(0); }, [slides]);
 
+    const panelClassName = 'group relative w-full overflow-hidden rounded-[12px] bg-surface aspect-video';
+
     if (count === 0) {
         return (
-            <div className={classnames(className, styles['hero-media'])}>
-                <div className={styles['still-empty']} />
+            <div className={cn(panelClassName, className)}>
+                <div className="absolute inset-0 bg-surface" />
             </div>
         );
     }
 
     return (
-        <div className={classnames(className, styles['hero-media'])}>
+        <div className={cn(panelClassName, className)}>
             {slides.map((slide, index) => (
                 slide.type === 'image' ?
                     <img
                         key={index}
-                        className={classnames(styles['still'], { [styles['slide-hidden']]: index !== active })}
+                        className={cn(
+                            'absolute inset-0 h-full w-full object-cover object-[center_25%] transition-opacity duration-[400ms]',
+                            index !== active && 'pointer-events-none opacity-0',
+                        )}
                         src={slide.src}
                         alt={name || ''}
                     />
@@ -72,7 +88,7 @@ const HeroMedia = ({ className, ytIds, background, poster, name }: Props) => {
                     index === active ?
                         <iframe
                             key={index}
-                            className={styles['trailer']}
+                            className="absolute inset-0 h-full w-full border-0"
                             src={`https://www.youtube-nocookie.com/embed/${slide.ytId}?autoplay=0&controls=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`}
                             title={name || 'Trailer'}
                             allow={'encrypted-media; picture-in-picture'}
@@ -85,20 +101,32 @@ const HeroMedia = ({ className, ytIds, background, poster, name }: Props) => {
             {
                 count > 1 ?
                     <React.Fragment>
-                        <button type={'button'} className={classnames(styles['arrow'], styles['arrow-left'])} aria-label={'Previous'} onClick={() => go(-1)}>
-                            <Icon className={styles['arrow-icon']} name={'chevron-back'} />
-                        </button>
-                        <button type={'button'} className={classnames(styles['arrow'], styles['arrow-right'])} aria-label={'Next'} onClick={() => go(1)}>
-                            <Icon className={styles['arrow-icon']} name={'chevron-forward'} />
-                        </button>
-                        <div className={styles['dots']}>
+                        <IconButton
+                            aria-label={'Previous'}
+                            onClick={() => go(-1)}
+                            className="absolute left-2.5 top-1/2 z-[2] size-9 -translate-y-1/2 bg-[color-mix(in_srgb,var(--color-bg)_55%,transparent)] opacity-0 backdrop-blur-[4px] transition group-hover:opacity-100 hover:bg-[color-mix(in_srgb,var(--color-bg)_75%,transparent)]"
+                        >
+                            <Icon className="size-4 text-fg" name={'chevron-back'} />
+                        </IconButton>
+                        <IconButton
+                            aria-label={'Next'}
+                            onClick={() => go(1)}
+                            className="absolute right-2.5 top-1/2 z-[2] size-9 -translate-y-1/2 bg-[color-mix(in_srgb,var(--color-bg)_55%,transparent)] opacity-0 backdrop-blur-[4px] transition group-hover:opacity-100 hover:bg-[color-mix(in_srgb,var(--color-bg)_75%,transparent)]"
+                        >
+                            <Icon className="size-4 text-fg" name={'chevron-forward'} />
+                        </IconButton>
+                        <div className="absolute bottom-2.5 left-1/2 z-[2] flex -translate-x-1/2 gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-bg)_45%,transparent)] px-2.5 py-1.5 backdrop-blur-[4px]">
                             {slides.map((slide, index) => (
                                 <button
                                     key={index}
                                     type={'button'}
                                     aria-label={slide.type === 'video' ? 'Trailer' : 'Image'}
-                                    className={classnames(styles['dot'], { [styles['dot-active']]: index === active, [styles['dot-video']]: slide.type === 'video' })}
                                     onClick={() => setActive(index)}
+                                    className={cn(
+                                        'h-[0.4rem] cursor-pointer rounded-full border-0 p-0 transition-[background-color,width] duration-150',
+                                        slide.type === 'video' ? 'w-3' : 'w-[0.4rem]',
+                                        index === active ? 'bg-accent' : 'bg-white/35 hover:bg-white/60',
+                                    )}
                                 />
                             ))}
                         </div>

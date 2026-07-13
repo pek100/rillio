@@ -1,30 +1,53 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useParams, useLocation, useNavigate } = require('react-router');
-const { useTranslation } = require('react-i18next');
-const classnames = require('classnames');
-const { useCore } = require('rillio/core');
-const { useContentGamepadNavigation } = require('rillio/services/GamepadNavigation');
-const { withCoreSuspender } = require('rillio/common');
-const { useNavigateWithOrigin } = require('rillio-router');
-const { VerticalNavBar, HorizontalNavBar, DelayedRenderer, Image, MetaPreview, ModalDialog } = require('rillio/components');
-const StreamsList = require('./StreamsList');
-const VideosList = require('./VideosList');
-const { default: HeroMedia } = require('./HeroMedia');
-const useMetaDetails = require('./useMetaDetails');
-const useSeason = require('./useSeason');
-const useMetaExtensionTabs = require('./useMetaExtensionTabs');
-const styles = require('./styles');
+/**
+ * MetaDetails route shell (Phase 3 clean-room rewrite).
+ *
+ * View layer rebuilt on Tailwind semantic tokens; every hook / core.transport
+ * dispatch is reused verbatim (useMetaDetails / useSeason / useMetaExtensionTabs,
+ * AddToLibrary / RemoveFromLibrary / MarkAsWatched / ToggleLibraryItemNotifications,
+ * useContentGamepadNavigation, useNavigateWithOrigin). Layout mirrors the old
+ * styles.less: a fixed backdrop image layer with a gradient scrim, a HorizontalNavBar,
+ * an optional VerticalNavBar for meta-extension tabs, and a single scrolling
+ * main-column holding the 50vh [details | hero] band then the full-width
+ * StreamsList / VideosList. The meta-extension addon opens in the shared ModalDialog.
+ */
+
+import React from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { useCore } from 'rillio/core';
+import { useContentGamepadNavigation } from 'rillio/services/GamepadNavigation';
+import { withCoreSuspender } from 'rillio/common';
+import { useNavigateWithOrigin } from 'rillio-router';
+import { VerticalNavBar, HorizontalNavBar, DelayedRenderer, Image, MetaPreview, ModalDialog } from 'rillio/components';
+import { cn } from 'rillio/components/ui/cn';
+import StreamsList from './StreamsList';
+import VideosList from './VideosList';
+import HeroMedia from './HeroMedia';
+import useMetaDetails from './useMetaDetails';
+import useSeason from './useSeason';
+import useMetaExtensionTabs from './useMetaExtensionTabs';
 
 const GAMEPAD_HANDLER_ID = 'metadetails';
+
+const emptyImage = require('/assets/images/empty.svg');
+
+// The meta-details message states (no meta selected / no addons / not found) all
+// share this centered empty-illustration block.
+const MetaMessage = ({ label }: { label: string }) => (
+    <div className="flex flex-1 flex-col items-center justify-center self-stretch px-8 py-16">
+        <Image className="mb-4 h-48 w-48 max-w-full flex-none object-contain object-center opacity-90" src={emptyImage} alt={' '} />
+        <div className="flex-none self-stretch text-center text-[2rem] text-fg">{label}</div>
+    </div>
+);
 
 const MetaDetails = () => {
     const { type, id, videoId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
     const { getStoredOrigin } = useNavigateWithOrigin();
-    const contentRef = React.useRef(null);
+    const contentRef = React.useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
     const core = useCore();
     const urlParams = React.useMemo(() => ({
@@ -134,67 +157,62 @@ const MetaDetails = () => {
 
     useContentGamepadNavigation(contentRef, GAMEPAD_HANDLER_ID);
     return (
-        <div className={styles['metadetails-container']}>
+        <div
+            className="relative box-border flex h-full w-full flex-col"
+            style={{ paddingLeft: 'var(--safe-area-inset-left)', paddingRight: 'var(--safe-area-inset-right)' }}
+        >
             {
                 renderBackground ?
-                    <div className={styles['background-image-layer']}>
+                    <div className="fixed inset-0 z-[-1] bg-bg">
                         <Image
-                            className={styles['background-image']}
+                            className="pointer-events-none block h-full w-full object-cover object-[center_top] opacity-[0.16] max-sm:object-center"
                             src={metaDetails.metaItem.content.content.background}
                             renderFallback={renderBackgroundImageFallback}
                             alt={' '}
                         />
+                        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(2,4,7,0.4)_0%,rgba(2,4,7,0.88)_50%,var(--color-bg)_100%)]" />
                     </div>
                     :
                     null
             }
             <HorizontalNavBar
-                className={styles['nav-bar']}
+                className="z-[1] flex-none self-stretch"
                 backButton={true}
                 fullscreenButton={true}
                 navMenu={true}
                 originPath={originPath}
             />
-            <div ref={contentRef} className={styles['metadetails-content']}>
+            <div ref={contentRef} className="relative z-0 flex min-h-0 flex-1 flex-row self-stretch">
                 {
                     tabs.length > 0 ?
                         <VerticalNavBar
-                            className={styles['vertical-nav-bar']}
+                            className="flex-none"
                             tabs={tabs}
                             selected={metaExtension !== null ? metaExtension.url : null}
                         />
                         :
                         null
                 }
-                <div className={styles['main-column']}>
-                    <div className={styles['top']}>
+                <div className="flex min-w-0 flex-1 flex-col self-stretch overflow-y-auto px-8 pb-10 pt-2 max-sm:px-4 max-sm:pb-6">
+                    <div className="flex h-[50vh] min-h-[22rem] flex-none flex-row items-stretch gap-8 self-stretch max-[60rem]:h-auto max-[60rem]:min-h-0 max-[60rem]:flex-col max-[60rem]:gap-6">
                         {
                             metaPath === null ?
                                 <DelayedRenderer delay={500}>
-                                    <div className={styles['meta-message-container']}>
-                                        <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                        <div className={styles['message-label']}>{t('ERR_NO_META_SELECTED')}</div>
-                                    </div>
+                                    <MetaMessage label={t('ERR_NO_META_SELECTED')} />
                                 </DelayedRenderer>
                                 :
                                 metaDetails.metaItem === null ?
-                                    <div className={styles['meta-message-container']}>
-                                        <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                        <div className={styles['message-label']}>{t('ERR_NO_ADDONS_FOR_META')}</div>
-                                    </div>
+                                    <MetaMessage label={t('ERR_NO_ADDONS_FOR_META')} />
                                     :
                                     metaDetails.metaItem.content.type === 'Err' ?
-                                        <div className={styles['meta-message-container']}>
-                                            <Image className={styles['image']} src={require('/assets/images/empty.svg')} alt={' '} />
-                                            <div className={styles['message-label']}>{t('ERR_NO_META_FOUND')}</div>
-                                        </div>
+                                        <MetaMessage label={t('ERR_NO_META_FOUND')} />
                                         :
                                         metaDetails.metaItem.content.type === 'Loading' ?
-                                            <MetaPreview.Placeholder className={styles['meta-preview']} />
+                                            <MetaPreview.Placeholder className={metaPreviewClassName} />
                                             :
                                             <React.Fragment>
                                                 <MetaPreview
-                                                    className={classnames(styles['meta-preview'], 'animation-fade-in')}
+                                                    className={cn(metaPreviewClassName, 'animate-in fade-in duration-300')}
                                                     name={metaDetails.metaItem.content.content.name}
                                                     logo={metaDetails.metaItem.content.content.logo}
                                                     runtime={metaDetails.metaItem.content.content.runtime}
@@ -211,11 +229,10 @@ const MetaDetails = () => {
                                                     toggleInLibrary={metaDetails.metaItem.content.content.inLibrary ? removeFromLibrary : addToLibrary}
                                                     watched={metaDetails.metaItem.content.content.watched}
                                                     toggleWatched={toggleWatched}
-                                                    metaId={metaDetails.metaItem.content.content.id}
                                                     ratingInfo={metaDetails.ratingInfo}
                                                 />
                                                 <HeroMedia
-                                                    className={classnames(styles['hero-media'], 'animation-fade-in')}
+                                                    className={cn(heroMediaClassName, 'animate-in fade-in duration-300')}
                                                     ytIds={trailerYtIds}
                                                     background={metaDetails.metaItem.content.content.background}
                                                     poster={metaDetails.metaItem.content.content.poster}
@@ -227,7 +244,7 @@ const MetaDetails = () => {
                     {
                         streamPath !== null ?
                             <StreamsList
-                                className={styles['streams-list']}
+                                className="mt-8 flex-none self-stretch"
                                 streams={metaDetails.streams}
                                 video={video}
                                 type={streamPath.type}
@@ -236,7 +253,7 @@ const MetaDetails = () => {
                             :
                             metaPath !== null ?
                                 <VideosList
-                                    className={styles['videos-list']}
+                                    className="mt-8 flex-none self-stretch"
                                     metaItem={metaDetails.metaItem}
                                     libraryItem={metaDetails.libraryItem}
                                     season={season}
@@ -252,11 +269,10 @@ const MetaDetails = () => {
             {
                 metaExtension !== null ?
                     <ModalDialog
-                        className={styles['meta-extension-modal-container']}
                         title={metaExtension.name}
                         onCloseRequest={clearMetaExtension}>
                         <iframe
-                            className={styles['meta-extension-modal-iframe']}
+                            className="block h-[70vh] w-[75vw] max-w-full rounded-card border-0"
                             sandbox={'allow-forms allow-scripts allow-same-origin'}
                             src={metaExtension.url}
                         />
@@ -268,10 +284,20 @@ const MetaDetails = () => {
     );
 };
 
+// The details column: flex 0 0 clamp(20rem,40%,38rem), full-height in the band;
+// stacks full-width below the 60rem breakpoint.
+const metaPreviewClassName = 'min-h-0 min-w-0 shrink-0 grow-0 basis-[clamp(20rem,40%,38rem)] self-stretch max-[60rem]:basis-auto';
+// The hero fills the remaining width and the whole 50vh band (aspect auto); below
+// 60rem it reverts to a 16:9 block.
+const heroMediaClassName = 'h-full min-w-0 flex-1 self-stretch aspect-auto max-[60rem]:h-auto max-[60rem]:flex-none max-[60rem]:aspect-video';
+
 const MetaDetailsFallback = () => (
-    <div className={styles['metadetails-container']}>
+    <div
+        className="relative box-border flex h-full w-full flex-col"
+        style={{ paddingLeft: 'var(--safe-area-inset-left)', paddingRight: 'var(--safe-area-inset-right)' }}
+    >
         <HorizontalNavBar
-            className={styles['nav-bar']}
+            className="z-[1] flex-none self-stretch"
             backButton={true}
             fullscreenButton={true}
             navMenu={true}
@@ -279,4 +305,4 @@ const MetaDetailsFallback = () => (
     </div>
 );
 
-module.exports = withCoreSuspender(MetaDetails, MetaDetailsFallback);
+export default withCoreSuspender(MetaDetails, MetaDetailsFallback);
