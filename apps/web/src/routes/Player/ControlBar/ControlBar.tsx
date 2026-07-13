@@ -220,8 +220,11 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
                         // The volume slider belongs to the transport island (it is
                         // part of the audio cluster, not a floating control).
                         !platform.isMobile ?
+                            // Explicit width, not flex-basis: the flex-none island
+                            // sizes to intrinsic content, and the Slider (absolute
+                            // inner layers) has none - a basis collapses to 0 here.
                             <VolumeSlider
-                                className={'mr-2 h-10 flex-[0_1_9rem] [--thumb-size:0.9rem] [--track-size:0.3rem]'}
+                                className={'mr-2 h-10 w-36 flex-none [--thumb-size:0.9rem] [--track-size:0.3rem]'}
                                 volume={volume ?? null}
                                 muted={muted ?? undefined}
                                 onVolumeChangeRequested={onVolumeChangeRequested}
