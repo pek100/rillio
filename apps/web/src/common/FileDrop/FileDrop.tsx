@@ -1,7 +1,6 @@
 import React, { ChangeEvent, createContext, useContext, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { isFileType, isFileTypeSupported } from './utils';
-import styles from './styles.less';
 
 export type FileType = string;
 export type FileDropListener = (file: File, buffer: ArrayBuffer, supported: boolean) => void;
@@ -83,8 +82,13 @@ const FileDropProvider = ({ children }: Props) => {
     return (
         <FileDropContext.Provider value={{ on, off }}>
             { children }
-            <div className={classNames(styles['file-drop-container'], { 'active': active })}>
-                <input type={'file'} className={styles['file-input']} onChange={onChange} />
+            <div
+                className={classNames(
+                    'pointer-events-none fixed inset-0 rounded-2xl border-[0.5rem] border-dashed border-transparent transition-[border-color] duration-[250ms] ease-out',
+                    { 'pointer-events-auto border-accent': active },
+                )}
+            >
+                <input type={'file'} className={'absolute inset-0 opacity-0'} onChange={onChange} />
             </div>
         </FileDropContext.Provider>
     );

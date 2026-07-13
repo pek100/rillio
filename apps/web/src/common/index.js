@@ -4,7 +4,6 @@ const { FileDropProvider, useFileDrop, onFileDrop } = require('./FileDrop');
 const { FullscreenProvider, useFullscreen } = require('./Fullscreen');
 const { PlatformProvider, usePlatform } = require('./Platform');
 const { ToastProvider, useToast } = require('./Toast');
-const { TooltipProvider, Tooltip } = require('./Tooltips');
 const { ShortcutsProvider, useShortcuts, onShortcut } = require('./Shortcuts');
 const { DiscordProvider, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } = require('./Discord');
 const CONSTANTS = require('./CONSTANTS');
@@ -45,8 +44,6 @@ module.exports = {
     onShortcut,
     ToastProvider,
     useToast,
-    TooltipProvider,
-    Tooltip,
     DiscordProvider,
     useDiscord,
     EMPTY_DISCORD_TIMESTAMPS,

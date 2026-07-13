@@ -7,10 +7,9 @@ const { useNavigate } = require('react-router');
 const { useCore } = require('rillio/core');
 const { Routes } = require('rillio-router');
 const { Chromecast, ServicesProvider, GamepadProvider } = require('rillio/services');
-const { FullscreenProvider, ToastProvider, TooltipProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('rillio/common');
+const { FullscreenProvider, ToastProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('rillio/common');
 // Foundation-kit Radix Tooltip provider (delay/behaviour context for the kit's
-// Tooltip). Mounted alongside the legacy TooltipProvider, which still backs the
-// not-yet-migrated legacy <Tooltip> call sites. ToastProvider (from rillio/common)
+// Tooltip) mounted once at app root. ToastProvider (from rillio/common)
 // now resolves to the Sonner-backed adapter that renders the single <Toaster/>.
 const { TooltipProvider: KitTooltipProvider } = require('rillio/components/ui/tooltip');
 const ServicesToaster = require('./ServicesToaster');
@@ -195,7 +194,6 @@ const App = () => {
         <ServicesProvider services={services}>
             <KitTooltipProvider delayDuration={300}>
               <ToastProvider>
-                <TooltipProvider className={styles['tooltip-container']}>
                     <GamepadProvider enabled={gamepadSupportEnabled} onGuide={toggleGamepadModal}>
                         <ShortcutsProvider onShortcut={onShortcut}>
                             <FullscreenProvider>
@@ -226,7 +224,6 @@ const App = () => {
                             </FullscreenProvider>
                         </ShortcutsProvider>
                     </GamepadProvider>
-                </TooltipProvider>
               </ToastProvider>
             </KitTooltipProvider>
         </ServicesProvider>
