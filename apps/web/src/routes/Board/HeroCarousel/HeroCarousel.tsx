@@ -74,7 +74,7 @@ const HeroCarousel = ({ className, items }: Props) => {
 
     return (
         <div
-            className={cn(className, 'relative h-[clamp(18rem,46vh,34rem)] w-full overflow-hidden rounded-card bg-surface')}
+            className={cn('relative h-[clamp(18rem,46vh,34rem)] w-full overflow-hidden rounded-card bg-surface', className)}
             onMouseEnter={pause}
             onMouseLeave={resume}
         >

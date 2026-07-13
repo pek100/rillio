@@ -63,7 +63,7 @@ const HorizontalNavBar = memo(({ className, route, query, title, backButton, sea
     // onClick / aria onto the Button; we only supply the chip visuals and the
     // open-state `active` highlight.
     const renderNavMenuLabel = useCallback(({ active }: { active: boolean }) => (
-        <Button className={cn(NAV_BUTTON, active && 'bg-[var(--overlay-color)] text-fg')} tabIndex={-1}>
+        <Button variant="ghost" className={cn(NAV_BUTTON, active && 'bg-[var(--overlay-color)] text-fg')} tabIndex={-1}>
             <Icon className="size-4" name="person-outline" />
         </Button>
     ), []);
@@ -82,6 +82,7 @@ const HorizontalNavBar = memo(({ className, route, query, title, backButton, sea
             {
                 backButton ?
                     <Button
+                        variant="ghost"
                         className={cn(NAV_BUTTON, 'ml-[max(0rem,calc(1rem-var(--safe-area-inset-left)))] max-sm:mx-4')}
                         tabIndex={-1}
                         onClick={backButtonOnClick}

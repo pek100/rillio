@@ -67,7 +67,7 @@ const TopNav = ({ className, route }: Props) => {
     ), [t]);
 
     return (
-        <nav {...dragProps} className={cn(className, 'flex items-center gap-5 h-full px-6 overflow-visible')}>
+        <nav {...dragProps} className={cn('flex items-center gap-5 h-full px-6 overflow-visible', className)}>
             <Link ref={brandRef} to="/" title="Rillio" tabIndex={-1} className="group flex items-center gap-2.5 shrink-0">
                 <LogoMark className="h-8" hoverRef={brandRef} />
                 {/* Visible at rest; on brand hover it re-fades in (a quick dip
