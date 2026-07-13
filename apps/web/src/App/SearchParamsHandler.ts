@@ -1,16 +1,16 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { deepEqual } = require('fast-equals');
-const { useCore } = require('rillio/core');
-const { withCoreSuspender, useProfile, useToast } = require('rillio/common');
+import React from 'react';
+import { deepEqual } from 'fast-equals';
+import { useCore } from 'rillio/core';
+import { withCoreSuspender, useProfile, useToast } from 'rillio/common';
 
 const SearchParamsHandler = () => {
     const core = useCore();
     const profile = useProfile();
     const toast = useToast();
 
-    const [searchParams, setSearchParams] = React.useState({});
+    const [searchParams, setSearchParams] = React.useState<Record<string, string>>({});
 
     const onLocationChange = () => {
         const { origin, hash, search } = window.location;
@@ -60,4 +60,4 @@ const SearchParamsHandler = () => {
     return null;
 };
 
-module.exports = withCoreSuspender(SearchParamsHandler);
+export default withCoreSuspender(SearchParamsHandler);

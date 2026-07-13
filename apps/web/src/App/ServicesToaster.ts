@@ -1,9 +1,9 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const { useCore } = require('rillio/core');
-const { useToast, useFileDrop } = require('rillio/common');
-const { getTauri } = require('rillio/common/Platform/shell/isShell');
+import React from 'react';
+import { useCore } from 'rillio/core';
+import { useToast, useFileDrop } from 'rillio/common';
+import { getTauri } from 'rillio/common/Platform/shell/isShell';
 
 const ServicesToaster = () => {
     const core = useCore();
@@ -11,7 +11,7 @@ const ServicesToaster = () => {
     const filedrop = useFileDrop();
 
     React.useEffect(() => {
-        const onCoreEvent = (name, data) => {
+        const onCoreEvent = (name: string, data: any) => {
             switch (name) {
                 case 'TorrentParsed': {
                     toast.show({
@@ -39,7 +39,7 @@ const ServicesToaster = () => {
                 }
             }
         };
-        const onCoreError = (source, error) => {
+        const onCoreError = (source: any, error: any) => {
             if (source.event === 'UserPulledFromAPI' && source.args.uid === null) return;
             if (source.event === 'LibrarySyncWithAPIPlanned' && source.args.uid === null) return;
             if (error.type === 'Other' && error.code === 3 && source.event === 'AddonInstalled' && source.args.transport_url.startsWith('https://www.strem.io/trakt/addon')) return;
@@ -54,7 +54,7 @@ const ServicesToaster = () => {
                 }
             });
         };
-        const onFileDrop = (file, buffer, supported) => {
+        const onFileDrop = (file: File, _buffer: ArrayBuffer, supported: boolean) => {
             if (!supported) {
                 toast.show({
                     type: 'error',
@@ -81,9 +81,9 @@ const ServicesToaster = () => {
     React.useEffect(() => {
         const TAURI = getTauri();
         if (!TAURI?.event?.listen || !TAURI?.core?.invoke) return;
-        let unlisten;
+        let unlisten: (() => void) | undefined;
         let cancelled = false;
-        TAURI.event.listen('update-available', (event) => {
+        TAURI.event.listen('update-available', (event: any) => {
             const version = typeof event?.payload === 'string' ? event.payload : null;
             toast.show({
                 type: 'info',
@@ -95,13 +95,13 @@ const ServicesToaster = () => {
                     // Show the full-screen updating overlay (App/UpdatingOverlay)
                     // for the duration; install_update ends by restarting the app.
                     window.dispatchEvent(new CustomEvent('rillio:update-start'));
-                    TAURI.core.invoke('install_update').catch((e) => {
+                    TAURI.core.invoke('install_update').catch((e: unknown) => {
                         window.dispatchEvent(new CustomEvent('rillio:update-error'));
                         toast.show({ type: 'error', title: 'Update failed', message: String(e), timeout: 5000 });
                     });
                 },
             });
-        }).then((un) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
+        }).then((un: () => void) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
         return () => { cancelled = true; if (typeof unlisten === 'function') unlisten(); };
     }, []);
 
@@ -111,9 +111,9 @@ const ServicesToaster = () => {
     React.useEffect(() => {
         const TAURI = getTauri();
         if (!TAURI?.event?.listen) return;
-        let unlisten;
+        let unlisten: (() => void) | undefined;
         let cancelled = false;
-        TAURI.event.listen('streaming-server-error', (event) => {
+        TAURI.event.listen('streaming-server-error', (event: any) => {
             const detail = typeof event?.payload === 'string' ? event.payload : null;
             toast.show({
                 type: 'error',
@@ -121,11 +121,11 @@ const ServicesToaster = () => {
                 message: detail || 'Streams may not load. Another instance may already be using the port.',
                 timeout: 10000,
             });
-        }).then((un) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
+        }).then((un: () => void) => { if (cancelled) un(); else unlisten = un; }).catch(() => { /* not in shell */ });
         return () => { cancelled = true; if (typeof unlisten === 'function') unlisten(); };
     }, []);
 
     return null;
 };
 
-module.exports = ServicesToaster;
+export default ServicesToaster;

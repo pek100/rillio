@@ -1,5 +1,5 @@
-const React = require('react');
-const { useNotifications, useToast } = require('rillio/common');
+import React from 'react';
+import { useNotifications, useToast } from 'rillio/common';
 
 // Surfaces new-episode notifications (ctx.notifications) as transient toasts.
 // The bell/panel was dropped in the Rillio redesign; new content now arrives as
@@ -13,7 +13,7 @@ const NotificationsToaster = () => {
     const notifications = useNotifications();
     const toast = useToast();
     // null until the first pass so an existing backlog on load isn't toasted.
-    const seen = React.useRef(null);
+    const seen = React.useRef<Set<string> | null>(null);
 
     React.useEffect(() => {
         const items = (notifications && notifications.items) || {};
@@ -24,7 +24,7 @@ const NotificationsToaster = () => {
             return;
         }
 
-        const fresh = active.filter((id) => !seen.current.has(id));
+        const fresh = active.filter((id) => !seen.current!.has(id));
         // Re-sync to what's currently active so dismissed metas can toast again later.
         seen.current = new Set(active);
 
@@ -45,4 +45,4 @@ const NotificationsToaster = () => {
     return null;
 };
 
-module.exports = NotificationsToaster;
+export default NotificationsToaster;

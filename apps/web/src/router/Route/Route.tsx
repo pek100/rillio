@@ -1,11 +1,15 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const React = require('react');
-const PropTypes = require('prop-types');
-const { ModalsContainerProvider } = require('../ModalsContainerContext');
-const { RouteFocusedProvider } = require('rillio/common/useRouteFocused');
+import React from 'react';
+import { ModalsContainerProvider } from '../ModalsContainerContext';
+import { RouteFocusedProvider } from 'rillio/common/useRouteFocused';
 
-const Route = ({ component, focused }) => {
+type Props = {
+    component?: React.ReactNode,
+    focused: boolean,
+};
+
+const Route = ({ component, focused }: Props) => {
     return (
         <div className={'route-container'}>
             <RouteFocusedProvider value={focused}>
@@ -19,9 +23,4 @@ const Route = ({ component, focused }) => {
     );
 };
 
-Route.propTypes = {
-    component: PropTypes.node,
-    focused: PropTypes.bool,
-};
-
-module.exports = Route;
+export default Route;

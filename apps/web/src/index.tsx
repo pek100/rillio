@@ -1,22 +1,27 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-require('./styles/tailwind.css');
+import './styles/tailwind.css';
+import Bowser from 'bowser';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { HashRouter } from 'react-router-dom';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import stremioTranslations from 'rillio-translations';
+import App from './App';
+import { CoreProvider } from './core';
+import { FileDropProvider, PlatformProvider } from './common';
+// NEVER run the cache-first service worker inside the desktop shell. The shell's
+// assets are embedded and swapped in whole by the native updater, and the asset
+// path is prefixed with the (stable-between-rebuilds) commit hash, so a
+// cache-first SW keeps serving the OLD bundle after every update, and the new UI
+// never appears. Detect the shell via the shared predicate.
+import { isShell } from './common/Platform/shell/isShell';
 
-const Bowser = require('bowser');
 const browser = Bowser.parse(window.navigator?.userAgent || '');
 if (browser?.platform?.type === 'desktop') {
     document.querySelector('meta[name="viewport"]')?.setAttribute('content', '');
 }
-
-const React = require('react');
-const ReactDOM = require('react-dom/client');
-const { HashRouter } = require('react-router-dom');
-const i18n = require('i18next');
-const { initReactI18next } = require('react-i18next');
-const stremioTranslations = require('rillio-translations');
-const App = require('./App');
-const { CoreProvider } = require('./core');
-const { FileDropProvider, PlatformProvider } = require('./common');
 
 const translations = Object.fromEntries(Object.entries(stremioTranslations()).map(([key, value]) => [key, {
     translation: value
@@ -38,7 +43,7 @@ const appInfo = {
     shellVersion: null
 };
 
-const root = ReactDOM.createRoot(document.getElementById('app'));
+const root = ReactDOM.createRoot(document.getElementById('app')!);
 root.render(
     <React.StrictMode>
         <PlatformProvider>
@@ -53,14 +58,9 @@ root.render(
     </React.StrictMode>
 );
 
-const SERVICE_WORKER_DISABLED = process.env.SERVICE_WORKER_DISABLED === 'true' || process.env.SERVICE_WORKER_DISABLED === true;
+const rawServiceWorkerDisabled = process.env.SERVICE_WORKER_DISABLED as unknown;
+const SERVICE_WORKER_DISABLED = rawServiceWorkerDisabled === 'true' || rawServiceWorkerDisabled === true;
 
-// NEVER run the cache-first service worker inside the desktop shell. The shell's
-// assets are embedded and swapped in whole by the native updater, and the asset
-// path is prefixed with the (stable-between-rebuilds) commit hash, so a
-// cache-first SW keeps serving the OLD bundle after every update, and the new UI
-// never appears. Detect the shell via the shared predicate.
-const { isShell } = require('./common/Platform/shell/isShell');
 const inShell = isShell();
 
 if (process.env.NODE_ENV === 'production' && !SERVICE_WORKER_DISABLED && !inShell && 'serviceWorker' in navigator) {

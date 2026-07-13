@@ -53,7 +53,7 @@ module.exports = (env, argv) => ({
     // that class of warning (foundation kit, Phase 2) without hiding real ones.
     ignoreWarnings: [/Module level directives cause errors when not transpiled/, /Module level directives/],
     entry: {
-        main: './src/index.js',
+        main: './src/index.tsx',
         worker: './node_modules/@rillio/core-web/worker.js'
     },
     output: {

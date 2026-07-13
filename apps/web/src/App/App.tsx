@@ -1,31 +1,35 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-require('spatial-navigation-polyfill');
-const React = require('react');
-const { useTranslation } = require('react-i18next');
-const { useNavigate } = require('react-router');
-const { useCore } = require('rillio/core');
-const { Routes } = require('rillio-router');
-const { Chromecast, ServicesProvider, GamepadProvider } = require('rillio/services');
-const { FullscreenProvider, ToastProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } = require('rillio/common');
+import 'spatial-navigation-polyfill';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { useCore } from 'rillio/core';
+import { Routes } from 'rillio-router';
+import { Chromecast, ServicesProvider, GamepadProvider } from 'rillio/services';
+import { FullscreenProvider, ToastProvider, ShortcutsProvider, DiscordProvider, CONSTANTS, useBinaryState, useProfile, withCoreSuspender, onFileDrop, usePlatform } from 'rillio/common';
 // Foundation-kit Radix Tooltip provider (delay/behaviour context for the kit's
 // Tooltip) mounted once at app root. ToastProvider (from rillio/common)
 // now resolves to the Sonner-backed adapter that renders the single <Toaster/>.
-const { TooltipProvider: KitTooltipProvider } = require('rillio/components/ui/tooltip');
-const ServicesToaster = require('./ServicesToaster');
-const NotificationsToaster = require('./NotificationsToaster');
-const SearchParamsHandler = require('./SearchParamsHandler');
-const DeepLinkHandler = require('./DeepLinkHandler');
-const DeepLinkOpenHandler = require('./DeepLinkOpenHandler');
-const { default: UpdaterBanner } = require('./UpdaterBanner');
-const { default: ShortcutsModal } = require('./ShortcutsModal');
-const { default: GamepadModal } = require('./GamepadModal');
-const { default: WindowControls } = require('rillio/components/WindowControls/WindowControls');
-const { default: ErrorBoundary } = require('rillio/components/ErrorBoundary/ErrorBoundary');
-const { default: UpdatingOverlay } = require('./UpdatingOverlay/UpdatingOverlay');
-const { default: SyncModal } = require('./SyncModal/SyncModal');
-const { ensureDisplayName } = require('rillio/common/useDisplayName');
-const { SEARCH_MODAL_PATH } = require('rillio/components/SearchModal');
+import { TooltipProvider as KitTooltipProvider } from 'rillio/components/ui/tooltip';
+import ServicesToaster from './ServicesToaster';
+import NotificationsToaster from './NotificationsToaster';
+import SearchParamsHandler from './SearchParamsHandler';
+import DeepLinkHandler from './DeepLinkHandler';
+import DeepLinkOpenHandler from './DeepLinkOpenHandler';
+import UpdaterBanner from './UpdaterBanner';
+import ShortcutsModal from './ShortcutsModal';
+import GamepadModal from './GamepadModal';
+import WindowControls from 'rillio/components/WindowControls/WindowControls';
+import ErrorBoundary from 'rillio/components/ErrorBoundary/ErrorBoundary';
+import UpdatingOverlay from './UpdatingOverlay/UpdatingOverlay';
+import SyncModal from './SyncModal/SyncModal';
+import { ensureDisplayName } from 'rillio/common/useDisplayName';
+import { SEARCH_MODAL_PATH } from 'rillio/components/SearchModal';
+
+// The Google Cast SDK injects a global `chrome.cast` object at runtime; no
+// @types package is installed for it, so it is typed as `any` here.
+declare const chrome: any;
 
 const ProtectedRoutes = withCoreSuspender(Routes);
 const NAVIGATE_TABS_ROUTES = ['/', '/discover', '/library', '/calendar', '/addons', '/settings'];
@@ -45,7 +49,7 @@ const App = () => {
     const [shortcutModalOpen,, closeShortcutsModal, toggleShortcutModal] = useBinaryState(false);
     const [gamepadModalOpen,, closeGamepadModal, toggleGamepadModal] = useBinaryState(false);
 
-    const onShortcut = React.useCallback((name, combo, key) => {
+    const onShortcut = React.useCallback((name: string, combo: number, key: string) => {
         switch (name) {
             case 'shortcuts':
                 toggleShortcutModal();
@@ -81,7 +85,7 @@ const App = () => {
         return () => clearTimeout(timer);
     }, []);
 
-    onFileDrop(['application/x-bittorrent'], (file, buffer) => {
+    onFileDrop(['application/x-bittorrent'], (file: File, buffer: ArrayBuffer) => {
         core.transport.dispatch({
             action: 'StreamingServer',
             args: {
@@ -94,7 +98,7 @@ const App = () => {
     React.useEffect(() => {
         const onChromecastStateChange = () => {
             if (services.chromecast.active) {
-                services.chromecast.transport.setOptions({
+                services.chromecast.transport!.setOptions({
                     receiverApplicationId: CONSTANTS.CHROMECAST_RECEIVER_APP_ID,
                     autoJoinPolicy: chrome.cast.AutoJoinPolicy.PAGE_SCOPED,
                     resumeSavedSession: false,
@@ -106,7 +110,7 @@ const App = () => {
         services.chromecast.on('stateChanged', onChromecastStateChange);
         services.chromecast.start();
 
-        window.services = services;
+        (window as any).services = services;
         return () => {
             services.chromecast.stop();
             services.chromecast.off('stateChanged', onChromecastStateChange);
@@ -114,7 +118,7 @@ const App = () => {
     }, []);
 
     React.useEffect(() => {
-        const onOpenMedia = (data) => {
+        const onOpenMedia = (data: string) => {
             try {
                 const { protocol, hostname, pathname, searchParams } = new URL(data);
                 if (protocol === CONSTANTS.PROTOCOL) {
@@ -229,4 +233,4 @@ const App = () => {
     );
 };
 
-module.exports = withCoreSuspender(App);
+export default withCoreSuspender(App);

@@ -1,9 +1,16 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
-const React = require('react');
-const { useNavigate } = require('react-router');
-const { usePlatform } = require('rillio/common');
-const { parseDeepLink } = require('rillio/common/deepLinks');
+import React from 'react';
+import { useNavigate } from 'react-router';
+import { usePlatform } from 'rillio/common';
+import { parseDeepLink } from 'rillio/common/deepLinks';
+
+// parseDeepLink lives in an untyped .js module; its documented contract is one
+// of these two shapes or null. Declare it locally so the discriminated narrowing
+// below is type-safe.
+type DeepLinkAction =
+    | { type: 'addon', transportUrl: string }
+    | { type: 'route', path: string };
 
 // Handles OS deep links (stremio:// / rillio://) that the desktop shell forwards
 // as the `deep-link-open` signal (apps/desktop src/lib.rs on_open_url). The URL
@@ -14,8 +21,8 @@ const DeepLinkOpenHandler = () => {
     const navigate = useNavigate();
     const { shell } = usePlatform();
     React.useEffect(() => {
-        const onDeepLink = (url) => {
-            const action = parseDeepLink(url);
+        const onDeepLink = (url: string) => {
+            const action = parseDeepLink(url) as DeepLinkAction | null;
             if (action === null) {
                 console.warn('DeepLink', 'ignoring unrecognized deep link:', url);
                 return;
@@ -35,4 +42,4 @@ const DeepLinkOpenHandler = () => {
     return null;
 };
 
-module.exports = DeepLinkOpenHandler;
+export default DeepLinkOpenHandler;

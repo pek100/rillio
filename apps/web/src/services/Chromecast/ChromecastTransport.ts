@@ -1,20 +1,26 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const EventEmitter = require('eventemitter3');
-const hat = require('hat');
+import EventEmitter from 'eventemitter3';
+import hat from 'hat';
+
+// The Google Cast SDK injects a global `cast` (and `chrome.cast`) object at
+// runtime. No @types package is installed for it, so it is typed as `any` here.
+declare const cast: any;
 
 const MESSAGE_NAMESPACE = 'urn:x-cast:com.stremio';
 const CHUNK_SIZE = 20000;
 
-let castAPIAvailable = null;
+type CastListener = (...args: any[]) => void;
+
+let castAPIAvailable: boolean | null = null;
 const castAPIEvents = new EventEmitter();
-window['__onGCastApiAvailable'] = function(available) {
-    delete window['__onGCastApiAvailable'];
+(window as any)['__onGCastApiAvailable'] = function(available: boolean) {
+    delete (window as any)['__onGCastApiAvailable'];
     castAPIAvailable = !!available;
     castAPIEvents.emit('availabilityChanged');
 };
 
-const initialize = () => {
+const initialize = (): Promise<void> => {
     return new Promise((resolve, reject) => {
         function onCastAPIAvailabilityChanged() {
             castAPIEvents.off('availabilityChanged', onCastAPIAvailabilityChanged);
@@ -32,9 +38,26 @@ const initialize = () => {
     });
 };
 
-function ChromecastTransport() {
+export interface ChromecastTransportInstance {
+    on(name: string, listener: CastListener): void;
+    off(name: string, listener: CastListener): void;
+    removeAllListeners(): void;
+    getCastState(): any;
+    getSessionState(): any;
+    getCastDevice(): any;
+    setOptions(options: any): void;
+    requestSession(): Promise<any>;
+    endCurrentSession(stopCasting: boolean): void;
+    sendMessage(message: any): Promise<any>;
+}
+
+interface ChromecastTransportConstructor {
+    new (): ChromecastTransportInstance;
+}
+
+function ChromecastTransport(this: ChromecastTransportInstance) {
     const events = new EventEmitter();
-    const messages = {};
+    const messages: Record<string, string[]> = {};
 
     initialize()
         .then(() => {
@@ -58,7 +81,7 @@ function ChromecastTransport() {
             events.emit('init-error', error);
         });
 
-    function onMessage(_, message) {
+    function onMessage(_: any, message: string) {
         try {
             const { id, chunk, index, length } = JSON.parse(message);
             messages[id] = messages[id] || [];
@@ -72,25 +95,25 @@ function ChromecastTransport() {
             events.emit('message-error', error);
         }
     }
-    function onApplicationStatusChanged(event) {
+    function onApplicationStatusChanged(event: any) {
         events.emit(cast.framework.CastSession.APPLICATION_STATUS_CHANGED, event);
     }
-    function onApplicationMetadataChanged(event) {
+    function onApplicationMetadataChanged(event: any) {
         events.emit(cast.framework.CastSession.APPLICATION_METADATA_CHANGED, event);
     }
-    function onActiveInputStateChanged(event) {
+    function onActiveInputStateChanged(event: any) {
         events.emit(cast.framework.CastSession.ACTIVE_INPUT_STATE_CHANGED, event);
     }
-    function onVolumeChanged(event) {
+    function onVolumeChanged(event: any) {
         events.emit(cast.framework.CastSession.VOLUME_CHANGED, event);
     }
-    function onMediaSessionChanged(event) {
+    function onMediaSessionChanged(event: any) {
         events.emit(cast.framework.CastSession.MEDIA_SESSION, event);
     }
-    function onCastStateChanged(event) {
+    function onCastStateChanged(event: any) {
         events.emit(cast.framework.CastContextEventType.CAST_STATE_CHANGED, event);
     }
-    function onSesstionStateChanged(event) {
+    function onSesstionStateChanged(event: any) {
         events.emit(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, event);
         switch (event.sessionState) {
             case cast.framework.SessionState.SESSION_STARTED: {
@@ -114,10 +137,10 @@ function ChromecastTransport() {
         }
     }
 
-    this.on = function(name, listener) {
+    this.on = function(name: string, listener: CastListener) {
         events.on(name, listener);
     };
-    this.off = function(name, listener) {
+    this.off = function(name: string, listener: CastListener) {
         events.off(name, listener);
     };
     this.removeAllListeners = function() {
@@ -137,21 +160,21 @@ function ChromecastTransport() {
 
         return null;
     };
-    this.setOptions = function(options) {
+    this.setOptions = function(options: any) {
         cast.framework.CastContext.getInstance().setOptions(options);
     };
     this.requestSession = function() {
         return cast.framework.CastContext.getInstance().requestSession();
     };
-    this.endCurrentSession = function(stopCasting) {
+    this.endCurrentSession = function(stopCasting: boolean) {
         cast.framework.CastContext.getInstance().endCurrentSession(stopCasting);
     };
-    this.sendMessage = function(message) {
+    this.sendMessage = function(message: any) {
         const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
         if (castSession !== null) {
             const serializedMessage = JSON.stringify(message);
             const chunksCount = Math.ceil(serializedMessage.length / CHUNK_SIZE);
-            const chunks = [];
+            const chunks: string[] = [];
             for (let i = 0; i < chunksCount; i++) {
                 const start = i * CHUNK_SIZE;
                 const chunk = serializedMessage.slice(start, start + CHUNK_SIZE);
@@ -172,4 +195,4 @@ function ChromecastTransport() {
     };
 }
 
-module.exports = ChromecastTransport;
+export default ChromecastTransport as unknown as ChromecastTransportConstructor;

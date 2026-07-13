@@ -1,13 +1,30 @@
 // Copyright (C) 2017-2023 Smart code 203358507
 
-const EventEmitter = require('eventemitter3');
-const ChromecastTransport = require('./ChromecastTransport');
+import EventEmitter from 'eventemitter3';
+import ChromecastTransport, { ChromecastTransportInstance } from './ChromecastTransport';
 
-function Chromecast() {
+type ChromecastListener = (...args: any[]) => void;
+
+export interface ChromecastInstance {
+    readonly active: boolean;
+    readonly error: Error | null;
+    readonly starting: boolean;
+    readonly transport: ChromecastTransportInstance | null;
+    start(): void;
+    stop(): void;
+    on(name: string, listener: ChromecastListener): void;
+    off(name: string, listener: ChromecastListener): void;
+}
+
+interface ChromecastConstructor {
+    new (): ChromecastInstance;
+}
+
+function Chromecast(this: ChromecastInstance) {
     let active = false;
-    let error = null;
+    let error: Error | null = null;
     let starting = false;
-    let transport = null;
+    let transport: ChromecastTransportInstance | null = null;
 
     const events = new EventEmitter();
 
@@ -17,7 +34,7 @@ function Chromecast() {
         starting = false;
         onStateChanged();
     }
-    function onTransportInitError(args) {
+    function onTransportInitError(args: any) {
         console.error(args);
         active = false;
         error = new Error('Google Cast API not available', { cause: args });
@@ -81,12 +98,12 @@ function Chromecast() {
             transport = null;
         }
     };
-    this.on = function(name, listener) {
+    this.on = function(name: string, listener: ChromecastListener) {
         events.on(name, listener);
     };
-    this.off = function(name, listener) {
+    this.off = function(name: string, listener: ChromecastListener) {
         events.off(name, listener);
     };
 }
 
-module.exports = Chromecast;
+export default Chromecast as unknown as ChromecastConstructor;
