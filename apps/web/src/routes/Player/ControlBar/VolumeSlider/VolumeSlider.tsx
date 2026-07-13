@@ -62,7 +62,7 @@ const VolumeSlider = ({ className, volume, onVolumeChangeRequested, muted }: Pro
     }, []);
     return (
         <Slider
-            className={cn(className, { 'active': slidingVolume !== null })}
+            className={cn({ 'active': slidingVolume !== null }, className)}
             trackClassName={!disabled ? TRACK : undefined}
             filledClassName={!disabled ? FILLED : undefined}
             thumbClassName={!disabled ? THUMB : undefined}

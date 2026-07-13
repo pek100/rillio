@@ -81,7 +81,7 @@ const Buffering = forwardRef<HTMLDivElement, Props>(({ className, logo, title, p
             'This source is downloading slowly. Try a different source.';
 
     return (
-        <div ref={ref} className={cn(className, 'flex items-center justify-center')}>
+        <div ref={ref} className={cn('flex items-center justify-center', className)}>
             {
                 showTitle ?
                     <div

@@ -64,7 +64,7 @@ const SeekBar = ({ className, time, duration, buffered, onSeekRequested, playbac
     const labelClass = 'w-[5.5rem] flex-none whitespace-nowrap text-center text-[1.1rem] tabular-nums text-fg/90 [direction:rtl] [text-overflow:ellipsis]';
 
     return (
-        <div className={cn(className, 'flex flex-row items-center')}>
+        <div className={cn('flex flex-row items-center', className)}>
             <div className={labelClass}>{formatTime(seekTime !== null ? seekTime : time)}</div>
             <Slider
                 className={'mx-(--thumb-size) flex-1 self-stretch'}
