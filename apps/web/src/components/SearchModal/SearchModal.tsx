@@ -176,11 +176,11 @@ const SearchModal = ({ onClose }: Props) => {
                 role="dialog"
                 aria-modal="true"
                 aria-label={t('SEARCH')}
-                // Exactly the DialogContent material: dark translucent bg-card over the
-                // blurred scrim (a white lift here read milky against the frosted page),
-                // a border-line hairline and shadow-elevated. The scrim above carries the
+                // Exactly the DialogContent material (this panel is hand-rolled, not a kit
+                // Dialog, so it has to name the same classes): panel-tint + bg-card, a
+                // border-line hairline and shadow-elevated. The scrim above carries the
                 // blur, so the panel takes none (one blur per stacking context).
-                className="absolute left-1/2 top-1/2 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-squircle border border-line bg-card text-card-foreground shadow-elevated"
+                className="panel-tint absolute left-1/2 top-1/2 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-squircle border border-line bg-card text-card-foreground shadow-elevated"
             >
                 <Command shouldFilter={false} loop className="bg-transparent">
                     <div className="border-b border-line">
