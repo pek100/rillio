@@ -25,7 +25,7 @@ const contentClasses =
     // computed position (which would read as a snap/jump on open or on the first
     // hover-triggered reposition). Entrance/exit here are `animation` utilities
     // (animate-in / zoom), not transitions, so they are unaffected.
-    // Cinematic glass: black-alpha bg-popover + backdrop-blur-md darkens/frosts the
+    // Cinematic glass: black-alpha bg-popover + the glass blur token darkens/frosts the
     // content behind (the player-island recipe); the border-line hairline defines the
     // panel edge over the pure-black page, where the translucent fill alone vanishes.
     'z-50 min-w-[10rem] overflow-hidden rounded-card border border-line bg-popover p-1 text-popover-foreground shadow-elevated backdrop-blur-(--glass-blur) transition-none ' +

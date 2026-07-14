@@ -34,8 +34,11 @@ const TABS: Tab[] = [
     { id: 'calendar', label: 'Calendar', href: '/calendar' },
 ];
 
-// Account keeps its island chip; search + addons are bare icons.
-const ICON_BUTTON = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface/70 backdrop-blur transition-colors duration-150';
+// Account keeps its island chip; search + addons are bare icons. This chip floats over
+// the PAGE (pure black + the nav glow), not over imagery, so it stays a WHITE lift -
+// a black tint on black would be invisible - on the shared bg-surface token and the
+// shared glass blur.
+const ICON_BUTTON = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface backdrop-blur-(--glass-blur) transition-colors duration-150';
 // Bare icon <button>: reset the UA button chrome (appearance/border/bg/padding) so
 // only these utilities style it, matching the old <a> exactly.
 const ICON_BUTTON_BARE = 'inline-flex size-10 shrink-0 items-center justify-center overflow-visible rounded-full transition-colors duration-150 appearance-none border-0 bg-transparent p-0 cursor-pointer';

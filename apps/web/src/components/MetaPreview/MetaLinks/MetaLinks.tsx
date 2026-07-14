@@ -44,7 +44,7 @@ const MetaLinks = ({ className, label, links }: Props) => {
                                 className={cn(
                                     'mb-3 mr-3 h-auto flex-grow-0 rounded-full border-2 border-transparent px-5 py-[0.4rem]',
                                     'whitespace-nowrap text-base font-medium text-fg',
-                                    'bg-[var(--overlay-color)] backdrop-blur-[5px] hover:bg-surface-hover',
+                                    'bg-glass-chrome backdrop-blur-(--glass-blur) hover:bg-surface-hover',
                                     'focus-visible:border-highlight focus-visible:outline-none',
                                 )}
                                 title={label}

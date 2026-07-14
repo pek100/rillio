@@ -267,7 +267,10 @@ const ControlBar = forwardRef<HTMLDivElement, Props>(function ControlBar({
                     // Desktop: the right menus island (min-width sm only, so it never
                     // clashes with the mobile overflow-popover styling below).
                     'flex flex-none flex-row gap-2 sm:rounded-full sm:bg-glass-chrome sm:p-1.5 sm:backdrop-blur-(--glass-blur)',
-                    'max-sm:absolute max-sm:bottom-[4.5rem] max-sm:right-0 max-sm:m-2 max-sm:max-w-[calc(100dvw-1rem)] max-sm:gap-[0.15rem] max-sm:overflow-x-auto max-sm:rounded-card max-sm:bg-(--modal-background-color) max-sm:p-2 max-sm:shadow-(--outer-glow)',
+                    // Mobile: an overflow MENU, so it takes the house floating-panel
+                    // material (glass-panel + border-line + shadow-elevated + glass blur)
+                    // rather than the lighter chrome island above.
+                    'max-sm:absolute max-sm:bottom-[4.5rem] max-sm:right-0 max-sm:m-2 max-sm:max-w-[calc(100dvw-1rem)] max-sm:gap-[0.15rem] max-sm:overflow-x-auto max-sm:rounded-card max-sm:border max-sm:border-line max-sm:bg-glass-panel max-sm:p-2 max-sm:shadow-elevated max-sm:backdrop-blur-(--glass-blur)',
                     buttonsMenuOpen ? 'max-sm:flex' : 'max-sm:hidden',
                 )}>
                     <IconButton className={cn(CB_BUTTON, !stream && 'opacity-40')} tabIndex={-1} onMouseDown={onStatisticsButtonMouseDown} onClick={onToggleStatisticsMenu}>

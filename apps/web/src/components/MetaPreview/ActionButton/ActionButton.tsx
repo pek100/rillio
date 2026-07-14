@@ -31,7 +31,9 @@ const ActionButton = ({ className, icon, label, tooltip, ...props }: Props) => {
             title={tooltip ? '' : label}
             {...props}
             className={cn(
-                'group h-16 flex-none flex-row justify-center gap-4 rounded-full bg-[var(--overlay-color)] px-8 backdrop-blur-[5px]',
+                // Chrome glass: this pill floats over the detail backdrop ART, where the
+                // old white-alpha lift read milky. Black-alpha darkening + the blur token.
+                'group h-16 flex-none flex-row justify-center gap-4 rounded-full bg-glass-chrome px-8 backdrop-blur-(--glass-blur)',
                 'hover:bg-surface-hover',
                 showInlineLabel ? 'w-auto' : 'w-16 px-0',
                 className,

@@ -41,7 +41,10 @@ const NavMenu = ({ renderLabel }: Props) => {
             <PopoverContent
                 align="end"
                 sideOffset={12}
-                className="w-auto overflow-hidden rounded-card border border-line bg-surface p-0 shadow-elevated"
+                // Only layout here: PopoverContent already carries the house glass
+                // material (bg-popover + border-line + shadow-elevated + glass blur).
+                // The old bg-surface override made this the one white-lift popover.
+                className="w-auto overflow-hidden p-0"
             >
                 <NavMenuContent onSelect={close} />
             </PopoverContent>

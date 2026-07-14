@@ -5,6 +5,8 @@
  * server errored and the dismissal date has passed. Clean-room rewrite (Phase 3 /
  * Wave B) onto Tailwind + the foundation-kit Button. Board owns the outer placement
  * (passed via className); this component owns the island's flat surface + actions.
+ * Board pins it absolutely over the catalog rows, i.e. over POSTER ART, so it takes
+ * the house floating-panel glass (black-alpha), not the page's white-lift card.
  * The core dispatch (UpdateSettings with a future streamingServerWarningDismissed)
  * and the withCoreSuspender gate are reused verbatim.
  */
@@ -63,7 +65,7 @@ const StreamingServerWarning = ({ className }: Props) => {
     }, [updateSettings]);
 
     return (
-        <div className={cn('flex flex-row items-center gap-4 rounded-card bg-surface p-4 shadow-elevated max-[640px]:flex-col max-[640px]:px-2 max-[640px]:text-center', className)}>
+        <div className={cn('flex flex-row items-center gap-4 rounded-card border border-line bg-glass-panel p-4 shadow-elevated backdrop-blur-(--glass-blur) max-[640px]:flex-col max-[640px]:px-2 max-[640px]:text-center', className)}>
             <div className="max-h-[2.4em] flex-1 text-[1.2rem] font-medium text-fg">
                 {t('SETTINGS_SERVER_UNAVAILABLE')}
             </div>

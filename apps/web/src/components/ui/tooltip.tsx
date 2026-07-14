@@ -26,7 +26,7 @@ export const TooltipContent = forwardRef<
                 sideOffset={sideOffset}
                 className={cn(
                     // Floating glass, same family as the menus: black-alpha bg-popover +
-                    // backdrop-blur-md + border-line, so the tip stays legible over any
+                    // the glass blur token + border-line, so the tip stays legible over any
                     // backdrop (a white-lift chip would wash out over bright imagery).
                     'z-50 max-w-xs rounded-card border border-line bg-popover px-2.5 py-1.5 text-xs text-fg shadow-elevated backdrop-blur-(--glass-blur)',
                     'data-[state=delayed-open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95',

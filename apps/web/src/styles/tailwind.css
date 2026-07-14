@@ -137,18 +137,21 @@
      * white blend over the blurred imagery behind the scrim reads milky/washed (the
      * same failure the player's overlays hit over video). Slightly more opaque than
      * the menu glass because a modal is a place you stay and read. NO blur on the
-     * panel itself: the Dialog overlay already blurs (bg-black/60 + blur-24), so
+     * panel itself: the Dialog overlay already blurs (bg-black/60 + --scrim-blur), so
      * blurring the panel too would be a wasted second backdrop-filter in the same
-     * stacking context; the border-line hairline separates it from the scrim. */
+     * stacking context; the border-line hairline separates it from the scrim.
+     * (Sheet is the one exception and says why: its only consumer renders with no
+     * overlay at all, so that panel must carry the blur itself.) */
     --color-card: var(--color-glass-panel);
     --color-card-foreground: var(--color-fg);
     /* popover = FLOATING MENU glass (dropdown / select / context / popover content, and
      * tooltip / toast). BLACK-alpha, not white: menus portal over posters and imagery,
      * where black darkens the backdrop so ice/white glyphs stay legible - the player's
-     * bg-black/25 recipe, pushed to 0.55 because menu text is small and can land over
-     * near-white poster regions. Paired with backdrop-blur-md + a border-line hairline
-     * in the primitives; over the pure-black page the fill vanishes but the hairline +
-     * shadow define the panel and white text/hover lifts still read. */
+     * bg-black/25 recipe, pushed up because menu text is small and can land over
+     * near-white poster regions. Paired with backdrop-blur-(--glass-blur) + a
+     * border-line hairline + shadow-elevated in the primitives; over the pure-black
+     * page the fill vanishes but the hairline + shadow define the panel and white
+     * text/hover lifts still read. */
     --color-popover: var(--color-glass-panel);
     --color-popover-foreground: var(--color-fg);
     --color-primary: var(--color-accent);           /* #FFA033 brand */
@@ -313,13 +316,13 @@ html:not(.active-slider-within) .player-container[data-immersed] .player-immersi
     --secondary-foreground-color: rgb(12, 11, 17, 1);
     --primary-accent-color: var(--color-accent);            /* #FFA033 */
     --overlay-color: rgba(255, 255, 255, 0.05);
-    /* Player overlay panels (menus, side drawer, indicators). DARK glass, not the
-     * white lift: these float over VIDEO, and on an HDR display a white-alpha
-     * blend over PQ-bright content reads milky/washed on screen (while SDR
-     * screen captures tone-map it back to looking fine - Michael caught the
-     * difference live). Black-alpha darkening scales correctly over any
-     * backdrop brightness; all consumers already carry backdrop-blur. */
-    --modal-background-color: var(--color-popover);
+    /* Player panel glass. Every floating surface now names --color-glass-panel (or
+     * bg-popover / bg-card) directly, so this alias has exactly ONE consumer left:
+     * SnapshotBackdrop, which must paint the panel tint itself (a negative-z child
+     * paints after its parent's background, so the panel's own fill would end up
+     * behind the opaque snapshot). Kept only so that file's comment and code agree;
+     * do not reach for it in new surfaces. */
+    --modal-background-color: var(--color-glass-panel);
     --outer-glow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 3px 10px rgba(0, 0, 0, 0.42);
     --border-radius: var(--radius-card);                    /* 0.75rem */
 

@@ -23,7 +23,7 @@ export const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup;
 const contentClasses =
     // transition-none: keep the Radix popper positioning instant (never animate the
     // transform to place). Entrance/exit are `animation` utilities, not transitions.
-    // Cinematic glass: black-alpha bg-popover + backdrop-blur-md, border-line hairline
+    // Cinematic glass: black-alpha bg-popover + the glass blur token, border-line hairline
     // edge (see dropdown-menu contentClasses for the full rationale).
     'z-50 min-w-[8rem] overflow-hidden rounded-card border border-line bg-popover p-1 text-popover-foreground shadow-elevated backdrop-blur-(--glass-blur) transition-none ' +
     'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95';

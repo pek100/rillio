@@ -217,7 +217,7 @@ const SearchBar = React.memo(({ className, query, active }: Props) => {
             }
             {
                 historyOpen && hasItems ?
-                    <div className="absolute left-0 top-full z-10 mt-2 w-full rounded-card bg-popover p-2 text-popover-foreground shadow-elevated">
+                    <div className="absolute left-0 top-full z-10 mt-2 w-full rounded-card border border-line bg-popover p-2 text-popover-foreground shadow-elevated backdrop-blur-(--glass-blur)">
                         <SearchSuggestions
                             historyItems={historyItems}
                             suggestions={suggestions}

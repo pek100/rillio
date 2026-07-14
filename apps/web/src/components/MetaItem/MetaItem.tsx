@@ -211,7 +211,7 @@ const MetaItem = React.memo(({
                 }
                 {
                     isWatched ?
-                        <div className="absolute left-0 top-0 z-[1] m-2 flex size-6 items-center justify-center rounded-full bg-black/55 backdrop-blur-sm">
+                        <div className="absolute left-0 top-0 z-[1] m-2 flex size-6 items-center justify-center rounded-full bg-glass-chrome backdrop-blur-(--glass-blur)">
                             <Check className="size-3 text-fg" />
                         </div>
                         :
@@ -225,7 +225,7 @@ const MetaItem = React.memo(({
                         <IconButton
                             title={libraryState.inLibrary ? t('REMOVE_FROM_LIB') : t('ADD_TO_LIB')}
                             onClick={onToggleInLibraryClick}
-                            className={cn('absolute right-2 top-2 z-[2] size-7 bg-black/55 opacity-0 backdrop-blur-sm transition-[transform,opacity] duration-150 hover:scale-110 active:scale-95 [&:hover_svg]:text-primary [&_svg]:size-(--icon-size-sm) [&_svg]:text-fg-muted', REVEAL_OPACITY)}
+                            className={cn('absolute right-2 top-2 z-[2] size-7 bg-glass-chrome opacity-0 backdrop-blur-(--glass-blur) transition-[transform,opacity] duration-150 hover:scale-110 active:scale-95 [&:hover_svg]:text-primary [&_svg]:size-(--icon-size-sm) [&_svg]:text-fg-muted', REVEAL_OPACITY)}
                         >
                             {libraryState.inLibrary ? <BookmarkCheck /> : <Bookmark />}
                         </IconButton>
@@ -237,7 +237,7 @@ const MetaItem = React.memo(({
                         <IconButton
                             title={isWatched ? t('CTX_MARK_UNWATCHED') : t('CTX_MARK_WATCHED')}
                             onClick={onToggleWatchedClick}
-                            className={cn('absolute right-2 top-11 z-[2] size-7 bg-black/55 opacity-0 backdrop-blur-sm transition-[transform,opacity] duration-150 hover:scale-110 active:scale-95 [&:hover_svg]:text-primary [&_svg]:size-(--icon-size-sm) [&_svg]:text-fg-muted', REVEAL_OPACITY)}
+                            className={cn('absolute right-2 top-11 z-[2] size-7 bg-glass-chrome opacity-0 backdrop-blur-(--glass-blur) transition-[transform,opacity] duration-150 hover:scale-110 active:scale-95 [&:hover_svg]:text-primary [&_svg]:size-(--icon-size-sm) [&_svg]:text-fg-muted', REVEAL_OPACITY)}
                         >
                             {isWatched ? <EyeOff /> : <Eye />}
                         </IconButton>

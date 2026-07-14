@@ -86,7 +86,7 @@ const Indicator = ({ className, videoState, disabled }: Props) => {
     return (
         <Presence when={shown && !disabled} duration={300}>
             <div className={cn('absolute flex h-16 select-none items-center justify-center', className)}>
-                <div className={'flex h-full flex-none items-center justify-center rounded-full bg-(--modal-background-color) px-8 text-center font-bold text-fg'}>
+                <div className={'flex h-full flex-none items-center justify-center rounded-full border border-line bg-glass-panel px-8 text-center font-bold text-fg shadow-elevated backdrop-blur-(--glass-blur)'}>
                     {label} {value}
                 </div>
             </div>

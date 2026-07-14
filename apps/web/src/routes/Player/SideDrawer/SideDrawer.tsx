@@ -114,7 +114,9 @@ const SideDrawer = memo(forwardRef<HTMLDivElement, Props>(function SideDrawer({ 
                 onMouseDown={onMouseDown}
                 onAnimationEnd={onAnimationEnd}
                 aria-describedby={undefined}
-                className={'z-[1] w-full max-w-[35rem] gap-0 overflow-y-auto bg-(--modal-background-color) p-4 pt-[calc(1rem+var(--safe-area-inset-top))] shadow-(--outer-glow) backdrop-blur-(--glass-blur) max-sm:max-w-full'}
+                // Layout only: SheetContent already carries the house glass material
+                // (bg-card + border-line + shadow-elevated + the glass blur token).
+                className={'z-[1] w-full max-w-[35rem] gap-0 overflow-y-auto p-4 pt-[calc(1rem+var(--safe-area-inset-top))] max-sm:max-w-full'}
             >
                 <SnapshotBackdrop />
                 <SheetTitle className={'sr-only'}>{metaItem.name}</SheetTitle>

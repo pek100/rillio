@@ -29,7 +29,7 @@ export const SheetOverlay = forwardRef<
         <SheetPrimitive.Overlay
             ref={ref}
             className={cn(
-                'fixed inset-0 z-50 bg-black/60',
+                'fixed inset-0 z-50 bg-black/60 backdrop-blur-(--scrim-blur)',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                 className,
             )}
@@ -39,7 +39,12 @@ export const SheetOverlay = forwardRef<
 });
 
 const sheetVariants = cva(
-    'fixed z-50 flex flex-col gap-4 bg-card text-card-foreground shadow-elevated transition ease-in-out ' +
+    // The house glass material: dark translucent fill + a border-line hairline +
+    // shadow-elevated + the glass blur token. The panel carries the blur itself
+    // (unlike Dialog, whose scrim carries it) because this primitive's only
+    // consumer, the Player SideDrawer, runs `overlay={false}` over live video and
+    // so has no scrim to blur for it.
+    'fixed z-50 flex flex-col gap-4 border border-line bg-card text-card-foreground shadow-elevated backdrop-blur-(--glass-blur) transition ease-in-out ' +
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-300',
     {
         variants: {

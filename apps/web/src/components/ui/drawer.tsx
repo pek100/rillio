@@ -24,7 +24,7 @@ export const DrawerOverlay = forwardRef<
     ElementRef<typeof DrawerPrimitive.Overlay>,
     ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
 >(function DrawerOverlay({ className, ...props }, ref) {
-    return <DrawerPrimitive.Overlay ref={ref} className={cn('fixed inset-0 z-50 bg-black/60', className)} {...props} />;
+    return <DrawerPrimitive.Overlay ref={ref} className={cn('fixed inset-0 z-50 bg-black/60 backdrop-blur-(--scrim-blur)', className)} {...props} />;
 });
 
 export const DrawerContent = forwardRef<
@@ -37,10 +37,10 @@ export const DrawerContent = forwardRef<
             <DrawerPrimitive.Content
                 ref={ref}
                 className={cn(
-                    // The vaul overlay is bg-black/60 with NO blur, so the panel itself
-                    // carries the glass: white-lift bg-card + backdrop-blur-md + a
-                    // border-line top edge. Only one blur in this stacking context.
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-squircle border-t border-line bg-card text-card-foreground shadow-elevated backdrop-blur-(--glass-blur)',
+                    // Same recipe as Dialog: the vaul overlay carries the scrim blur, so
+                    // NO backdrop-blur here (one blur per stacking context). Dark
+                    // translucent bg-card + shadow-elevated + a border-line top edge.
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-squircle border-t border-line bg-card text-card-foreground shadow-elevated',
                     className,
                 )}
                 {...props}

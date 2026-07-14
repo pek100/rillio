@@ -103,7 +103,10 @@ const ContextMenu = ({ children, on, autoClose, lock }: Props) => {
                     onCloseAutoFocus={(event) => event.preventDefault()}
                     onClick={onContentClick}
                     className={
-                        'z-50 rounded-(--border-radius) bg-(--modal-background-color) shadow-(--outer-glow) transition-none ' +
+                        // The house floating-menu material, identical to the kit's
+                        // dropdown/select/popover content: glass-panel fill + a
+                        // border-line hairline + shadow-elevated + the glass blur token.
+                        'z-50 rounded-card border border-line bg-popover text-popover-foreground shadow-elevated backdrop-blur-(--glass-blur) transition-none ' +
                         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0'
                     }
                 >

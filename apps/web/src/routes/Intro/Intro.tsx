@@ -516,9 +516,13 @@ const Intro = () => {
                     null
             }
             {
+                /* The house modal recipe (DialogContent's): a bg-black/60 + scrim-blur
+                   scrim, and a dark-glass panel with a border-line hairline +
+                   shadow-elevated over it (Intro's backdrop is artwork, where the old
+                   white lift read milky). The scrim carries the blur. */
                 loaderModalOpen ?
-                    <Modal className="flex items-center justify-center bg-black/40">
-                        <div className="flex-none flex flex-col items-center justify-center gap-4 p-10 rounded-card bg-surface-hover shadow-elevated">
+                    <Modal className="flex items-center justify-center bg-black/60 backdrop-blur-(--scrim-blur)">
+                        <div className="flex-none flex flex-col items-center justify-center gap-4 p-10 rounded-card border border-line bg-card text-card-foreground shadow-elevated">
                             <CircleUser className="size-20 text-fg animate-pulse" />
                             <div className="text-2xl text-fg animate-pulse">{t('AUTHENTICATING')}</div>
                             <Button

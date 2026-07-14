@@ -51,7 +51,7 @@ const VolumeChangeIndicator = memo(function VolumeChangeIndicator({ muted, volum
         <React.Fragment>
             {
                 volumeIndicatorOpen ?
-                    <div className={'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-4 rounded-card bg-(--modal-background-color) px-10 py-8 shadow-(--outer-glow) max-sm:px-6 max-sm:py-4'}>
+                    <div className={'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-4 rounded-card border border-line bg-glass-panel px-10 py-8 shadow-elevated backdrop-blur-(--glass-blur) max-sm:px-6 max-sm:py-4'}>
                         <VolumeIcon className={'size-[6.5rem] text-fg max-sm:size-16'} />
                         <VolumeSlider volume={volume} className={'mx-4 max-h-4 w-[6.5rem] [--thumb-size:1rem] [--track-size:0.35rem] max-sm:w-16'} />
                     </div>

@@ -2,8 +2,9 @@
 
 /**
  * ActionsGroup - a horizontal segmented pill of icon buttons (library / watched /
- * share / ratings). Clean-room Tailwind rewrite: one flat `--overlay-color` pill,
- * backdrop-blurred, with fixed-square focusable cells (never padding-sized) whose
+ * share / ratings). Clean-room Tailwind rewrite: one flat chrome-glass pill (it floats
+ * over the detail backdrop art, so black-alpha, never a white lift), blurred with the
+ * shared glass token, with fixed-square focusable cells (never padding-sized) whose
  * glyphs sit at 0.7 opacity and lift to full on hover / focus. The `size` prop
  * replaces the old cross-component LESS `:import` that shrank the group inside
  * MetaPreview. Tooltips come from the foundation-kit Radix Tooltip.
@@ -49,7 +50,7 @@ const ActionsGroup = ({ items, className, size = 'default' }: Props) => {
     return (
         <div
             className={cn(
-                'flex w-fit flex-row items-center justify-start rounded-full bg-[var(--overlay-color)] backdrop-blur-[5px]',
+                'flex w-fit flex-row items-center justify-start rounded-full bg-glass-chrome backdrop-blur-(--glass-blur)',
                 containerSize[size],
                 className,
             )}

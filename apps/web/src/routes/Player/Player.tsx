@@ -56,7 +56,10 @@ const NAV_BAR_LAYER = "player-immersion-fade absolute left-(--safe-area-inset-le
 const CONTROL_BAR_LAYER = "player-immersion-fade absolute bottom-0 left-(--safe-area-inset-left) right-(--safe-area-inset-right) z-0 overflow-visible pb-[calc(0.5rem+var(--safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-0 before:-z-10 before:h-40 before:bg-gradient-to-t before:from-black/35 before:to-transparent before:content-['']";
 const SIDE_DRAWER_BUTTON_LAYER = 'player-immersion-fade fixed left-auto right-[-4rem] top-1/2 z-0 -translate-y-1/2 [@media(max-width:1000px)]:right-[-2rem]';
 const INDICATOR_LAYER = 'absolute bottom-40 left-0 right-0 z-0';
-const MENU_LAYER = 'player-immersion-fade absolute bottom-[7.5rem] left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-(--border-radius) bg-(--modal-background-color) shadow-(--outer-glow) backdrop-blur-(--glass-blur) [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
+// The house floating-panel material (identical to every app menu/dialog): glass-panel
+// fill + a border-line hairline + shadow-elevated + the glass blur token, plus this
+// layer's fixed bottom-right placement.
+const MENU_LAYER = 'player-immersion-fade absolute bottom-[7.5rem] left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-card border border-line bg-glass-panel shadow-elevated backdrop-blur-(--glass-blur) [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
 
 const findTrackByLang = (tracks: any[], lang: string) => tracks.find((track) => track.lang === lang || langs.where('1', track.lang)?.[2] === lang);
 const findTrackById = (tracks: any[], id: string) => tracks.find((track) => track.id === id);
