@@ -61,7 +61,7 @@ const INDICATOR_LAYER = 'absolute bottom-40 left-0 right-0 z-0';
 // The house floating-panel material (identical to every app menu/dialog): glass-panel
 // fill + a border-line hairline + shadow-elevated + the glass blur token, plus this
 // layer's fixed bottom-right placement.
-const MENU_LAYER = 'player-immersion-fade absolute bottom-[7.5rem] left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-card border border-line bg-glass-panel shadow-elevated backdrop-blur-(--glass-blur) [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
+const MENU_LAYER = 'player-immersion-fade absolute bottom-(--player-chrome-clearance) left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-card border border-line bg-glass-panel shadow-elevated backdrop-blur-(--glass-blur) [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
 
 const findTrackByLang = (tracks: any[], lang: string) => tracks.find((track) => track.lang === lang || langs.where('1', track.lang)?.[2] === lang);
 const findTrackById = (tracks: any[], id: string) => tracks.find((track) => track.id === id);
@@ -220,6 +220,17 @@ const Player = () => {
         // state, where the chrome must stay). Same 4s idle countdown either way.
         return immersed && !casting && video.state.paused !== null && !menusOpen;
     }, [immersed, casting, video.state.paused, menusOpen]);
+
+    // Mirror the chrome's visibility onto <html>, the same way WindowControls
+    // publishes `window-fullscreen`. The toast layer is portalled to <body>, so
+    // the `.player-container[data-immersed]` cascade cannot reach it; this is the
+    // only signal it can see to lift clear of the control bar. Cleared on unmount
+    // so leaving the player never strands the class (the toaster outlives it).
+    React.useEffect(() => {
+        const root = document.documentElement;
+        root.classList.toggle('player-chrome-visible', !overlayHidden);
+        return () => root.classList.remove('player-chrome-visible');
+    }, [overlayHidden]);
 
     const nextVideoPopupDismissed = React.useRef(false);
     const defaultAudioTrackSelected = React.useRef(false);

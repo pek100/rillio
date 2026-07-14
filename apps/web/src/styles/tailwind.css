@@ -158,6 +158,15 @@
      * of them silently misaligns the player chrome from the app chrome. */
     --nav-top-gap: 1rem;
 
+    /* How far above the window bottom the player's control bar reaches, i.e. the
+     * clearance anything floating over the film must keep. Hoisted for the same
+     * reason as --nav-top-gap: TWO unrelated consumers must agree on it, and they
+     * cannot see each other. The player's own menus (MENU_LAYER in Player.tsx) sit
+     * on it, and so does the toast layer - which is portalled to <body>, far
+     * outside the player tree, and would otherwise land straight on the control
+     * bar's right-hand icon cluster. */
+    --player-chrome-clearance: 7.5rem;
+
     /* Nav glow - a hint of the pre-cinematic identity: the app's FORMER background
      * blue-black, falling from behind the nav into the pure-black page (see the
      * nav-glow layer in MainNavBars). Deliberately the old --color-bg value and not
@@ -506,6 +515,23 @@ svg {
 [data-sonner-toaster],
 [data-sonner-toaster] > li {
     overflow: visible;
+}
+
+/* Lift the toast clear of the player's control bar while the chrome is up.
+ * The toast layer is portalled to <body> (it has to be - see ToastProvider), so
+ * the player's immersion cascade below cannot reach it and it would sit right on
+ * the control bar's right-hand icon cluster. The Player mirrors its chrome state
+ * onto <html> for exactly this reason; when the chrome fades out the toast drops
+ * back to sonner's own offset, timed with the same 200ms fade.
+ * Sonner sets `bottom: var(--offset-bottom)` from its stylesheet but writes
+ * --offset-bottom INLINE, so overriding the variable would lose to the inline
+ * style: override `bottom` itself. This selector is (0,3,1), which beats both
+ * sonner's (0,2,0) rule and its (0,2,0) mobile-offset media query. */
+html.player-chrome-visible [data-sonner-toaster][data-y-position='bottom'] {
+    bottom: var(--player-chrome-clearance);
+}
+[data-sonner-toaster][data-y-position='bottom'] {
+    transition: bottom 200ms var(--ease-smooth);
 }
 
 /* Root document sizing + behavior (ported from App/styles.less html/body/#app,
