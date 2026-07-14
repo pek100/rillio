@@ -11,6 +11,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use librqbit::TorrentStatsState;
 use serde::{Deserialize, Serialize};
 
 use crate::engine::Engine;
@@ -62,16 +63,35 @@ pub(crate) async fn list(State(engine): State<Engine>) -> Json<Vec<CacheEntry>> 
             };
             let total: u64 = selected.iter().map(|&i| files[i].length).sum();
             // Per-file have-bytes are exact (never exceed the file's length),
-            // unlike `progress_bytes` which is piece-aligned. Empty while the
-            // torrent is initializing or errored - clamp the torrent-level
-            // counter then so `downloaded <= total` always holds.
-            let downloaded: u64 = if stats.file_progress.is_empty() {
-                stats.progress_bytes.min(total)
-            } else {
-                selected
-                    .iter()
-                    .map(|&i| stats.file_progress.get(i).copied().unwrap_or(0))
-                    .sum()
+            // unlike `progress_bytes` which is piece-aligned.
+            //
+            // `progress_bytes` MEANS DIFFERENT THINGS PER STATE, and conflating
+            // them is a bug we shipped: for Live/Paused it is have-bytes, but for
+            // Initializing librqbit sets it to `checked_bytes` - how far the HASH
+            // CHECK has scanned, which is not data we hold. Since file_progress is
+            // also empty while initializing (no chunk tracker yet), the old
+            // `file_progress.is_empty() -> progress_bytes` fallback reported the
+            // check's scan as downloaded: on a freshly preallocated file the row
+            // raced to ~total in seconds (checking zeros is fast) and then
+            // COLLAPSED to 0 the moment it went live and the truth took over.
+            // Every pause/resume re-runs the check, so it climbed and collapsed
+            // again. There is no have-byte count during Initializing, so the
+            // honest answer is 0; the row already says "Preparing" there.
+            let downloaded: u64 = match stats.state {
+                TorrentStatsState::Initializing | TorrentStatsState::Error => 0,
+                TorrentStatsState::Live | TorrentStatsState::Paused => {
+                    if stats.file_progress.is_empty() {
+                        // Live can still yield an empty vec if the chunk-tracker read
+                        // fails; there progress_bytes IS have-bytes, so it stands in.
+                        // Clamped so `downloaded <= total` always holds.
+                        stats.progress_bytes.min(total)
+                    } else {
+                        selected
+                            .iter()
+                            .map(|&i| stats.file_progress.get(i).copied().unwrap_or(0))
+                            .sum()
+                    }
+                }
             };
             let name = if selected.len() == 1 {
                 files[selected[0]].name.clone()
