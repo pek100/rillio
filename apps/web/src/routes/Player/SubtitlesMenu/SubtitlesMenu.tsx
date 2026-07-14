@@ -15,6 +15,7 @@ import { languages } from 'rillio/common';
 import { SUBTITLES_SIZES, DEFAULT_SUBTITLES_LANGUAGE, LOCAL_SUBTITLES_LANGUAGE } from 'rillio/common/CONSTANTS';
 import { Button } from 'rillio/components/ui';
 import { cn } from 'rillio/components/ui';
+import ShaderBlurRect from '../ShaderBlurRect';
 import SnapshotBackdrop from '../SnapshotBackdrop';
 import Stepper from './Stepper';
 import SubtitleVariant from './SubtitleVariant';
@@ -162,6 +163,7 @@ const SubtitlesMenu = memo(forwardRef<HTMLDivElement, any>(function SubtitlesMen
     return (
         <div ref={ref} className={cn('flex h-[25rem] flex-row', props.className)} onMouseDown={onMouseDown}>
             <SnapshotBackdrop />
+            <ShaderBlurRect />
             <div className={'flex w-64 flex-none flex-col self-stretch'}>
                 <div className={HEADER}>{t('PLAYER_SUBTITLES_LANGUAGES')}</div>
                 <div className={'flex-1 self-stretch overflow-y-auto px-4'}>

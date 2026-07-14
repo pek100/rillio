@@ -13,6 +13,7 @@ import React, { forwardRef, memo, ReactNode, useCallback, useEffect, useState } 
 import { useTranslation } from 'react-i18next';
 import { usePlatform } from 'rillio/common';
 import { cn } from 'rillio/components/ui';
+import ShaderBlurRect from '../ShaderBlurRect';
 import SnapshotBackdrop from '../SnapshotBackdrop';
 
 const DASH = '—';
@@ -124,6 +125,7 @@ const StatisticsMenu = memo(forwardRef<HTMLDivElement, Props>(function Statistic
     return (
         <div ref={ref} className={cn('flex w-[30rem] flex-col gap-6 p-6', className)} onMouseDown={onMouseDown}>
             <SnapshotBackdrop />
+            <ShaderBlurRect />
             <div className={'flex-none font-bold text-fg'}>
                 {t('PLAYER_STATISTICS')}
             </div>

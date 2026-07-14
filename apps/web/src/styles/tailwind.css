@@ -4,6 +4,15 @@
  * class `0,0,1,0` outranks `*` `0,0,0,0`), exactly like Tailwind v3 did. This is
  * robust: it does not depend on cascade-layer ordering or a postcss layer-wrap
  * (that wrap proved flaky under cssnano, letting the reset silently win). */
+/* Sonner's stylesheet, BUNDLED rather than left to its runtime <style> injection.
+ * Sonner appends a <style> element itself, which is fine in a browser but is exactly
+ * the kind of thing the desktop shell's CSP exists to stop (and Tauri v2 adds a nonce
+ * to style-src, which VOIDS 'unsafe-inline' - the gotcha this app already hit once).
+ * An unstyled toaster loses its position:fixed and the app's `* { overflow: hidden }`
+ * reset then swallows it: toasts render but nobody ever sees them. Imported FIRST so
+ * our utilities and the toast classNames below still win the cascade. */
+@import "sonner/dist/styles.css";
+
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
@@ -275,6 +284,18 @@ html.active-slider-within body { pointer-events: none; }
  * player's top bar read --nav-top-gap, so they move together. Beats the @theme
  * :root value on specificity. */
 html.window-fullscreen { --nav-top-gap: 0rem; }
+
+/* GPU panel blur (routes/Player/useShaderBlurRect.ts, OFF by default). While the
+ * shell is really blurring the video under the open player panels, their fill can
+ * step back: at 0.65 the alpha was doing ALL the legibility work because there was
+ * no blur to help (see --color-glass-panel), and over an actually-blurred frame
+ * that much black just hides the material. Blur alone is still not enough for
+ * small text over a bright scene, so this lightens the fill rather than dropping
+ * it. Same html.<class> shape as the rule above: it beats the @theme :root value
+ * on specificity and reaches the PORTALED side drawer, which no player-scoped
+ * container could. The class is only ever present while a panel is blurred, so
+ * with the flag off this rule never matches anything. */
+html.player-shader-blur { --color-glass-panel: rgba(0, 0, 0, 0.42); }
 
 /* Player immersion (ported verbatim from the former Player/styles.less). After the
  * idle timeout the Player container gets `data-immersed`; the cursor is hidden and

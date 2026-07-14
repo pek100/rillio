@@ -21,6 +21,7 @@ import { CONSTANTS } from 'rillio/common';
 import { MetaPreview, Video } from 'rillio/components';
 import SeasonsBar from 'rillio/routes/MetaDetails/VideosList/SeasonsBar';
 import { Sheet, SheetContent, SheetTitle } from 'rillio/components/ui';
+import ShaderBlurRect from '../ShaderBlurRect';
 import SnapshotBackdrop from '../SnapshotBackdrop';
 
 type Props = {
@@ -119,6 +120,7 @@ const SideDrawer = memo(forwardRef<HTMLDivElement, Props>(function SideDrawer({ 
                 className={'z-[1] w-full max-w-[35rem] gap-0 overflow-y-auto p-4 pt-[calc(1rem+var(--safe-area-inset-top))] max-sm:max-w-full'}
             >
                 <SnapshotBackdrop />
+                <ShaderBlurRect />
                 <SheetTitle className={'sr-only'}>{metaItem.name}</SheetTitle>
                 <div
                     className={'absolute right-[1.3rem] top-[calc(1.3rem+var(--safe-area-inset-top))] z-[2] hidden cursor-pointer rounded-card p-2 hover:bg-(--overlay-color) max-sm:block'}

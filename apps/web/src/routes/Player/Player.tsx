@@ -34,7 +34,9 @@ import NextEpisodePreloadPrompt from './NextEpisodePreloadPrompt';
 import useVideo from './useVideo';
 import useSubtitles from './useSubtitles';
 import useVideoSnapshotBackdrop from './useVideoSnapshotBackdrop';
+import useShaderBlurRect from './useShaderBlurRect';
 import { SnapshotBackdropContext } from './SnapshotBackdrop';
+import { ShaderBlurContext } from './ShaderBlurRect';
 import Video from './Video';
 import Indicator from './Indicator/Indicator';
 import useMediaSession from './useMediaSession';
@@ -138,6 +140,13 @@ const Player = () => {
     // and SnapshotBackdrop (inside each panel) blurs it. Shell-only; null
     // everywhere else, which leaves the panels on their dark glass alone.
     const snapshotBackdrop = useVideoSnapshotBackdrop(menusOpen || sideDrawerOpen);
+
+    // The other answer to the same problem, and the one that can actually be live:
+    // instead of shipping frames to the web layer, hand the shell the panels' rects
+    // and let an mpv GLSL shader blur the video where they sit. Null (so every
+    // <ShaderBlurRect /> below renders nothing) unless its flag is on - it hooks
+    // the pipeline that carries HDR/DV passthrough. See useShaderBlurRect.
+    const shaderBlur = useShaderBlurRect();
 
     const closeMenus = React.useCallback(() => {
         closeOptionsMenu();
@@ -1131,62 +1140,66 @@ const Player = () => {
               * Revisit only if these menus ever stop needing container-mousedown close.
               */}
             {/*
-              * Everything below carries the blurred-video backdrop (SnapshotBackdrop, one
-              * layer inside each panel). The provider is scoped to exactly these panels
-              * rather than the whole route: the context-menu OptionsMenu above is opened by
-              * right-click, is not part of menusOpen, and so has no snapshot to show - the
-              * context default (null) leaves it on plain dark glass, as today.
+              * Everything below carries the blurred-video backdrop: SnapshotBackdrop (a CPU
+              * frame the shell ships us, gated off) and ShaderBlurRect (the panel's rect,
+              * handed to a GPU shader in mpv, also gated off) - one layer each, inside each
+              * panel. Both providers are scoped to exactly these panels rather than the
+              * whole route: the context-menu OptionsMenu above is opened by right-click, is
+              * not part of menusOpen, and so has nothing to blur - the context defaults
+              * (null) leave it on plain dark glass, as today.
               */}
             <SnapshotBackdropContext.Provider value={snapshotBackdrop}>
-                <Presence when={statisticsMenuOpen}>
-                    <StatisticsMenu
-                        className={MENU_LAYER}
-                        {...statistics}
-                        details={statisticsDetails}
-                    />
-                </Presence>
-                {
-                    player.metaItem?.type === 'Ready' ?
-                        <SideDrawer
-                            open={sideDrawerOpen}
-                            onClose={closeSideDrawer}
-                            metaItem={player.metaItem?.content}
-                            seriesInfo={player.seriesInfo as SeriesInfo}
-                            selected={player.selected?.streamRequest?.path?.id as string}
+                <ShaderBlurContext.Provider value={shaderBlur}>
+                    <Presence when={statisticsMenuOpen}>
+                        <StatisticsMenu
+                            className={MENU_LAYER}
+                            {...statistics}
+                            details={statisticsDetails}
                         />
-                        :
-                        null
-                }
-                <Presence when={subtitlesMenuOpen}>
-                    <SubtitlesMenu
-                        className={MENU_LAYER}
-                        {...subtitlesMenuProps}
-                    />
-                </Presence>
-                <Presence when={audioMenuOpen}>
-                    <AudioMenu
-                        className={MENU_LAYER}
-                        audioTracks={video.state.audioTracks}
-                        selectedAudioTrackId={video.state.selectedAudioTrackId}
-                        onAudioTrackSelected={onAudioTrackSelected}
-                    />
-                </Presence>
-                <Presence when={speedMenuOpen}>
-                    <SpeedMenu
-                        className={MENU_LAYER}
-                        playbackSpeed={video.state.playbackSpeed}
-                        onPlaybackSpeedChanged={onPlaybackSpeedChanged}
-                    />
-                </Presence>
-                <Presence when={optionsMenuOpen}>
-                    <OptionsMenu
-                        className={MENU_LAYER}
-                        stream={player.selected?.stream}
-                        playbackDevices={playbackDevices}
-                        extraSubtitlesTracks={extraSubtitleTracks}
-                        selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
-                    />
-                </Presence>
+                    </Presence>
+                    {
+                        player.metaItem?.type === 'Ready' ?
+                            <SideDrawer
+                                open={sideDrawerOpen}
+                                onClose={closeSideDrawer}
+                                metaItem={player.metaItem?.content}
+                                seriesInfo={player.seriesInfo as SeriesInfo}
+                                selected={player.selected?.streamRequest?.path?.id as string}
+                            />
+                            :
+                            null
+                    }
+                    <Presence when={subtitlesMenuOpen}>
+                        <SubtitlesMenu
+                            className={MENU_LAYER}
+                            {...subtitlesMenuProps}
+                        />
+                    </Presence>
+                    <Presence when={audioMenuOpen}>
+                        <AudioMenu
+                            className={MENU_LAYER}
+                            audioTracks={video.state.audioTracks}
+                            selectedAudioTrackId={video.state.selectedAudioTrackId}
+                            onAudioTrackSelected={onAudioTrackSelected}
+                        />
+                    </Presence>
+                    <Presence when={speedMenuOpen}>
+                        <SpeedMenu
+                            className={MENU_LAYER}
+                            playbackSpeed={video.state.playbackSpeed}
+                            onPlaybackSpeedChanged={onPlaybackSpeedChanged}
+                        />
+                    </Presence>
+                    <Presence when={optionsMenuOpen}>
+                        <OptionsMenu
+                            className={MENU_LAYER}
+                            stream={player.selected?.stream}
+                            playbackDevices={playbackDevices}
+                            extraSubtitlesTracks={extraSubtitleTracks}
+                            selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
+                        />
+                    </Presence>
+                </ShaderBlurContext.Provider>
             </SnapshotBackdropContext.Provider>
         </div>
     );
