@@ -5,12 +5,13 @@
  * robust: it does not depend on cascade-layer ordering or a postcss layer-wrap
  * (that wrap proved flaky under cssnano, letting the reset silently win). */
 /* Sonner's stylesheet, BUNDLED rather than left to its runtime <style> injection.
- * Sonner appends a <style> element itself, which is fine in a browser but is exactly
- * the kind of thing the desktop shell's CSP exists to stop (and Tauri v2 adds a nonce
- * to style-src, which VOIDS 'unsafe-inline' - the gotcha this app already hit once).
- * An unstyled toaster loses its position:fixed and the app's `* { overflow: hidden }`
- * reset then swallows it: toasts render but nobody ever sees them. Imported FIRST so
- * our utilities and the toast classNames below still win the cascade. */
+ * Sonner appends a <style> element itself; bundling keeps the toast layer off the
+ * shell's CSP surface (Tauri v2 nonces style-src, which VOIDS 'unsafe-inline').
+ * Imported FIRST so our utilities and the toast classNames below win the cascade.
+ * NOTE: this is hygiene, not a bug fix. The "toasts never appear" bug was the
+ * universal overflow:hidden reset clipping sonner's zero-height <ol> anchor; the
+ * opt-out that actually fixes it is next to the `svg` one further down. Injection
+ * was never blocked here - verified in the running shell, no CSP violation. */
 @import "sonner/dist/styles.css";
 
 @import "tailwindcss/theme.css";
@@ -488,6 +489,22 @@ html:not(.active-slider-within) .player-container[data-immersed] .player-immersi
 
 /* SVGs opt out of the universal overflow:hidden so glyphs/filters are not clipped. */
 svg {
+    overflow: visible;
+}
+
+/* Sonner's toast layer opts out too, and this one is load-bearing: the <ol> is a
+ * ZERO-HEIGHT anchor pinned at the corner, and each toast is an absolutely
+ * positioned <li> hanging ABOVE it at a negative top. The universal
+ * overflow:hidden therefore clips every toast to nothing - they mount, animate
+ * and auto-close on schedule, but they never paint and never hit-test, so the
+ * whole app looks like it has no toasts at all. Sonner's own stylesheet never
+ * sets overflow (it assumes the UA default), so nothing upstream restores this.
+ * The <li> is included because sonner hangs the close button outside the toast
+ * box via a translate. Verified in the running shell over CDP: toggling this one
+ * declaration flips elementFromPoint at the toast's center between the toast and
+ * the poster art behind it. */
+[data-sonner-toaster],
+[data-sonner-toaster] > li {
     overflow: visible;
 }
 

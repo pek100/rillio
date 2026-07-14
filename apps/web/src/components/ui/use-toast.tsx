@@ -20,6 +20,7 @@
  */
 
 import React, { createElement, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { toast as sonnerToast } from 'sonner';
 import { Check, X, Info, TriangleAlert, Download, type LucideIcon } from 'lucide-react';
 import { Toaster } from './sonner';
@@ -124,12 +125,24 @@ export function useToast(): ToastApi {
  * ToastProvider - parity wrapper for the legacy provider. Sonner is imperative and
  * global, so there is no context to thread; this simply renders children plus the
  * single <Toaster/>. Kept so existing `<ToastProvider>` mount points need no change.
+ *
+ * The Toaster is PORTALLED TO document.body, and that is load-bearing. This provider
+ * mounts inside `#app`, which is `position: relative; z-index: 0` - a stacking
+ * context. A z-index only competes with siblings INSIDE its own stacking context, so
+ * sonner's z-index:999999999 does not escape `#app`: the whole toast layer flattens
+ * to `#app`'s z-index 0. Radix portals every dialog to <body> at z-index 50, which
+ * therefore paints above ALL of `#app` - scrim included. Left inline, any toast
+ * raised while a modal is open (a Cached pause/delete error, a download starting
+ * from Search) renders underneath the scrim and is never seen. Portalling makes the
+ * toaster a sibling of the dialog portals, where its z-index finally means what it
+ * says. Verified over CDP: elementFromPoint at the toast's centre returned the
+ * dialog's `.fixed.inset-0` overlay before this, and the toast after.
  */
 export function ToastProvider({ children }: { children?: ReactNode }) {
     return (
         <>
             {children}
-            <Toaster />
+            {createPortal(<Toaster />, document.body)}
         </>
     );
 }
