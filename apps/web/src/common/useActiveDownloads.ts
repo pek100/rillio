@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { subscribeCacheChanged } from 'rillio/common/cacheEvents';
 
 // Direct module require, NOT the 'rillio/common' barrel: this hook loads with
 // TopNav at app startup, before the barrel's circular imports resolve, and the
@@ -42,9 +43,14 @@ const useActiveDownloads = (): boolean => {
         };
         poll();
         const interval = setInterval(poll, POLL_INTERVAL_MS);
+        // A cache mutation we issued ourselves (pause / resume / delete / a new
+        // download) has already settled server-side by the time this fires, so
+        // re-read now instead of leaving a stale dot up until the next tick.
+        const unsubscribe = subscribeCacheChanged(poll);
         return () => {
             cancelled = true;
             clearInterval(interval);
+            unsubscribe();
         };
     }, [serverUrl]);
 

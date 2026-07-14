@@ -4,6 +4,7 @@ import React from 'react';
 import useCacheDownload from 'rillio/common/useCacheDownload';
 import useProfile from 'rillio/common/useProfile';
 import useToast from 'rillio/common/Toast/useToast';
+import { notifyCacheChanged } from 'rillio/common/cacheEvents';
 import { getPreloadPromptEnabled } from 'rillio/common/nextEpisodePreloadPrefs';
 
 // Offers to preload the NEXT episode's torrent into the local cache while the
@@ -223,6 +224,9 @@ const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => 
                         if (!resp.ok) {
                             throw new Error(`cache/pause responded ${resp.status}`);
                         }
+                        // The preload we just started is paused again: drop the
+                        // top-nav dot now rather than on its next lazy tick.
+                        notifyCacheChanged();
                     })
                     .catch((error) => {
                         console.error('useNextEpisodePreload: cache/pause failed', error);

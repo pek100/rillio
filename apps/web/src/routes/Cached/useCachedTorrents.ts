@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProfile } from 'rillio/common';
 import useToast from 'rillio/common/Toast/useToast';
+import { notifyCacheChanged } from 'rillio/common/cacheEvents';
 
 export type CacheEntry = {
     infoHash: string,
@@ -79,7 +80,13 @@ const useCachedTorrents = () => {
                 // delete failed) is already in place when the fresh list is applied.
                 if (onFailure !== undefined) onFailure();
             })
-            .then(() => refresh());
+            .then(() => {
+                refresh();
+                // Settled either way: on success the state changed, on failure the
+                // optimistic guess is being rolled back. Both make anything else
+                // watching the cache (the top-nav dot) wrong until it re-reads.
+                notifyCacheChanged();
+            });
     }, [serverUrl, refresh, toast]);
 
     useEffect(() => {

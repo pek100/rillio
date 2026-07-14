@@ -3,6 +3,7 @@
 import * as React from 'react';
 import useProfile from 'rillio/common/useProfile';
 import useToast from 'rillio/common/Toast/useToast';
+import { notifyCacheChanged } from 'rillio/common/cacheEvents';
 
 // "Download to cache": ask the local streaming server to fetch a torrent
 // stream in the background and PIN it (the cache sweeper never evicts pinned
@@ -49,6 +50,9 @@ const useCacheDownload = () => {
                     message: 'Track progress on the Cached page.',
                     timeout: 4000,
                 });
+                // A new download is live: light the top-nav dot now rather than on
+                // that hook's next lazy tick.
+                notifyCacheChanged();
             })
             .catch((error) => {
                 console.error('cache/download failed', error);
