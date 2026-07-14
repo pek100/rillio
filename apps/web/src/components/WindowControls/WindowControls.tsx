@@ -145,8 +145,13 @@ const WindowControls = () => {
                 overlays. */}
             <div data-tauri-drag-region className={`fixed left-0 right-44 top-0 z-[2147483646] h-2.5 transition-opacity duration-150 ${headerVisibility}`} />
 
-            {/* Controls: always on top, always clickable (no drag region). */}
-            <div className={`fixed right-0 top-0 z-[2147483646] flex h-8 select-none transition-opacity duration-150 ${headerVisibility}`}>
+            {/* Controls: always on top, always clickable (no drag region). The cluster
+                takes a backdrop of its own on hover (each button still tints
+                individually): it floats bare over whatever is beneath, which in
+                fullscreen is bright video, and the group needs a surface to sit on
+                the moment you go for it. Chrome glass, i.e. DARKENING - a white lift
+                over HDR video reads milky. */}
+            <div className={`fixed right-0 top-0 z-[2147483646] flex h-8 select-none rounded-bl-card transition-[opacity,background-color] duration-150 hover:bg-glass-chrome hover:backdrop-blur-(--glass-blur) ${headerVisibility}`}>
                 <button
                     type="button"
                     className={`${btn} hover:bg-white/10 hover:text-fg`}
