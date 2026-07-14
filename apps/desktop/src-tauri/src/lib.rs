@@ -59,7 +59,7 @@ pub(crate) fn mpv_embed_enabled() -> bool {
 /// memory/compositing-dcomp-plan sibling notes.
 fn browser_args() -> String {
     let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
-    match std::env::var("RILLIO_DOH_TEMPLATE") {
+    let dns = match std::env::var("RILLIO_DOH_TEMPLATE") {
         Ok(v) if v == "0" || v.eq_ignore_ascii_case("off") => base.to_string(),
         Ok(v) if !v.trim().is_empty() => {
             format!("{base} --dns-over-https-mode=secure --dns-over-https-templates={}", v.trim())
@@ -67,6 +67,14 @@ fn browser_args() -> String {
         _ => format!(
             "{base} --dns-over-https-mode=secure --dns-over-https-templates=https://cloudflare-dns.com/dns-query"
         ),
+    };
+    // Debug knob: opens a CDP endpoint on the WebView so the running shell's real
+    // DOM/console can be inspected from outside. The shell's own DOM is the only
+    // way to settle bugs that reproduce here but not in a browser. OFF unless the
+    // env var is set: an open CDP port is local code execution in the page.
+    match std::env::var("RILLIO_DEVTOOLS_PORT") {
+        Ok(p) if !p.trim().is_empty() => format!("{dns} --remote-debugging-port={}", p.trim()),
+        _ => dns,
     }
 }
 
