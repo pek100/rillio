@@ -358,17 +358,22 @@ const SyncModal = () => {
                 REPLACED the panel with the 5%-white lift meant for cards on the page -
                 translucent over the scrim, so the blurred backdrop showed straight
                 through the panel and its buttons. rounded-[22px] was --radius-squircle
-                spelled out by hand. Only p-0 stays: the sticky tab bar and the bodies
-                own their padding. */}
+                spelled out by hand. Only p-0 stays: the header and bodies own theirs.
+
+                The BODY scrolls, not the panel - same shape as the Cached modal. A
+                sticky header inside a scrolling panel needs an opaque fill of its own to
+                hide rows passing under it, and that fill paints over --panel-gradient
+                exactly where the gradient is strongest (it spans 24rem from the panel's
+                top), leaving a flat black band across the head of the modal. Taking the
+                header out of the scroller means it needs no fill at all, so the panel's
+                own gradient runs behind it, unbroken. */}
             <DialogContent
                 showClose={false}
-                className="flex max-h-[85dvh] w-full max-w-md flex-col gap-0 overflow-y-auto p-0"
+                className="flex max-h-[85dvh] w-full max-w-md flex-col gap-0 overflow-hidden p-0"
             >
                 <DialogTitle className="sr-only">Sync</DialogTitle>
 
-                {/* bg-card matches the panel fill so rows scrolling under the sticky bar
-                    are hidden by it rather than showing through. */}
-                <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-card px-5 pt-4 pb-3">
+                <div className="flex flex-none items-center justify-between gap-2 px-5 pt-4 pb-3">
                     <div className="inline-flex gap-1 rounded-full bg-surface-hover p-1">
                         {tabBtn('backup', 'Backup & restore')}
                         {tabBtn('stremio', 'Stremio')}
@@ -378,87 +383,89 @@ const SyncModal = () => {
                     </IconButton>
                 </div>
 
-                {error ? <div className="mx-5 mb-2 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</div> : null}
+                {error ? <div className="mx-5 mb-2 flex-none rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</div> : null}
 
-                {
-                    tab === 'backup' ?
-                        <div className="flex flex-col px-5 pb-6 pt-1">
-                            <div className={LABEL}>Your sync code</div>
-                            <div className={HINT}>Copy this to move your library, calendar and add-ons to another device, or keep it as a backup.</div>
-                            {
-                                qrSvg ?
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                    {
+                        tab === 'backup' ?
+                            <div className="flex flex-col px-5 pb-6 pt-1">
+                                <div className={LABEL}>Your sync code</div>
+                                <div className={HINT}>Copy this to move your library, calendar and add-ons to another device, or keep it as a backup.</div>
+                                {
+                                    qrSvg ?
                                     // The SVG comes from the local qrcode-generator output of the user's own export string, never remote data.
-                                    <div className="mx-auto mb-3.5 w-[200px] rounded-xl bg-white p-2.5 [&>svg]:block [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-                                    :
-                                    exportError ?
-                                        <div className="mb-3.5 rounded-lg bg-danger/10 px-3 py-2.5 text-[0.82rem] text-danger">Could not create your sync code: {exportError}</div>
+                                        <div className="mx-auto mb-3.5 w-[200px] rounded-xl bg-white p-2.5 [&>svg]:block [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />
                                         :
-                                        <div className="mb-3.5 rounded-lg bg-warning/10 px-3 py-2.5 text-[0.82rem] text-warning">Your library is too large to show as a scannable code - copy the code below instead.</div>
-                            }
-                            <Input className="mb-2.5 font-mono text-xs text-fg-muted" readOnly value={code} onFocus={(e) => e.currentTarget.select()} />
-                            <Button className="w-full" onClick={copyCode}>
-                                {copied ? <Check className="size-4" /> : <Link className="size-4" />}
-                                {copied ? 'Copied' : 'Copy code'}
-                            </Button>
+                                        exportError ?
+                                            <div className="mb-3.5 rounded-lg bg-danger/10 px-3 py-2.5 text-[0.82rem] text-danger">Could not create your sync code: {exportError}</div>
+                                            :
+                                            <div className="mb-3.5 rounded-lg bg-warning/10 px-3 py-2.5 text-[0.82rem] text-warning">Your library is too large to show as a scannable code - copy the code below instead.</div>
+                                }
+                                <Input className="mb-2.5 font-mono text-xs text-fg-muted" readOnly value={code} onFocus={(e) => e.currentTarget.select()} />
+                                <Button className="w-full" onClick={copyCode}>
+                                    {copied ? <Check className="size-4" /> : <Link className="size-4" />}
+                                    {copied ? 'Copied' : 'Copy code'}
+                                </Button>
 
-                            <div className="my-5 h-px bg-line" />
+                                <div className="my-5 h-px bg-line" />
 
-                            <div className={LABEL}>Restore from a code</div>
-                            <div className={HINT}>Paste a code from another device. This replaces the data on this device.</div>
-                            <Input className="mb-3 font-mono text-xs" placeholder="Paste your sync code here" value={restoreDraft} onChange={(e) => setRestoreDraft(e.target.value)} onSubmit={restore} />
-                            <Button variant="ghost" className="w-full bg-surface-hover text-fg hover:brightness-110" onClick={restore}>Restore</Button>
-                        </div>
-                        :
-                        <div className="flex flex-col px-5 pb-6 pt-1">
-                            {/* One sign-in, two directions. Both flows need the same
+                                <div className={LABEL}>Restore from a code</div>
+                                <div className={HINT}>Paste a code from another device. This replaces the data on this device.</div>
+                                <Input className="mb-3 font-mono text-xs" placeholder="Paste your sync code here" value={restoreDraft} onChange={(e) => setRestoreDraft(e.target.value)} onSubmit={restore} />
+                                <Button variant="ghost" className="w-full bg-surface-hover text-fg hover:brightness-110" onClick={restore}>Restore</Button>
+                            </div>
+                            :
+                            <div className="flex flex-col px-5 pb-6 pt-1">
+                                {/* One sign-in, two directions. Both flows need the same
                                 Stremio credentials, so the form (and the Facebook /
                                 Apple buttons, which have to know which way to go before
                                 they open their popup) is shared and this picks what the
                                 sign-in does. */}
-                            <div className={LABEL}>Stremio</div>
-                            <div className={HINT}>Move your library and add-ons between this device and a Stremio account. Sign in once; we never stay connected.</div>
+                                <div className={LABEL}>Stremio</div>
+                                <div className={HINT}>Move your library and add-ons between this device and a Stremio account. Sign in once; we never stay connected.</div>
 
-                            <div className="mb-4 inline-flex gap-1 self-start rounded-full bg-surface-hover p-1">
-                                {directionBtn('import', 'Import')}
-                                {directionBtn('upload', 'Upload')}
-                            </div>
+                                <div className="mb-4 inline-flex gap-1 self-start rounded-full bg-surface-hover p-1">
+                                    {directionBtn('import', 'Import')}
+                                    {directionBtn('upload', 'Upload')}
+                                </div>
 
-                            <div className={cn(HINT, 'mt-0')}>
-                                {
-                                    direction === 'import' ?
-                                        'Pulls your Stremio library and add-ons into Rillio and stores them locally. Your Stremio session is untouched.'
-                                        :
-                                        'Pushes this device’s library and add-ons to your Stremio account, then signs out. Nothing on the account is removed, newer account data is kept, and your local data stays untouched.'
-                                }
-                            </div>
+                                <div className={cn(HINT, 'mt-0')}>
+                                    {
+                                        direction === 'import' ?
+                                            'Pulls your Stremio library and add-ons into Rillio and stores them locally. Your Stremio session is untouched.'
+                                            :
+                                            'Pushes this device’s library and add-ons to your Stremio account, then signs out. Nothing on the account is removed, newer account data is kept, and your local data stays untouched.'
+                                    }
+                                </div>
 
-                            <Input className="mb-2.5" type="email" placeholder="Stremio email" value={email} autoComplete="off" disabled={inFlight} onChange={(e) => setEmail(e.target.value)} />
-                            <Input className="mb-3" type="password" placeholder="Stremio password" value={password} disabled={inFlight} onChange={(e) => setPassword(e.target.value)} onSubmit={submitWithEmail} />
-                            <Button className={cn('w-full', inFlight && 'pointer-events-none opacity-70')} onClick={submitWithEmail}>
-                                {
-                                    direction === 'import' ?
-                                        (busy ? 'Importing…' : 'Import my data')
-                                        :
-                                        (uploadStage !== null ? uploadStage : 'Upload my data')
-                                }
-                            </Button>
-
-                            <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-fg-subtle">
-                                <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
-                            </div>
-
-                            <div className="flex flex-col gap-2.5">
-                                <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithFacebook : uploadWithFacebook}>
-                                    <Facebook className="size-4" />
-                                    Continue with Facebook
+                                <Input className="mb-2.5" type="email" placeholder="Stremio email" value={email} autoComplete="off" disabled={inFlight} onChange={(e) => setEmail(e.target.value)} />
+                                <Input className="mb-3" type="password" placeholder="Stremio password" value={password} disabled={inFlight} onChange={(e) => setPassword(e.target.value)} onSubmit={submitWithEmail} />
+                                <Button className={cn('w-full', inFlight && 'pointer-events-none opacity-70')} onClick={submitWithEmail}>
+                                    {
+                                        direction === 'import' ?
+                                            (busy ? 'Importing…' : 'Import my data')
+                                            :
+                                            (uploadStage !== null ? uploadStage : 'Upload my data')
+                                    }
                                 </Button>
-                                <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithApple : uploadWithApple}>
-                                    <Apple className="size-4" />
-                                    Continue with Apple
-                                </Button>
+
+                                <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-fg-subtle">
+                                    <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
+                                </div>
+
+                                <div className="flex flex-col gap-2.5">
+                                    <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithFacebook : uploadWithFacebook}>
+                                        <Facebook className="size-4" />
+                                        Continue with Facebook
+                                    </Button>
+                                    <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithApple : uploadWithApple}>
+                                        <Apple className="size-4" />
+                                        Continue with Apple
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                }
+                    }
+                </div>
             </DialogContent>
         </Dialog>
     );
