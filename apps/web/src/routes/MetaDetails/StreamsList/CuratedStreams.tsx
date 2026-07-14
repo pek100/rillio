@@ -24,7 +24,7 @@ import { Button } from 'rillio/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from 'rillio/components/ui/toggle-group';
 import { Tooltip } from 'rillio/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from 'rillio/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'rillio/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from 'rillio/components/ui/command';
 import { curateStreams, recommendStream, flagFor, availableLanguages, formatSize } from './streamQuality';
 
 // Small "download to cache" affordance shared by tiles and rows: only torrent
@@ -78,11 +78,37 @@ const interfaceLangCode = (interfaceLanguage: string) =>
 
 // Searchable pill combobox for the wanted audio/subtitles language. Radix Popover
 // portals to body (no more hand-rolled position:fixed anchoring inside the
-// overflow-clip streams panel) and cmdk adds type-to-filter for long lists.
+// overflow-clip streams panel).
+//
+// The list is filtered HERE, with cmdk's own filtering off (shouldFilter={false}),
+// and the empty state is ours rather than CommandEmpty. This picker used to lean on
+// cmdk's built-in filter/registration and showed "No language" over a list that was
+// never empty (it always holds at least English plus the current language). Both of
+// the app's other cmdk consumers, the search palette and the nav SearchBar, already
+// own their filtering for their own reasons; this one now matches them, so the list
+// on screen is just an array we filtered, with no registration/scoring in between.
 const LanguagePicker = ({ value, options, onSelect }: { value: string; options: string[]; onSelect: (code: string) => void }) => {
     const [open, setOpen] = React.useState(false);
+    const [search, setSearch] = React.useState('');
+
+    const shown = React.useMemo(() => {
+        const needle = search.trim().toLowerCase();
+        if (needle.length === 0) {
+            return options;
+        }
+        return options.filter((code) => `${languages.label(code)} ${code}`.toLowerCase().includes(needle));
+    }, [options, search]);
+
+    // A stale query must not greet the next open with a filtered (or empty) list.
+    const onOpenChange = React.useCallback((next: boolean) => {
+        setOpen(next);
+        if (!next) {
+            setSearch('');
+        }
+    }, []);
+
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
                 <Button
                     variant="ghost"
@@ -95,16 +121,26 @@ const LanguagePicker = ({ value, options, onSelect }: { value: string; options: 
                 </Button>
             </PopoverTrigger>
             <PopoverContent align="end" sideOffset={6} className="w-52 p-0">
-                <Command>
-                    <CommandInput placeholder="Search language" className="h-9" />
+                <Command shouldFilter={false}>
+                    <CommandInput
+                        value={search}
+                        onValueChange={setSearch}
+                        placeholder="Search language"
+                        className="h-9"
+                    />
                     <CommandList className="max-h-64">
-                        <CommandEmpty>No language</CommandEmpty>
+                        {
+                            shown.length === 0 ?
+                                <div className="py-6 text-center text-sm text-fg-subtle">No language</div>
+                                :
+                                null
+                        }
                         <CommandGroup>
-                            {options.map((code) => (
+                            {shown.map((code) => (
                                 <CommandItem
                                     key={code}
                                     value={`${languages.label(code)} ${code}`}
-                                    onSelect={() => { onSelect(code); setOpen(false); }}
+                                    onSelect={() => { onSelect(code); onOpenChange(false); }}
                                     className={cn(code === value && 'text-accent')}
                                 >
                                     <span>{flagFor(code) || '🌐'}</span>

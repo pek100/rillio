@@ -285,6 +285,12 @@ html.window-fullscreen { --nav-top-gap: 0rem; }
 html:not(.active-slider-within) .player-container[data-immersed] { cursor: none; }
 html:not(.active-slider-within) .player-container[data-immersed] .player-immersion-fade {
     opacity: 0;
+    /* Invisible chrome must not keep swallowing clicks: without this the faded
+     * control bar, top bar and prompts still sit over the video and eat the click
+     * meant for it (a click near the bottom of the frame would hit the hidden bar
+     * instead of toggling playback). The container itself is not faded, so a click
+     * still wakes the chrome. */
+    pointer-events: none;
     transition: opacity 200ms;
 }
 
