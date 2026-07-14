@@ -44,6 +44,13 @@ open = "5"
 # Dynamically load libmpv-2.dll at runtime (S3). Hand-declared FFI against the
 # stable libmpv v2 ABI -> no dev headers/import-lib, DLL-agnostic.
 libloading = "0.8"
+# Decode + downscale + re-encode mpv's screenshot for the player-menu backdrop
+# (shell::player_snapshot): mpv writes a full-resolution PNG, we hand the web a
+# <=320px JPEG. png+jpeg only - no other codec is ever touched here.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# The snapshot crosses the Tauri IPC as a `data:image/jpeg;base64,...` URL, which
+# the web layer can drop straight into an <img src>.
+base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
 # Win32 HWND for mpv `wid` embedding + child-window z-order (S3/S4). Already in

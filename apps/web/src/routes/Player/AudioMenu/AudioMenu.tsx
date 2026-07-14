@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { languages } from 'rillio/common';
 import { Button } from 'rillio/components/ui';
 import { cn } from 'rillio/components/ui';
+import SnapshotBackdrop from '../SnapshotBackdrop';
 
 type Props = {
     className?: string;
@@ -34,6 +35,7 @@ const AudioMenu = memo(forwardRef<HTMLDivElement, Props>(function AudioMenu({ cl
 
     return (
         <div ref={ref} className={cn('flex flex-row', className)} onMouseDown={onMouseDown}>
+            <SnapshotBackdrop />
             <div className={'flex max-h-[25rem] w-64 flex-none flex-col self-stretch'}>
                 <div className={'flex-none px-8 py-6 font-bold text-fg'}>
                     {t('AUDIO_TRACKS')}

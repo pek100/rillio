@@ -20,6 +20,7 @@ import { usePlatform, useToast } from 'rillio/common';
 import useCacheDownload from 'rillio/common/useCacheDownload';
 import { Button } from 'rillio/components/ui';
 import { cn } from 'rillio/components/ui';
+import SnapshotBackdrop from '../SnapshotBackdrop';
 
 type OptionProps = {
     icon: React.ComponentType<{ className?: string }>;
@@ -162,6 +163,7 @@ const OptionsMenu = memo(forwardRef<HTMLDivElement, Props>(function OptionsMenu(
 
     return (
         <div ref={ref} className={cn('w-64 p-4', className)} onMouseDown={onMouseDown}>
+            <SnapshotBackdrop />
             {
                 streamingUrl || downloadUrl ?
                     <Option

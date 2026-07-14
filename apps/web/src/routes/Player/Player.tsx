@@ -33,6 +33,8 @@ import useNextEpisodePreload from './useNextEpisodePreload';
 import NextEpisodePreloadPrompt from './NextEpisodePreloadPrompt';
 import useVideo from './useVideo';
 import useSubtitles from './useSubtitles';
+import useVideoSnapshotBackdrop from './useVideoSnapshotBackdrop';
+import { SnapshotBackdropContext } from './SnapshotBackdrop';
 import Video from './Video';
 import Indicator from './Indicator/Indicator';
 import useMediaSession from './useMediaSession';
@@ -127,6 +129,12 @@ const Player = () => {
     const menusOpen = React.useMemo(() => {
         return optionsMenuOpen || subtitlesMenuOpen || audioMenuOpen || speedMenuOpen || statisticsMenuOpen || sideDrawerOpen || nextVideoPopupOpen;
     }, [optionsMenuOpen, subtitlesMenuOpen, audioMenuOpen, speedMenuOpen, statisticsMenuOpen, sideDrawerOpen, nextVideoPopupOpen]);
+
+    // Real blurred video behind the open panels: mpv renders in a native window
+    // the WebView's backdrop-filter cannot see, so the shell snapshots the frame
+    // and SnapshotBackdrop (inside each panel) blurs it. Shell-only; null
+    // everywhere else, which leaves the panels on their dark glass alone.
+    const snapshotBackdrop = useVideoSnapshotBackdrop(menusOpen || sideDrawerOpen);
 
     const closeMenus = React.useCallback(() => {
         closeOptionsMenu();
@@ -1119,55 +1127,64 @@ const Player = () => {
               *      immersion + positioning entirely in place - strictly worse.)
               * Revisit only if these menus ever stop needing container-mousedown close.
               */}
-            <Presence when={statisticsMenuOpen}>
-                <StatisticsMenu
-                    className={MENU_LAYER}
-                    {...statistics}
-                    details={statisticsDetails}
-                />
-            </Presence>
-            {
-                player.metaItem?.type === 'Ready' ?
-                    <SideDrawer
-                        open={sideDrawerOpen}
-                        onClose={closeSideDrawer}
-                        metaItem={player.metaItem?.content}
-                        seriesInfo={player.seriesInfo as SeriesInfo}
-                        selected={player.selected?.streamRequest?.path?.id as string}
+            {/*
+              * Everything below carries the blurred-video backdrop (SnapshotBackdrop, one
+              * layer inside each panel). The provider is scoped to exactly these panels
+              * rather than the whole route: the context-menu OptionsMenu above is opened by
+              * right-click, is not part of menusOpen, and so has no snapshot to show - the
+              * context default (null) leaves it on plain dark glass, as today.
+              */}
+            <SnapshotBackdropContext.Provider value={snapshotBackdrop}>
+                <Presence when={statisticsMenuOpen}>
+                    <StatisticsMenu
+                        className={MENU_LAYER}
+                        {...statistics}
+                        details={statisticsDetails}
                     />
-                    :
-                    null
-            }
-            <Presence when={subtitlesMenuOpen}>
-                <SubtitlesMenu
-                    className={MENU_LAYER}
-                    {...subtitlesMenuProps}
-                />
-            </Presence>
-            <Presence when={audioMenuOpen}>
-                <AudioMenu
-                    className={MENU_LAYER}
-                    audioTracks={video.state.audioTracks}
-                    selectedAudioTrackId={video.state.selectedAudioTrackId}
-                    onAudioTrackSelected={onAudioTrackSelected}
-                />
-            </Presence>
-            <Presence when={speedMenuOpen}>
-                <SpeedMenu
-                    className={MENU_LAYER}
-                    playbackSpeed={video.state.playbackSpeed}
-                    onPlaybackSpeedChanged={onPlaybackSpeedChanged}
-                />
-            </Presence>
-            <Presence when={optionsMenuOpen}>
-                <OptionsMenu
-                    className={MENU_LAYER}
-                    stream={player.selected?.stream}
-                    playbackDevices={playbackDevices}
-                    extraSubtitlesTracks={extraSubtitleTracks}
-                    selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
-                />
-            </Presence>
+                </Presence>
+                {
+                    player.metaItem?.type === 'Ready' ?
+                        <SideDrawer
+                            open={sideDrawerOpen}
+                            onClose={closeSideDrawer}
+                            metaItem={player.metaItem?.content}
+                            seriesInfo={player.seriesInfo as SeriesInfo}
+                            selected={player.selected?.streamRequest?.path?.id as string}
+                        />
+                        :
+                        null
+                }
+                <Presence when={subtitlesMenuOpen}>
+                    <SubtitlesMenu
+                        className={MENU_LAYER}
+                        {...subtitlesMenuProps}
+                    />
+                </Presence>
+                <Presence when={audioMenuOpen}>
+                    <AudioMenu
+                        className={MENU_LAYER}
+                        audioTracks={video.state.audioTracks}
+                        selectedAudioTrackId={video.state.selectedAudioTrackId}
+                        onAudioTrackSelected={onAudioTrackSelected}
+                    />
+                </Presence>
+                <Presence when={speedMenuOpen}>
+                    <SpeedMenu
+                        className={MENU_LAYER}
+                        playbackSpeed={video.state.playbackSpeed}
+                        onPlaybackSpeedChanged={onPlaybackSpeedChanged}
+                    />
+                </Presence>
+                <Presence when={optionsMenuOpen}>
+                    <OptionsMenu
+                        className={MENU_LAYER}
+                        stream={player.selected?.stream}
+                        playbackDevices={playbackDevices}
+                        extraSubtitlesTracks={extraSubtitleTracks}
+                        selectedExtraSubtitlesTrackId={selectedExtraSubtitleTrackId}
+                    />
+                </Presence>
+            </SnapshotBackdropContext.Provider>
         </div>
     );
 };

@@ -288,7 +288,8 @@ pub fn run() {
             install_update,
             shell::shell_init,
             shell::shell_send,
-            shell::shell_mpv_stats
+            shell::shell_mpv_stats,
+            shell::player_snapshot
         ])
         .build(ctx)
         .expect("error while building the Rillio desktop shell")

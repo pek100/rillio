@@ -19,6 +19,7 @@
 //! follow-up.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -39,6 +40,16 @@ struct Controller {
     /// Latest value of every observed mpv property, for the "Stats for nerds"
     /// panel (`shell_mpv_stats`). Updated by the event loop on every change.
     props: Mutex<serde_json::Map<String, Value>>,
+    /// Last video-frame snapshot handed to the web layer, for the rate limit in
+    /// [`player_snapshot`].
+    snapshot: Mutex<SnapshotCache>,
+}
+
+/// The most recent [`player_snapshot`] result and when it was produced.
+#[derive(Default)]
+struct SnapshotCache {
+    data_url: Option<String>,
+    at: Option<Instant>,
 }
 
 /// Extra mpv properties (beyond what ShellVideo observes) that the stats panel
@@ -63,6 +74,18 @@ const STATS_PROPS: &[&str] = &[
 const HF_PROPS: &[&str] = &["time-pos", "demuxer-cache-time"];
 /// Minimum spacing between forwarded high-frequency updates (~5/s).
 const HF_INTERVAL: Duration = Duration::from_millis(200);
+
+/// Minimum spacing between real video-frame captures ([`player_snapshot`]).
+/// Anything sooner is served the previous frame instead: the web layer polls at
+/// ~3/s while a panel is open, so this is a cheap guard against a caller (or a
+/// future one) asking for a fresh screenshot per animation frame.
+const SNAPSHOT_MIN_INTERVAL: Duration = Duration::from_millis(200);
+/// Longest edge of the snapshot handed to the web layer. It is only ever shown
+/// blurred behind a panel's dark glass, so detail is destroyed anyway: keep it
+/// small and the base64 payload with it (~a few KB per frame).
+const SNAPSHOT_MAX_WIDTH: u32 = 320;
+/// JPEG quality for the same reason: blur hides the artifacts.
+const SNAPSHOT_JPEG_QUALITY: u8 = 60;
 
 /// SECURITY (S1): the ONLY mpv `command`s the web player is allowed to run over
 /// the bridge. mpv's command set also includes `run`, `subprocess` and
@@ -292,7 +315,27 @@ impl Controller {
                 tracing::debug!("mpv: observe {name} failed: {e}");
             }
         }
-        Ok(Self { mpv: Arc::new(mpv), props: Mutex::new(serde_json::Map::new()) })
+        Ok(Self {
+            mpv: Arc::new(mpv),
+            props: Mutex::new(serde_json::Map::new()),
+            snapshot: Mutex::new(SnapshotCache::default()),
+        })
+    }
+
+    /// The last snapshot, if it is still inside [`SNAPSHOT_MIN_INTERVAL`].
+    /// `None` means "capture a fresh one".
+    fn recent_snapshot(&self) -> Option<String> {
+        let snap = self.snapshot.lock().unwrap_or_else(|e| e.into_inner());
+        match (snap.at, &snap.data_url) {
+            (Some(at), Some(url)) if at.elapsed() < SNAPSHOT_MIN_INTERVAL => Some(url.clone()),
+            _ => None,
+        }
+    }
+
+    fn store_snapshot(&self, data_url: &str) {
+        let mut snap = self.snapshot.lock().unwrap_or_else(|e| e.into_inner());
+        snap.data_url = Some(data_url.to_string());
+        snap.at = Some(Instant::now());
     }
 }
 
@@ -474,6 +517,101 @@ pub fn shell_mpv_stats(app: AppHandle, state: State<ShellState>) -> Value {
         Ok(ctrl) => Value::Object(ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clone()),
         Err(_) => Value::Object(serde_json::Map::new()),
     }
+}
+
+/// A downscaled JPEG of the CURRENT VIDEO FRAME as a `data:` URL, for the
+/// player's menu/drawer backdrop (apps/web routes/Player/SnapshotBackdrop).
+///
+/// Why this exists: mpv renders into a NATIVE child window behind the
+/// transparent WebView, so CSS `backdrop-filter` on a panel samples only web
+/// content and blurs nothing. The web layer therefore asks the shell for the
+/// frame and blurs it itself.
+///
+/// SECURITY: this is a dedicated, READ-ONLY, argument-less command. It does NOT
+/// widen the generic `shell_send` bridge - `MPV_COMMAND_ALLOWLIST` and
+/// `MPV_SETPROP_ALLOWLIST` are untouched, and web content still cannot reach
+/// `screenshot-to-file` (or any other command) through them. The only thing web
+/// content can ask for here is "a picture of the frame the user is already
+/// watching", with the path chosen by the shell, never by the caller.
+///
+/// Fails loud (an `Err` the web layer swallows into its dark-glass fallback)
+/// when there is no video, when this libmpv lacks screenshot support, or when
+/// any of the file/decode steps fail.
+#[tauri::command]
+pub async fn player_snapshot(app: AppHandle, state: State<'_, ShellState>) -> Result<String, String> {
+    let ctrl = state.ensure(&app)?;
+    // Cheap shell-side rate limit: serve the previous frame to anything asking
+    // faster than SNAPSHOT_MIN_INTERVAL rather than driving mpv + a decode.
+    if let Some(cached) = ctrl.recent_snapshot() {
+        return Ok(cached);
+    }
+    let temp = snapshot_temp_path();
+    // The mpv round-trip, the file read and the PNG decode + resize + JPEG
+    // encode are all blocking and run at ~3/s: keep them off the async runtime's
+    // worker threads.
+    tauri::async_runtime::spawn_blocking(move || capture_snapshot(&ctrl, &temp))
+        .await
+        .map_err(|e| format!("player_snapshot: capture task failed: {e}"))?
+}
+
+/// A fresh temp path for one screenshot. Unique per call: mpv refuses to
+/// overwrite an existing screenshot file, and two in-flight captures must never
+/// share a path.
+fn snapshot_temp_path() -> PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    std::env::temp_dir().join(format!("rillio-snapshot-{nanos}.png"))
+}
+
+/// Capture one frame: mpv -> temp PNG -> downscaled JPEG data URL. Blocking.
+fn capture_snapshot(ctrl: &Controller, temp: &Path) -> Result<String, String> {
+    // `screenshot-to-file <path> video` - "video" mode is the decoded frame
+    // WITHOUT OSD or subtitles, at source resolution. It goes through the plain
+    // string-argv `mpv_command` our FFI already binds (mpv.rs), so no new FFI
+    // surface is needed. The command is synchronous: on Ok the file is written.
+    // HDR note: mpv applies its own screenshot tone-mapping here; whatever
+    // SDR-ish image comes out is fine under blur + dark glass, so we
+    // deliberately do not configure it.
+    let path = temp.to_string_lossy().to_string();
+    ctrl.mpv
+        .command(&["screenshot-to-file", &path, "video"])
+        .map_err(|e| format!("player_snapshot: mpv screenshot failed: {e}"))?;
+
+    let png = std::fs::read(temp)
+        .map_err(|e| format!("player_snapshot: reading {path}: {e}"))?;
+    // Best-effort cleanup; a leaked temp file must not fail the capture.
+    let _ = std::fs::remove_file(temp);
+
+    let image = image::load_from_memory(&png)
+        .map_err(|e| format!("player_snapshot: decoding the screenshot: {e}"))?;
+    let image = downscale(image, SNAPSHOT_MAX_WIDTH);
+
+    let mut jpeg: Vec<u8> = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, SNAPSHOT_JPEG_QUALITY)
+        .encode_image(&image.to_rgb8())
+        .map_err(|e| format!("player_snapshot: encoding the jpeg: {e}"))?;
+
+    use base64::Engine as _;
+    let data_url = format!(
+        "data:image/jpeg;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(&jpeg)
+    );
+    ctrl.store_snapshot(&data_url);
+    Ok(data_url)
+}
+
+/// Scale `image` down so its width is at most `max_width`, preserving aspect.
+/// Never scales up (a smaller-than-max frame is already cheap enough).
+fn downscale(image: image::DynamicImage, max_width: u32) -> image::DynamicImage {
+    let (width, height) = (image.width(), image.height());
+    if width <= max_width || width == 0 {
+        return image;
+    }
+    let scaled_height = ((height as u64 * max_width as u64) / width as u64).max(1) as u32;
+    // Triangle: cheap, and the result is about to be blurred by 24px anyway.
+    image.resize_exact(max_width, scaled_height, image::imageops::FilterType::Triangle)
 }
 
 /// Carry one outbound IPC message to mpv. `args` is the web client's argument

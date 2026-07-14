@@ -12,6 +12,7 @@ import React, { forwardRef, memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from 'rillio/components/ui';
 import { cn } from 'rillio/components/ui';
+import SnapshotBackdrop from '../SnapshotBackdrop';
 
 const RATES = Array.from(Array(8).keys(), (n) => n * 0.25 + 0.25).reverse();
 
@@ -33,6 +34,7 @@ const SpeedMenu = memo(forwardRef<HTMLDivElement, Props>(function SpeedMenu({ cl
     }, [onPlaybackSpeedChanged]);
     return (
         <div ref={ref} className={cn('w-56', className)} onMouseDown={onMouseDown}>
+            <SnapshotBackdrop />
             <div className={'px-8 py-6 font-bold text-fg'}>
                 {t('PLAYBACK_SPEED')}
             </div>
