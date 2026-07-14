@@ -2,7 +2,6 @@ import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 're
 import { useTranslation } from 'react-i18next';
 import { useCore } from 'rillio/core';
 import { usePlatform, useToast, useDiscord } from 'rillio/common';
-import { openSync } from 'rillio/common/syncEvents';
 import { Button } from 'rillio/components/ui/button';
 import { Trakt, Discord } from 'rillio/components/ui/brand-icons';
 import { Section, Option, Link, SettingsSwitch } from '../components';
@@ -125,15 +124,11 @@ const General = forwardRef<HTMLDivElement, Props>(({ profile }: Props, ref) => {
         </Section>
 
         <Section>
-            {/* Sync & backup and Play URL/Magnet used to live in the account menu.
-                They were the only two rows there with no other door, so they moved
-                here rather than keeping a whole menu alive for them; the rest of
-                that menu was duplicating Settings (including, literally, the
-                Support and Website links right below). */}
-            <Link
-                label="Sync & backup"
-                onClick={() => openSync('backup')}
-            />
+            {/* Play URL/Magnet came from the account menu, which is the account and
+                nothing else now. Sync & backup came with it and then went straight back
+                out: the User block above (Settings > General's own first section) has
+                carried that link all along, so adding one here just built the same
+                duplication this pass exists to remove. */}
             <Link
                 label={t('PLAY_URL_MAGNET_LINK')}
                 onClick={onPlayUrl}

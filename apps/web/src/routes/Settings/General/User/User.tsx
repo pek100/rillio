@@ -49,10 +49,13 @@ const User = ({ profile }: Props) => {
                 <div className="text-[0.95rem] text-fg opacity-50" title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
                     {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
                 </div>
+                {/* No "Upload to Stremio" row: Import and Upload are one Stremio tab
+                    now (sign in once, pick a direction), so a third link would open the
+                    same place Import does. It was also broken - it asked for a tab that
+                    no longer exists and silently landed on Backup & restore. */}
                 <div className="mt-2 flex flex-row flex-wrap gap-4">
                     <Link label={'Sync & backup'} onClick={() => openSync('backup')} />
                     <Link label={'Import from Stremio'} onClick={() => openSync('stremio')} />
-                    <Link label={'Upload to Stremio'} onClick={() => openSync('upload')} />
                     {
                         profile.auth !== null ?
                             <Link label={t('LOG_OUT')} onClick={onLogout} />
