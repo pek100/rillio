@@ -43,6 +43,10 @@ type PendingPausedStart = {
 type AcceptedDownload = {
     infoHash: string | null;
     started: boolean;
+    // Was this torrent already in the cache before we touched it? Cancel deletes
+    // what the preload CREATED, so it must never delete a copy the user already
+    // had. Defaults true: until the check answers, cancel takes the safe path.
+    preExisting: boolean;
 };
 
 type UseNextEpisodePreloadArgs = {
@@ -206,30 +210,49 @@ const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => 
         (startWindowOpen || (inEndWindow && !endWindowDismissed));
 
     // Cancel from the toast. Before the grace timer fires: just clear it, the
-    // download never starts. After: best-effort pause the already-started
-    // download on the server. Either way disarm the accepted state and the
-    // paused-start handoff; no re-prompt this episode (answered stays true).
+    // download never starts. After: undo it on the server. Either way disarm the
+    // accepted state and the paused-start handoff; no re-prompt this episode
+    // (answered stays true).
+    //
+    // Undo means DELETE, not pause. Pausing left the entry (and its full-size
+    // preallocated file - 9 GB for a 4K episode) sitting in the cache forever,
+    // and worse, librqbit refuses to pause a torrent that is still hash-checking,
+    // which is exactly where a cancel lands seconds after the download starts: it
+    // did nothing at all. Delete stops the torrent AND reclaims the file.
+    //
+    // The exception is a torrent the user ALREADY had cached, which the preload
+    // merely unpaused/pinned: deleting that would destroy their copy over a
+    // toast click. Undo only our own change there.
     const cancelPreload = React.useCallback(() => {
         if (acceptTimer.current !== null) {
             clearAcceptTimer();
         } else if (acceptedDownload.current !== null && acceptedDownload.current.started) {
             const serverUrl = profile.settings.streamingServerUrl;
+            const { infoHash, preExisting } = acceptedDownload.current;
             if (typeof serverUrl === 'string') {
-                fetch(new URL('cache/pause', serverUrl), {
+                const path = preExisting ? 'cache/pause' : 'cache/delete';
+                const body = preExisting ? { infoHash, paused: true } : { infoHash };
+                fetch(new URL(path, serverUrl), {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ infoHash: acceptedDownload.current.infoHash, paused: true }),
+                    body: JSON.stringify(body),
                 })
                     .then((resp) => {
                         if (!resp.ok) {
-                            throw new Error(`cache/pause responded ${resp.status}`);
+                            throw new Error(`${path} responded ${resp.status}`);
                         }
-                        // The preload we just started is paused again: drop the
-                        // top-nav dot now rather than on its next lazy tick.
+                        // The preload is gone: drop the top-nav dot now rather
+                        // than on its next lazy tick.
                         notifyCacheChanged();
                     })
                     .catch((error) => {
-                        console.error('useNextEpisodePreload: cache/pause failed', error);
+                        console.error(`useNextEpisodePreload: ${path} failed`, error);
+                        toast.show({
+                            type: 'error',
+                            title: 'Could not cancel the preload',
+                            message: 'It may still be downloading; the Cached page can stop it.',
+                            timeout: 4000,
+                        });
                     });
             }
         }
@@ -241,7 +264,7 @@ const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => 
             title: 'Preload cancelled',
             timeout: 3000,
         });
-    }, [profile.settings.streamingServerUrl]);
+    }, [profile.settings.streamingServerUrl, toast]);
 
     // Accept hides the prompt immediately (answered silences both prompt
     // slots), arms the accepted state, schedules the actual download behind a
@@ -250,7 +273,29 @@ const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => 
         setAnswered(true);
         setAccepted(true);
         const stream = nextStream;
-        acceptedDownload.current = { infoHash: stream !== null ? stream.infoHash ?? null : null, started: false };
+        const infoHash = stream !== null ? stream.infoHash ?? null : null;
+        // preExisting starts TRUE so a cancel racing this check pauses rather than
+        // deletes: the wrong guess must never be the destructive one.
+        acceptedDownload.current = { infoHash, started: false, preExisting: true };
+        // Does the user already have this cached? Cancel deletes what the preload
+        // created and must not touch anything older, so settle that BEFORE we add
+        // it ourselves - the grace delay below is exactly the room this needs.
+        const serverUrl = profile.settings.streamingServerUrl;
+        if (typeof serverUrl === 'string' && infoHash !== null) {
+            fetch(new URL('cache/list', serverUrl))
+                .then((resp) => {
+                    if (!resp.ok) throw new Error(`cache/list responded ${resp.status}`);
+                    return resp.json();
+                })
+                .then((list: { infoHash: string }[]) => {
+                    if (acceptedDownload.current === null || acceptedDownload.current.infoHash !== infoHash) return;
+                    acceptedDownload.current.preExisting = Array.isArray(list) &&
+                        list.some((entry) => entry.infoHash === infoHash);
+                })
+                // Unknown: keep the safe default rather than risk deleting a copy
+                // that might not be ours.
+                .catch((error) => console.error('useNextEpisodePreload: cache/list failed', error));
+        }
         clearAcceptTimer();
         acceptTimer.current = setTimeout(() => {
             acceptTimer.current = null;
@@ -274,7 +319,7 @@ const useNextEpisodePreload = ({ player, video }: UseNextEpisodePreloadArgs) => 
             timeout: CANCEL_TOAST_TIMEOUT_MS,
             action: { label: 'Cancel', onSelect: cancelPreload },
         });
-    }, [nextStream, downloadToCache, cancelPreload]);
+    }, [nextStream, downloadToCache, cancelPreload, profile.settings.streamingServerUrl, toast]);
 
     // Cancel from the prompt: just hide whatever slot is currently showing,
     // nothing persisted. Closing the start window early never blocks the
