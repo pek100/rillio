@@ -230,11 +230,57 @@ const recommendStream = ({ picks, rest }: Curated, preset: string, screen: Scree
     return { entry: pool[0].entry, label: pool[0].label, tierKey: pool[0].tierKey, pickIndex: picks.indexOf(pool[0]) };
 };
 
-// Representative flag emoji for a language code (first country that maps to it).
+// Language code -> representative country, covering the full ISO 639-2 catalog
+// the language picker lists (COUNTRY_LANG above only covers what torrent names
+// carry, ~40 languages - every other row fell back to the 🌐 globe). Where ISO
+// 639-2 has two spellings (bibliographic/terminological: ger/deu, fre/fra ...)
+// BOTH are keys, so lookups work regardless of which form a code arrives in.
+// A representative country is an editorial pick (eng -> GB, spa -> ES); truly
+// country-less languages (Esperanto, Interlingua, Latin scripts aside) keep 🌐.
+const LANG_COUNTRY: Record<string, string> = {
+    aar: 'DJ', abk: 'GE', afr: 'ZA', aka: 'GH', alb: 'AL', sqi: 'AL', amh: 'ET',
+    ara: 'SA', arg: 'ES', arm: 'AM', hye: 'AM', asm: 'IN', ava: 'RU', aym: 'BO',
+    aze: 'AZ', bak: 'RU', bam: 'ML', baq: 'ES', eus: 'ES', bel: 'BY', ben: 'BD',
+    bih: 'IN', bis: 'VU', bos: 'BA', bre: 'FR', bul: 'BG', bur: 'MM', mya: 'MM',
+    cat: 'AD', ces: 'CZ', cze: 'CZ', cha: 'GU', che: 'RU', chi: 'CN', zho: 'CN',
+    chv: 'RU', cor: 'GB', cos: 'FR', cre: 'CA', cym: 'GB', wel: 'GB', dan: 'DK',
+    deu: 'DE', ger: 'DE', div: 'MV', dut: 'NL', nld: 'NL', dzo: 'BT', ell: 'GR',
+    gre: 'GR', eng: 'GB', est: 'EE', ewe: 'GH', fao: 'FO', fas: 'IR', per: 'IR',
+    fij: 'FJ', fin: 'FI', fra: 'FR', fre: 'FR', fry: 'NL', ful: 'SN', geo: 'GE',
+    kat: 'GE', gla: 'GB', gle: 'IE', glg: 'ES', glv: 'IM', grn: 'PY', guj: 'IN',
+    hat: 'HT', hau: 'NG', heb: 'IL', her: 'NA', hin: 'IN', hmo: 'PG', hrv: 'HR',
+    hun: 'HU', ibo: 'NG', ice: 'IS', isl: 'IS', iii: 'CN', iku: 'CA', ind: 'ID',
+    ita: 'IT', jav: 'ID', jpn: 'JP', kal: 'GL', kan: 'IN', kas: 'IN', kau: 'NG',
+    kaz: 'KZ', khm: 'KH', kik: 'KE', kin: 'RW', kir: 'KG', kom: 'RU', kon: 'CD',
+    kor: 'KR', kua: 'NA', kur: 'IQ', lao: 'LA', lat: 'VA', lav: 'LV', lim: 'NL',
+    lin: 'CD', lit: 'LT', ltz: 'LU', lub: 'CD', lug: 'UG', mac: 'MK', mkd: 'MK',
+    mah: 'MH', mal: 'IN', mao: 'NZ', mri: 'NZ', mar: 'IN', may: 'MY', msa: 'MY',
+    mlg: 'MG', mlt: 'MT', mon: 'MN', nau: 'NR', nav: 'US', nbl: 'ZA', nde: 'ZW',
+    ndo: 'NA', nep: 'NP', nno: 'NO', nob: 'NO', nor: 'NO', nya: 'MW', oci: 'FR',
+    oji: 'CA', ori: 'IN', orm: 'ET', oss: 'GE', pan: 'IN', pol: 'PL', por: 'PT',
+    pus: 'AF', que: 'PE', roh: 'CH', ron: 'RO', rum: 'RO', run: 'BI', rus: 'RU',
+    sag: 'CF', san: 'IN', sin: 'LK', slk: 'SK', slo: 'SK', slv: 'SI', sme: 'NO',
+    smo: 'WS', sna: 'ZW', snd: 'PK', som: 'SO', sot: 'LS', spa: 'ES', srd: 'IT',
+    srp: 'RS', ssw: 'SZ', sun: 'ID', swa: 'TZ', swe: 'SE', tah: 'PF', tam: 'IN',
+    tat: 'RU', tel: 'IN', tgk: 'TJ', tgl: 'PH', tha: 'TH', tib: 'CN', bod: 'CN',
+    tir: 'ER', ton: 'TO', tsn: 'BW', tso: 'ZA', tuk: 'TM', tur: 'TR', twi: 'GH',
+    uig: 'CN', ukr: 'UA', urd: 'PK', uzb: 'UZ', ven: 'ZA', vie: 'VN', wln: 'BE',
+    wol: 'SN', xho: 'ZA', yid: 'IL', yor: 'NG', zha: 'CN', zul: 'ZA',
+};
+
+const countryFlag = (country: string): string =>
+    String.fromCodePoint(0x1F1E6 + country.charCodeAt(0) - 65, 0x1F1E6 + country.charCodeAt(1) - 65);
+
+// Representative flag emoji for a language code. The direct table first; the
+// COUNTRY_LANG reverse scan stays as a safety net for any code that reaches us
+// in a form the table does not spell.
 const flagFor = (lang: string): string | null => {
+    if (LANG_COUNTRY[lang]) {
+        return countryFlag(LANG_COUNTRY[lang]);
+    }
     for (const country of Object.keys(COUNTRY_LANG)) {
         if (COUNTRY_LANG[country] === lang) {
-            return String.fromCodePoint(0x1F1E6 + country.charCodeAt(0) - 65, 0x1F1E6 + country.charCodeAt(1) - 65);
+            return countryFlag(country);
         }
     }
     return null;

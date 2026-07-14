@@ -87,7 +87,27 @@ const interfaceLangCode = (interfaceLanguage: string) =>
 // the app's other cmdk consumers, the search palette and the nav SearchBar, already
 // own their filtering for their own reasons; this one now matches them, so the list
 // on screen is just an array we filtered, with no registration/scoring in between.
-const LanguagePicker = ({ value, options, onSelect }: { value: string; options: string[]; onSelect: (code: string) => void }) => {
+const LanguageRow = ({ code, selected, onSelect, onDone }: { code: string; selected: boolean; onSelect: (code: string) => void; onDone: () => void }) => (
+    <CommandItem
+        value={`${languages.label(code)} ${code}`}
+        onSelect={() => { onSelect(code); onDone(); }}
+        className={cn(selected && 'text-accent')}
+    >
+        <span>{flagFor(code) || '🌐'}</span>
+        <span className="truncate">{languages.label(code)}</span>
+        {selected ? <span className="ml-auto size-2 shrink-0 rounded-full bg-accent" /> : null}
+    </CommandItem>
+);
+
+type LanguageOptions = {
+    // Languages actually detected across this title's streams - the useful answer
+    // to "what can I get for THIS title", surfaced as their own group on top.
+    inStreams: string[];
+    // The rest of the full ISO-639 catalog, searchable below.
+    rest: string[];
+};
+
+const LanguagePicker = ({ value, options, onSelect }: { value: string; options: LanguageOptions; onSelect: (code: string) => void }) => {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
 
@@ -96,7 +116,8 @@ const LanguagePicker = ({ value, options, onSelect }: { value: string; options: 
         if (needle.length === 0) {
             return options;
         }
-        return options.filter((code) => `${languages.label(code)} ${code}`.toLowerCase().includes(needle));
+        const match = (code: string) => `${languages.label(code)} ${code}`.toLowerCase().includes(needle);
+        return { inStreams: options.inStreams.filter(match), rest: options.rest.filter(match) };
     }, [options, search]);
 
     // A stale query must not greet the next open with a filtered (or empty) list.
@@ -130,25 +151,31 @@ const LanguagePicker = ({ value, options, onSelect }: { value: string; options: 
                     />
                     <CommandList className="max-h-64">
                         {
-                            shown.length === 0 ?
+                            shown.inStreams.length === 0 && shown.rest.length === 0 ?
                                 <div className="py-6 text-center text-sm text-fg-subtle">No language</div>
                                 :
                                 null
                         }
-                        <CommandGroup>
-                            {shown.map((code) => (
-                                <CommandItem
-                                    key={code}
-                                    value={`${languages.label(code)} ${code}`}
-                                    onSelect={() => { onSelect(code); onOpenChange(false); }}
-                                    className={cn(code === value && 'text-accent')}
-                                >
-                                    <span>{flagFor(code) || '🌐'}</span>
-                                    <span className="truncate">{languages.label(code)}</span>
-                                    {code === value ? <span className="ml-auto size-2 shrink-0 rounded-full bg-accent" /> : null}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        {
+                            shown.inStreams.length > 0 ?
+                                <CommandGroup heading="In these streams">
+                                    {shown.inStreams.map((code) => (
+                                        <LanguageRow key={code} code={code} selected={code === value} onSelect={onSelect} onDone={() => onOpenChange(false)} />
+                                    ))}
+                                </CommandGroup>
+                                :
+                                null
+                        }
+                        {
+                            shown.rest.length > 0 ?
+                                <CommandGroup heading={shown.inStreams.length > 0 ? 'All languages' : undefined}>
+                                    {shown.rest.map((code) => (
+                                        <LanguageRow key={code} code={code} selected={code === value} onSelect={onSelect} onDone={() => onOpenChange(false)} />
+                                    ))}
+                                </CommandGroup>
+                                :
+                                null
+                        }
                     </CommandList>
                 </Command>
             </PopoverContent>
@@ -180,7 +207,7 @@ const Tile = ({ label, entry, highlighted }: { label: string; entry: any; highli
             <div className="truncate text-xs text-fg-muted">{providerOf(stream) || 'Stream'}</div>
             <div className="flex items-center gap-2 text-[11px] tabular-nums text-fg-subtle">
                 {size ? <span>{size}</span> : null}
-                {quality.seeders != null ? <span>{quality.seeders} seed</span> : null}
+                {quality.seeders !== null && quality.seeders !== undefined ? <span>{quality.seeders} seed</span> : null}
                 {quality.flags.length ? <span className="tracking-tight">{quality.flags.slice(0, 4).join(' ')}</span> : null}
             </div>
         </Button>
@@ -203,7 +230,7 @@ const Row = ({ entry }: { entry: any }) => {
             <span className="min-w-0 flex-1 truncate text-xs text-fg-muted">{providerOf(stream) || stream.addonName || 'Stream'}</span>
             {quality.flags.length ? <span className="shrink-0 text-[11px] tracking-tight">{quality.flags.slice(0, 3).join(' ')}</span> : null}
             {size ? <span className="shrink-0 text-[11px] tabular-nums text-fg-subtle">{size}</span> : null}
-            {quality.seeders != null ? <span className="shrink-0 text-[11px] tabular-nums text-fg-subtle">{quality.seeders}</span> : null}
+            {quality.seeders !== null && quality.seeders !== undefined ? <span className="shrink-0 text-[11px] tabular-nums text-fg-subtle">{quality.seeders}</span> : null}
             <DownloadToCache stream={stream} className="shrink-0 opacity-0 transition group-hover:opacity-100" />
         </Button>
     );
@@ -244,11 +271,34 @@ const CuratedStreams = ({ streams }: { streams: any[] }) => {
         if (profile.settings.subtitlesLanguage === null) setLang(lang);
     }, [profile.settings.subtitlesLanguage, lang, setLang]);
 
+    // Two groups: languages actually present in this title's streams on top (the
+    // useful answer to "what can I get HERE"), then the whole ISO-639 catalog.
+    // The full list is what makes the search field make sense: the old options
+    // (eng + interface + current + detected) collapsed to two entries on pages
+    // whose streams carry no language flags, a list nobody needs to search.
     const langOptions = React.useMemo(() => {
-        const available = availableLanguages(streams);
-        const set = new Set(['eng', interfaceLangCode(profile.settings.interfaceLanguage), lang, ...available]);
-        return [...set].sort((a, b) => languages.label(a).localeCompare(languages.label(b)));
-    }, [streams, profile.settings.interfaceLanguage, lang]);
+        const byLabel = (a: string, b: string) => languages.label(a).localeCompare(languages.label(b));
+        // Normalize through toCode so detected/current codes always dedupe against
+        // the catalog's canonical ISO 639-2 codes ('deu' and 'ger' are one row).
+        const inStreams = [...new Set(availableLanguages(streams).map((code) => languages.toCode(code)))].sort(byLabel);
+        // Dedupe the catalog against the top group by code AND by visible label:
+        // a language must never appear twice across the two groups, whichever
+        // spelling of its code either side arrived with.
+        const seenCodes = new Set(inStreams);
+        const seenLabels = new Set(inStreams.map((code) => languages.label(code)));
+        const rest: string[] = [];
+        for (const entry of languages.all as { code?: string }[]) {
+            const code = entry.code;
+            if (typeof code !== 'string' || code.length === 0 || seenCodes.has(code)) continue;
+            const label = languages.label(code);
+            if (seenLabels.has(label)) continue;
+            seenCodes.add(code);
+            seenLabels.add(label);
+            rest.push(code);
+        }
+        rest.sort(byLabel);
+        return { inStreams, rest };
+    }, [streams]);
 
     const curated = React.useMemo(() => curateStreams(streams, lang), [streams, lang]);
     const rec = React.useMemo(() => recommendStream(curated, preset, screen, lang), [curated, preset, screen, lang]);
