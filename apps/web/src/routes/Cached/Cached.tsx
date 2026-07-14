@@ -163,7 +163,11 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
                     </div>
                     <QualityBadges name={entry.name} />
                 </div>
-                <div className={cn('mt-1 text-xs tabular-nums', entry.state === 'error' ? 'text-warning' : 'text-fg-muted')}>
+                {/* danger, not warning: this row FAILED, it is not a caution. The rest
+                    of the app already draws that line (warning = the slow-source and
+                    oversized-library notices; danger = every error and every
+                    destructive control), and this file was the last holdout. */}
+                <div className={cn('mt-1 text-xs tabular-nums', entry.state === 'error' ? 'text-danger' : 'text-fg-muted')}>
                     {
                         complete ?
                             formatBytes(entry.downloaded)
@@ -233,7 +237,7 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
             <IconButton
                 onClick={() => onDelete(entry.infoHash)}
                 title="Delete from cache (frees disk space; can be re-downloaded)"
-                className="size-9 text-fg-muted opacity-0 hover:text-warning group-hover:opacity-100"
+                className="size-9 text-fg-muted opacity-0 hover:text-danger group-hover:opacity-100"
             >
                 <Trash2 className="size-5" />
             </IconButton>
