@@ -35,7 +35,10 @@ const useLocalSearch = require('rillio/components/NavBar/HorizontalNavBar/Search
 const { default: usePlayUrl } = require('rillio/common/usePlayUrl');
 const { withCoreSuspender } = require('rillio/common/CoreSuspender');
 
-const EMPTY_ROW = 'flex items-center justify-center gap-2.5 rounded-card px-3 py-2.5 text-sm text-fg-subtle';
+// The shared panel material. Named here rather than taken from the kit because this
+// palette is hand-rolled (its own portal, not a kit Dialog) - it must stay identical
+// to DialogContent's surface. Worn by BOTH panels: the field and the results.
+const PANEL = 'panel-tint overflow-hidden rounded-squircle border border-line bg-card text-card-foreground shadow-elevated';
 
 type PlayUrlRef = React.MutableRefObject<((text: string) => Promise<boolean>) | null>;
 
@@ -52,7 +55,6 @@ type BodyProps = {
 // routine it publishes to the shell. Rendered inside the shell's <Command> so cmdk's
 // list context reaches the suggestions.
 const SearchBody = ({ query, onClose, playUrlRef }: BodyProps) => {
-    const { t } = useTranslation();
     const navigate = useNavigate();
     const searchHistory = useSearchHistory();
     const localSearch = useLocalSearch();
@@ -79,23 +81,24 @@ const SearchBody = ({ query, onClose, playUrlRef }: BodyProps) => {
 
     const historyItems = searchHistory?.items ?? [];
     const suggestions = localSearch?.items ?? [];
-    const empty = historyItems.length === 0 && suggestions.length === 0;
+
+    // Nothing to show: render no results panel at all, leaving the field alone on
+    // screen. An empty panel saying "search or paste link" would only repeat the
+    // input's own placeholder inside a second box.
+    if (historyItems.length === 0 && suggestions.length === 0) {
+        return null;
+    }
 
     return (
-        <SearchSuggestions
-            historyItems={historyItems}
-            suggestions={suggestions}
-            onClearHistory={searchHistory.clear}
-            onSelect={goTo}
-            listClassName="max-h-[22rem] p-2"
-            empty={empty ?
-                <div className={EMPTY_ROW}>
-                    {t('SEARCH_OR_PASTE_LINK')}
-                </div>
-                :
-                null
-            }
-        />
+        <div className={PANEL}>
+            <SearchSuggestions
+                historyItems={historyItems}
+                suggestions={suggestions}
+                onClearHistory={searchHistory.clear}
+                onSelect={goTo}
+                listClassName="max-h-[22rem] p-2"
+            />
+        </div>
     );
 };
 
@@ -172,18 +175,19 @@ const SearchModal = ({ onClose }: Props) => {
                 appears, so match it. */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-(--scrim-blur)" onClick={close} />
 
+            {/* The field and the results are two SEPARATE panels with a gap, not one box
+                split by a rule: what you type and what came back are different things, and
+                the results panel simply is not there when there is nothing to show. Both
+                wear the same material (panel-tint + bg-card + hairline + shadow); the
+                scrim carries the blur, so neither panel takes one. */}
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-label={t('SEARCH')}
-                // Exactly the DialogContent material (this panel is hand-rolled, not a kit
-                // Dialog, so it has to name the same classes): panel-tint + bg-card, a
-                // border-line hairline and shadow-elevated. The scrim above carries the
-                // blur, so the panel takes none (one blur per stacking context).
-                className="panel-tint absolute left-1/2 top-1/2 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-squircle border border-line bg-card text-card-foreground shadow-elevated"
+                className="absolute left-1/2 top-1/2 flex w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col gap-2"
             >
-                <Command shouldFilter={false} loop className="bg-transparent">
-                    <div className="border-b border-line">
+                <Command shouldFilter={false} loop className="flex flex-col gap-2 bg-transparent">
+                    <div className={PANEL}>
                         <CommandInput
                             ref={inputRef}
                             value={query}
