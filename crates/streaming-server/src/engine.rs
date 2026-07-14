@@ -603,22 +603,29 @@ impl Engine {
     }
 
     /// Pause a live torrent (the Cached page's per-row pause button).
-    pub async fn pause(&self, handle: &Handle) {
-        if !handle.is_paused() {
-            if let Err(e) = self.session.pause(handle).await {
-                tracing::warn!("pause failed: {e:#}");
-            }
+    ///
+    /// Idempotent: already-paused is success. Everything else is REPORTED, not
+    /// swallowed - librqbit refuses to pause a torrent that is still hash-checking
+    /// ("torrent is initializing, can't pause"), and this used to drop that into a
+    /// warn! while `/cache/pause` still answered {"success": true}. A pause during
+    /// the check therefore did nothing, said it worked, and the download carried
+    /// on: the other half of the "pause sometimes doesn't work" report.
+    pub async fn pause(&self, handle: &Handle) -> anyhow::Result<()> {
+        if handle.is_paused() {
+            return Ok(());
         }
+        self.session.pause(handle).await.context("pause failed")
     }
 
     /// Resume a paused torrent (a disk-full write error pauses it; the user
     /// fixing the disk and retrying expects it to pick back up).
-    pub async fn unpause(&self, handle: &Handle) {
-        if handle.is_paused() {
-            if let Err(e) = self.session.unpause(handle).await {
-                tracing::warn!("unpause failed: {e:#}");
-            }
+    /// Idempotent: not-paused is success. See [`Engine::pause`] for why failures
+    /// propagate instead of becoming a warn!.
+    pub async fn unpause(&self, handle: &Handle) -> anyhow::Result<()> {
+        if !handle.is_paused() {
+            return Ok(());
         }
+        self.session.unpause(handle).await.context("unpause failed")
     }
 
     /// Make sure `file_idx` is part of the torrent's download selection.

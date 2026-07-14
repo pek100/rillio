@@ -149,7 +149,13 @@ pub(crate) async fn download(
     if let Some(idx) = body.file_idx {
         engine.select_file(&handle, idx).await;
     }
-    engine.unpause(&handle).await;
+    // A fresh add is already unpaused and still initializing, which librqbit
+    // reports as "not paused" - so this is a no-op there and only does work when
+    // re-downloading something the user had paused. Not fatal either way: the
+    // torrent is added and pinned, which is what the caller asked for.
+    if let Err(e) = engine.unpause(&handle).await {
+        tracing::warn!("cache/download {info_hash}: {e:#}");
+    }
     engine.touch(&info_hash);
     engine.set_pinned(&info_hash, true);
     Json(serde_json::json!({ "success": true })).into_response()
@@ -187,12 +193,26 @@ pub(crate) async fn pause(State(engine): State<Engine>, Json(body): Json<PauseBo
     let Some(handle) = engine.get(&info_hash) else {
         return StatusCode::NOT_FOUND.into_response();
     };
-    if body.paused {
-        engine.pause(&handle).await;
+    let result = if body.paused {
+        engine.pause(&handle).await
     } else {
-        engine.unpause(&handle).await;
+        engine.unpause(&handle).await
+    };
+    // A refused pause must not answer {"success": true}. librqbit cannot pause a
+    // torrent mid-hash-check, and swallowing that told the UI the row was paused
+    // while the download ran on. 409: the request was fine, the torrent's state
+    // would not allow it.
+    match result {
+        Ok(()) => Json(serde_json::json!({ "success": true })).into_response(),
+        Err(e) => {
+            tracing::warn!("cache/pause {} paused={}: {e:#}", info_hash, body.paused);
+            (
+                StatusCode::CONFLICT,
+                Json(serde_json::json!({ "error": format!("{e:#}") })),
+            )
+                .into_response()
+        }
     }
-    Json(serde_json::json!({ "success": true })).into_response()
 }
 
 #[derive(Deserialize)]

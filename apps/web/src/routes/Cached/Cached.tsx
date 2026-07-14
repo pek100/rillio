@@ -143,10 +143,17 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
     const progress = entry.total > 0 ? Math.min(1, entry.downloaded / entry.total) : 0;
     const complete = entry.total > 0 && entry.downloaded >= entry.total;
     const paused = entry.state === 'paused';
+    // While initializing there is no have-byte count to show: librqbit has not
+    // built the chunk tracker yet, and its torrent-level counter means the HASH
+    // CHECK's scan there, not data we hold. Showing "0 KB / 9.29 GB" next to a
+    // half-downloaded file reads as lost progress, and a progress bar at 0% says
+    // the same thing louder. Show the size alone until the real count exists.
+    const preparing = entry.state === 'initializing';
     // Pause/resume only makes sense mid-download: live-and-incomplete or paused.
-    // 'initializing' (hash-check after a restart) is also an active transfer
-    // the user may want to stop; librqbit accepts pause during it.
-    const pausable = !complete && (entry.state === 'live' || entry.state === 'initializing' || paused);
+    // NOT while initializing - librqbit hard-refuses that ("torrent is
+    // initializing, can't pause"), so offering the button only produced a pause
+    // that reported success and did nothing. Delete still works there.
+    const pausable = !complete && (entry.state === 'live' || paused);
     return (
         <div className="group flex items-center gap-4 px-6 py-4 transition hover:bg-white/5">
             <div className="min-w-0 flex-1">
@@ -161,17 +168,20 @@ const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
                         complete ?
                             formatBytes(entry.downloaded)
                             :
-                            <>
-                                {formatBytes(entry.downloaded)}
-                                {entry.total > 0 ? <span className="text-fg-subtle">{` / ${formatBytes(entry.total)}`}</span> : null}
-                            </>
+                            preparing ?
+                                (entry.total > 0 ? formatBytes(entry.total) : null)
+                                :
+                                <>
+                                    {formatBytes(entry.downloaded)}
+                                    {entry.total > 0 ? <span className="text-fg-subtle">{` / ${formatBytes(entry.total)}`}</span> : null}
+                                </>
                     }
                     <span className="text-fg-subtle">{' · '}</span>
                     {stateLabel(entry)}
                     {entry.fileCount > 1 ? <><span className="text-fg-subtle">{' · '}</span>{`${entry.fileCount} files`}</> : null}
                 </div>
                 {
-                    !complete && entry.total > 0 ?
+                    !complete && !preparing && entry.total > 0 ?
                         <div className="mt-2.5 h-0.5 w-full overflow-hidden rounded-full bg-surface">
                             <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.round(progress * 100)}%` }} />
                         </div>
