@@ -1,5 +1,16 @@
 {
     "compilerOptions": {
+        // No target meant ES3: ts-loader downleveled EVERYTHING, and its
+        // __spreadArray helper silently turns `[...someSet]` into [] (a Set has
+        // no .length; tsc normally refuses this without downlevelIteration, but
+        // happyPackMode is transpile-only so the error never surfaced). That
+        // shipped three empty lists in v0.1.19: availableLanguages, the streams
+        // language picker, and the player's subtitles language menu. ES2020 emits
+        // native spread (and native async, classes, optional chaining), matching
+        // the app's only runtimes: current-Chromium WebView2 and modern browsers.
+        // Deliberately NOT ES2022+: that flips useDefineForClassFields, which
+        // changes class-field init semantics under the legacy class components.
+        "target": "ES2020",
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
         "jsx": "react",
         "rootDir": "./src",
