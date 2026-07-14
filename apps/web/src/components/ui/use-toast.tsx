@@ -95,16 +95,43 @@ const toastApi = {
                     : kind === 'info' ? sonnerToast.info
                         : sonnerToast.success;
 
-        return emitter(item.title ?? '', {
+        // The legacy contract's item.onSelect makes the WHOLE toast a click target
+        // (the shell's "update available - click to install" rides on it). Sonner
+        // has no toast-level onClick, so a full-bleed overlay goes in with the
+        // title: the toast <li> is positioned, so inset-0 covers all of it. This
+        // was declared in the type and then never wired - the update toast shipped
+        // as a dead click the first release toasts were visible at all.
+        // The overlay's click handler needs the toast id to dismiss it, but the id
+        // only exists once the emitter returns - a holder bridges the cycle.
+        const handle: { id?: string | number } = {};
+        const title: ReactNode = typeof item.onSelect === 'function'
+            ? createElement(
+                React.Fragment,
+                null,
+                item.title ?? '',
+                createElement('div', {
+                    className: 'absolute inset-0 cursor-pointer',
+                    'aria-hidden': true,
+                    onClick: () => {
+                        invoke('select', item, item.onSelect);
+                        if (handle.id !== undefined) sonnerToast.dismiss(handle.id);
+                    },
+                }),
+            )
+            : (item.title ?? '');
+
+        handle.id = emitter(title, {
             description: item.message,
             duration,
             icon: iconFor(item),
+            // An explicit action button must stay clickable above the overlay.
             action: item.action
                 ? { label: item.action.label, onClick: () => { item.action!.onSelect(); invoke('close', item, item.onClose); } }
                 : undefined,
             onDismiss: () => invoke('close', item, item.onClose),
             onAutoClose: () => invoke('close', item, item.onClose),
         });
+        return handle.id;
     },
     remove(id: string | number) {
         sonnerToast.dismiss(id);

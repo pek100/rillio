@@ -25,9 +25,13 @@ export function Toaster({ className, toastOptions, ...props }: ToasterProps) {
                     toast: 'panel-tint group rounded-card border border-line bg-popover text-fg shadow-elevated',
                     title: 'text-sm font-semibold',
                     description: 'text-xs text-fg-muted',
-                    actionButton: 'rounded-full bg-primary text-primary-foreground',
-                    cancelButton: 'rounded-full bg-surface text-fg-muted',
-                    closeButton: 'bg-surface-hover text-fg-muted',
+                    // relative z-10: the buttons must stay clickable above the
+                    // full-bleed onSelect overlay the adapter injects for
+                    // click-anywhere toasts (a static button would paint UNDER a
+                    // positioned sibling overlay and lose its clicks).
+                    actionButton: 'relative z-10 rounded-full bg-primary text-primary-foreground',
+                    cancelButton: 'relative z-10 rounded-full bg-surface text-fg-muted',
+                    closeButton: 'relative z-10 bg-surface-hover text-fg-muted',
                     ...toastOptions?.classNames,
                 },
             }}
