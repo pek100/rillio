@@ -101,21 +101,28 @@ const toastApi = {
         // title: the toast <li> is positioned, so inset-0 covers all of it. This
         // was declared in the type and then never wired - the update toast shipped
         // as a dead click the first release toasts were visible at all.
-        // The overlay's click handler needs the toast id to dismiss it, but the id
-        // only exists once the emitter returns - a holder bridges the cycle.
+        // The overlay's handler needs the toast id to dismiss it, but the id only
+        // exists once the emitter returns - a holder bridges the cycle.
         const handle: { id?: string | number } = {};
+        const activate = () => {
+            invoke('select', item, item.onSelect);
+            if (handle.id !== undefined) sonnerToast.dismiss(handle.id);
+        };
         const title: ReactNode = typeof item.onSelect === 'function'
             ? createElement(
                 React.Fragment,
                 null,
                 item.title ?? '',
-                createElement('div', {
-                    className: 'absolute inset-0 cursor-pointer',
-                    'aria-hidden': true,
-                    onClick: () => {
-                        invoke('select', item, item.onSelect);
-                        if (handle.id !== undefined) sonnerToast.dismiss(handle.id);
-                    },
+                // A real <button>, not an aria-hidden div: this is the ONLY control
+                // on a click-anywhere toast (the update toast has no action button),
+                // so it must be focusable and Enter/Space-activatable or a keyboard/
+                // screen-reader user cannot take the update at all. aria-label names
+                // it from the title since the visible label sits behind it.
+                createElement('button', {
+                    type: 'button',
+                    className: 'absolute inset-0 cursor-pointer appearance-none border-0 bg-transparent p-0',
+                    'aria-label': typeof item.title === 'string' && item.title.length > 0 ? item.title : 'Activate',
+                    onClick: activate,
                 }),
             )
             : (item.title ?? '');
