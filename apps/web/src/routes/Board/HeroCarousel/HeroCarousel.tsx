@@ -31,7 +31,7 @@ const VISIBLE_SIDES = 3;
 const SCRIM_BACKGROUND =
     'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 92%, transparent) 0%, color-mix(in srgb, var(--color-bg) 60%, transparent) 42%, color-mix(in srgb, var(--color-bg) 0%, transparent) 74%), ' +
     'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 12%), ' +
-    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 40%, var(--color-bg) 97%)';
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 28%, var(--color-bg) 94%)';
 
 // IMDb rating and genres arrive as preview `links` (the core encodes them there);
 // category names are the core's constants.
@@ -124,8 +124,11 @@ const HeroCarousel = ({ className, items }: Props) => {
         // band's bottom edge - a hard horizontal cutoff instead of the gradient
         // (subtle at small windows where the fade is nearly done by the band
         // edge; glaring on an ultrawide where the art is still ~70% visible).
+        // 52vh, not taller: the initial viewport should hold the hero PLUS the
+        // first row's posters AND their title labels - at 58vh the labels
+        // straddled the fold on common window heights.
         <div
-            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full overflow-visible', className)}
+            className={cn('relative h-[clamp(22rem,52vh,42rem)] w-full overflow-visible', className)}
             onMouseEnter={pause}
             onMouseLeave={resume}
         >
