@@ -87,18 +87,33 @@ const Board = () => {
 
         loadBoardRows({ start, end });
     }, [boardCatalogsOffset]);
-    const onScroll = React.useCallback(debounce(onVisibleRangeChange, 250), [onVisibleRangeChange]);
+    const onScrollDebounced = React.useCallback(debounce(onVisibleRangeChange, 250), [onVisibleRangeChange]);
+    // Nav scrim state for the full-bleed hero: past ~half the nav height the
+    // rows are under the nav and it needs its dark backing. Cheap comparison on
+    // every scroll event, state write only on the flip.
+    const [scrolled, setScrolled] = React.useState(false);
+    const onScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
+        setScrolled(event.currentTarget.scrollTop > 32);
+        onScrollDebounced();
+    }, [onScrollDebounced]);
     React.useLayoutEffect(() => {
         onVisibleRangeChange();
     }, [board.catalogs, onVisibleRangeChange]);
     return (
         <div className="flex h-[calc(100%-var(--safe-area-inset-bottom))] w-full flex-col max-[640px]:relative max-[640px]:z-0">
             <EventModal />
-            <MainNavBars className="flex-1 self-stretch bg-transparent" route={'board'}>
+            <MainNavBars
+                className="flex-1 self-stretch bg-transparent"
+                route={'board'}
+                fullBleed={heroItems.length > 0}
+                navScrim={heroItems.length > 0 && scrolled}
+            >
                 <div ref={scrollContainerRef} className="h-full w-full overflow-y-auto px-4" onScroll={onScroll}>
                     {
+                        // Full-bleed: the hero cancels the container's side padding
+                        // and starts at the window top, under the floating nav.
                         heroItems.length > 0 ?
-                            <HeroCarousel className={cx('mt-2 mb-8', 'animation-fade-in')} items={heroItems} />
+                            <HeroCarousel className={cx('-mx-4 mb-8 w-[calc(100%+2rem)]', 'animation-fade-in')} items={heroItems} />
                             :
                             null
                     }

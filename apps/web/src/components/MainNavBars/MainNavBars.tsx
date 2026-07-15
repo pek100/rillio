@@ -21,10 +21,18 @@ type Props = {
     className?: string,
     route?: string,
     query?: string,
+    // Full-bleed: the content pane starts at the WINDOW top and scrolls under
+    // the floating nav, for routes whose first element is edge-to-edge art
+    // (the Board's hero). Everyone else keeps the classic below-the-nav pane.
+    fullBleed?: boolean,
+    // With fullBleed, rows eventually scroll under the transparent nav and its
+    // labels land on poster art. The route watches its own scroll position and
+    // raises this to fade in a dark scrim behind the nav.
+    navScrim?: boolean,
     children?: React.ReactNode,
 };
 
-const MainNavBars = memo(({ className, route, children }: Props) => {
+const MainNavBars = memo(({ className, route, fullBleed, navScrim, children }: Props) => {
     const contentRef = React.useRef(null);
 
     const navRoute = route === 'continue_watching' ? 'library' : (route ?? '');
@@ -46,13 +54,28 @@ const MainNavBars = memo(({ className, route, children }: Props) => {
                 aria-hidden
                 className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[linear-gradient(to_bottom,var(--color-nav-glow)_0%,color-mix(in_srgb,var(--color-nav-glow)_55%,transparent)_28%,transparent_100%)]"
             />
+            {/* Scrolled-state scrim: a black fade behind the nav that keeps its
+                labels readable once full-bleed content passes underneath. Rendered
+                (and faded) above the content, below the nav itself. */}
+            <div
+                aria-hidden
+                className={cn(
+                    'pointer-events-none absolute inset-x-0 top-0 z-[1] h-[calc(var(--horizontal-nav-bar-size)+var(--nav-top-gap)+2rem)]',
+                    'bg-[linear-gradient(to_bottom,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.72)_60%,transparent_100%)]',
+                    'transition-opacity duration-300',
+                    navScrim ? 'opacity-100' : 'opacity-0',
+                )}
+            />
             <TopNav
                 className="absolute inset-x-0 top-(--nav-top-gap) z-[1] h-[var(--horizontal-nav-bar-size)]"
                 route={route}
             />
             <div
                 ref={contentRef}
-                className="absolute inset-x-0 bottom-0 z-0 overflow-hidden top-[calc(var(--horizontal-nav-bar-size)+var(--nav-top-gap)+var(--safe-area-inset-top))]"
+                className={cn(
+                    'absolute inset-x-0 bottom-0 z-0 overflow-hidden',
+                    fullBleed ? 'top-0' : 'top-[calc(var(--horizontal-nav-bar-size)+var(--nav-top-gap)+var(--safe-area-inset-top))]',
+                )}
             >
                 {children}
             </div>

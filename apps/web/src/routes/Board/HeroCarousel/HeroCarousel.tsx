@@ -21,12 +21,29 @@ const ROTATE_MS = 7000;
 // How many cards are visible on each side of the front one.
 const VISIBLE_SIDES = 3;
 
-// The two left+bottom scrim gradients (color-mix on --color-bg) kept as an inline
+// Left + bottom + top scrim gradients (color-mix on --color-bg) kept as an inline
 // style: multi-stop color-mix() gradients are far clearer here than as a Tailwind
-// arbitrary value, and they still read the semantic token.
+// arbitrary value, and they still read the semantic token. The bottom fade runs to
+// FULL page color so the hero melts into the rows below (full-bleed has no card
+// edge to end on); the top fade keeps the floating nav readable over bright art.
 const SCRIM_BACKGROUND =
     'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 92%, transparent) 0%, color-mix(in srgb, var(--color-bg) 60%, transparent) 42%, color-mix(in srgb, var(--color-bg) 0%, transparent) 74%), ' +
-    'linear-gradient(to top, color-mix(in srgb, var(--color-bg) 85%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 55%)';
+    'linear-gradient(to top, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 42%), ' +
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 18%)';
+
+// IMDb rating and genres arrive as preview `links` (the core encodes them there);
+// category names are the core's constants.
+const imdbRatingOf = (item: any): string | null => {
+    const link = Array.isArray(item.links) ? item.links.find((l: any) => l?.category === 'imdb') : null;
+    return typeof link?.name === 'string' && link.name.length > 0 ? link.name : null;
+};
+const genresOf = (item: any): string[] => {
+    if (!Array.isArray(item.links)) return [];
+    return item.links
+        .filter((l: any) => l?.category === 'Genres' && typeof l?.name === 'string')
+        .map((l: any) => l.name)
+        .slice(0, 3);
+};
 
 // Per-card transition: transform / opacity glide over 0.65s, filter (the brightness
 // dim) over 0.3s. Inline so the exact per-property durations survive (inline wins
@@ -71,10 +88,12 @@ const HeroCarousel = ({ className, items }: Props) => {
     const deepLinks = item.deepLinks || {};
     const watchHref = deepLinks.metaDetailsStreams || deepLinks.player || deepLinks.metaDetailsVideos || undefined;
     const infoHref = deepLinks.metaDetailsVideos || deepLinks.metaDetailsStreams || undefined;
+    const imdbRating = imdbRatingOf(item);
+    const genres = genresOf(item);
 
     return (
         <div
-            className={cn('relative h-[clamp(18rem,46vh,34rem)] w-full overflow-hidden rounded-card bg-surface', className)}
+            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full overflow-hidden bg-bg', className)}
             onMouseEnter={pause}
             onMouseLeave={resume}
         >
@@ -84,7 +103,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                         <img
                             key={it.id || i}
                             className={cn(
-                                'absolute inset-0 h-full w-full object-cover object-[center_25%] opacity-0 transition-opacity duration-700 ease-smooth',
+                                'absolute inset-0 h-full w-full object-cover object-[center_20%] opacity-0 transition-opacity duration-700 ease-smooth',
                                 i === index && 'opacity-100',
                             )}
                             src={it.background || it.poster || ''}
@@ -95,12 +114,38 @@ const HeroCarousel = ({ className, items }: Props) => {
             </div>
             <div className="pointer-events-none absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
 
-            <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(34rem,40%)] flex-col items-start gap-4">
+            <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(36rem,44%)] flex-col items-start gap-3.5">
                 {
                     typeof item.logo === 'string' && item.logo.length > 0 ?
-                        <img className="block max-h-28 max-w-[22rem] object-contain object-[left_bottom]" src={item.logo} alt={item.name} />
+                        <img className="block max-h-32 max-w-[24rem] object-contain object-[left_bottom]" src={item.logo} alt={item.name} />
                         :
-                        <div className="text-[2.25rem] font-bold text-fg">{item.name}</div>
+                        <div className="text-[2.5rem] font-extrabold leading-tight tracking-tight text-fg">{item.name}</div>
+                }
+                {
+                    // The meta line: rating badge + facts, then genre chips. Every
+                    // piece is optional (catalog previews vary by addon); the row
+                    // only renders when at least one exists.
+                    imdbRating !== null || item.releaseInfo || item.runtime || genres.length > 0 ?
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-fg-muted">
+                            {
+                                imdbRating !== null ?
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="rounded bg-(--color-imdb) px-1.5 py-px text-xs font-bold text-black">IMDb</span>
+                                        <span className="font-semibold tabular-nums text-fg">{imdbRating}</span>
+                                    </span>
+                                    :
+                                    null
+                            }
+                            {item.releaseInfo ? <span className="tabular-nums">{item.releaseInfo}</span> : null}
+                            {item.runtime ? <span>{item.runtime}</span> : null}
+                            {
+                                genres.map((genre) => (
+                                    <span key={genre} className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-fg-muted">{genre}</span>
+                                ))
+                            }
+                        </div>
+                        :
+                        null
                 }
                 {
                     typeof item.description === 'string' && item.description.length > 0 ?
