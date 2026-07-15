@@ -21,15 +21,17 @@ const ROTATE_MS = 7000;
 // How many cards are visible on each side of the front one.
 const VISIBLE_SIDES = 3;
 
-// Left + bottom + top scrim gradients (color-mix on --color-bg) kept as an inline
+// Left + top + bottom scrim gradients (color-mix on --color-bg) kept as an inline
 // style: multi-stop color-mix() gradients are far clearer here than as a Tailwind
-// arbitrary value, and they still read the semantic token. The bottom fade runs to
-// FULL page color so the hero melts into the rows below (full-bleed has no card
-// edge to end on); the top fade keeps the floating nav readable over bright art.
+// arbitrary value, and they still read the semantic token. They paint over the
+// VIEWPORT-TALL backdrop layer: the bottom fade starts transparent mid-screen and
+// reaches FULL page color exactly at the viewport bottom, so the first rows sit on
+// the gradient's darkening tail rather than below a hero that visibly ends. The
+// top fade keeps the floating nav readable over bright art.
 const SCRIM_BACKGROUND =
     'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 92%, transparent) 0%, color-mix(in srgb, var(--color-bg) 60%, transparent) 42%, color-mix(in srgb, var(--color-bg) 0%, transparent) 74%), ' +
-    'linear-gradient(to top, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 42%), ' +
-    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 18%)';
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 12%), ' +
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 40%, var(--color-bg) 97%)';
 
 // IMDb rating and genres arrive as preview `links` (the core encodes them there);
 // category names are the core's constants.
@@ -93,11 +95,17 @@ const HeroCarousel = ({ className, items }: Props) => {
 
     return (
         <div
-            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full overflow-hidden bg-bg', className)}
+            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full', className)}
             onMouseEnter={pause}
             onMouseLeave={resume}
         >
-            <div className="absolute inset-0">
+            {/* The backdrop runs PAST the interactive band to the bottom of the
+                viewport, where its gradient completes at full page color - the
+                first rows render on the darkening tail of the art. Negative z
+                (this container deliberately creates no stacking context) drops
+                it behind the rows that follow in the scroll container;
+                pointer-events-none keeps it out of their way. */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-dvh overflow-hidden">
                 {
                     items.map((it, i) => (
                         <img
@@ -111,8 +119,8 @@ const HeroCarousel = ({ className, items }: Props) => {
                         />
                     ))
                 }
+                <div className="absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
             </div>
-            <div className="pointer-events-none absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
 
             <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(36rem,44%)] flex-col items-start gap-3.5">
                 {
@@ -186,8 +194,12 @@ const HeroCarousel = ({ className, items }: Props) => {
 
             {/* Poster coverflow: signed circular distance from the active card
                 drives each card's translate/rotate/scale. The front card links to
-                the title; side cards select on click. Hidden below 60rem. */}
-            <div className="absolute inset-y-0 left-[46%] right-0 z-[1] [perspective:1100px] [transform-style:preserve-3d] max-[60rem]:hidden">
+                the title; side cards select on click. Hidden below 60rem.
+                Clips its own overflow now that the hero container cannot (the
+                viewport-tall backdrop must escape it); pointer-events-none on the
+                clip is inherited-off, and each visible card re-enables itself via
+                its inline pointerEvents. */}
+            <div className="pointer-events-none absolute inset-y-0 left-[46%] right-0 z-[1] overflow-hidden [perspective:1100px] [transform-style:preserve-3d] max-[60rem]:hidden">
                 {
                     items.map((it, i) => {
                         let d = (((i - index) % count) + count) % count;
