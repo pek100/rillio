@@ -54,21 +54,42 @@ const Board = () => {
             isNaN(profile.settings.streamingServerWarningDismissed.getTime()) ||
             profile.settings.streamingServerWarningDismissed.getTime() < Date.now());
     }, [profile.settings, streamingServer.settings]);
-    // Feed the hero from the first catalog that has loaded (Cinemeta's Popular
-    // /Top row), so it costs no extra fetch. Only items with a backdrop qualify.
+    // Feed the hero from catalogs that have already loaded, so it costs no
+    // extra fetch - and from BOTH content types: the first Ready catalog of
+    // each distinct item type (in board order that is Popular Movies + Popular
+    // Series, both on screen at boot) contributes, interleaved movie/series/
+    // movie/... A movies-only hero was never a decision, just an artifact of
+    // taking whichever single catalog loaded first. Only items with a backdrop
+    // qualify.
     const heroItems = React.useMemo(() => {
-        const catalog = board.catalogs.find((catalog: any) => (
-            catalog.content?.type === 'Ready' &&
-            Array.isArray(catalog.content.content) &&
-            catalog.content.content.length > 0
-        ));
-        if (!catalog) {
-            return [];
+        const pools: any[][] = [];
+        const seenTypes = new Set<string>();
+        for (const catalog of board.catalogs as any[]) {
+            if (catalog.content?.type !== 'Ready' || !Array.isArray(catalog.content.content)) continue;
+            const items = catalog.content.content
+                .filter((item: any) => typeof item.background === 'string' && item.background.length > 0);
+            const type = items[0]?.type;
+            if (typeof type !== 'string' || seenTypes.has(type)) continue;
+            seenTypes.add(type);
+            pools.push(items);
+            if (pools.length === 2) break;
         }
-
-        return catalog.content.content
-            .filter((item: any) => typeof item.background === 'string' && item.background.length > 0)
-            .slice(0, HERO_SLIDES);
+        const out: any[] = [];
+        const seenIds = new Set<string>();
+        for (let i = 0; out.length < HERO_SLIDES; i++) {
+            let anyLeft = false;
+            for (const pool of pools) {
+                const item = pool[i];
+                if (!item) continue;
+                anyLeft = true;
+                if (!seenIds.has(item.id) && out.length < HERO_SLIDES) {
+                    seenIds.add(item.id);
+                    out.push(item);
+                }
+            }
+            if (!anyLeft) break;
+        }
+        return out;
     }, [board.catalogs]);
     // The hero and the continue-watching row precede the catalog rows inside the
     // scroll container, so they shift the visible-child -> catalog index mapping.

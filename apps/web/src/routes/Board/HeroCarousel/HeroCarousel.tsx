@@ -132,7 +132,9 @@ const HeroCarousel = ({ className, items }: Props) => {
                 {
                     // The meta line: rating badge + facts, then genre chips. Every
                     // piece is optional (catalog previews vary by addon); the row
-                    // only renders when at least one exists.
+                    // only renders when at least one exists. The type label earns
+                    // its place because the hero MIXES movies and series - without
+                    // it a mixed carousel reads ambiguously.
                     imdbRating !== null || item.releaseInfo || item.runtime || genres.length > 0 ?
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-fg-muted">
                             {
@@ -140,6 +142,14 @@ const HeroCarousel = ({ className, items }: Props) => {
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="rounded bg-(--color-imdb) px-1.5 py-px text-xs font-bold text-black">IMDb</span>
                                         <span className="font-semibold tabular-nums text-fg">{imdbRating}</span>
+                                    </span>
+                                    :
+                                    null
+                            }
+                            {
+                                item.type === 'series' || item.type === 'movie' ?
+                                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-subtle">
+                                        {item.type === 'series' ? 'Series' : 'Movie'}
                                     </span>
                                     :
                                     null
