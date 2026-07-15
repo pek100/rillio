@@ -6,6 +6,7 @@
 
 pub mod mpv;
 mod shell;
+mod thumbs;
 
 use std::sync::Mutex;
 
@@ -276,6 +277,7 @@ pub fn run() {
         .manage(MpvState::default())
         .manage(UpdateInFlight::default())
         .manage(shell::ShellState::default())
+        .manage(thumbs::ThumbsState::default())
         .manage(DeepLinkState::default())
         .setup(|app| {
             start_streaming_server(app.handle());
@@ -298,7 +300,9 @@ pub fn run() {
             shell::shell_send,
             shell::shell_mpv_stats,
             shell::player_snapshot,
-            shell::player_blur_rect
+            shell::player_blur_rect,
+            thumbs::player_thumb,
+            thumbs::player_thumb_stop
         ])
         .build(ctx)
         .expect("error while building the Rillio desktop shell")

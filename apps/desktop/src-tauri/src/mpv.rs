@@ -31,6 +31,8 @@ type MpvWaitEvent = unsafe extern "C" fn(*mut c_void, f64) -> *mut MpvEventRaw;
 // mpv_request_log_messages(handle, min_level) - stream mpv's own log at
 // `min_level` ("info", "v", "debug", …) as LOG_MESSAGE events.
 type MpvRequestLogMessages = unsafe extern "C" fn(*mut c_void, *const c_char) -> c_int;
+type MpvGetPropertyString = unsafe extern "C" fn(*mut c_void, *const c_char) -> *mut c_char;
+type MpvFree = unsafe extern "C" fn(*mut c_void);
 
 // mpv_format values (mpv/client.h). We observe every property as NODE so the
 // event carries a self-describing value we can map straight to JSON.
@@ -125,6 +127,8 @@ struct Api {
     observe_property: MpvObserveProperty,
     wait_event: MpvWaitEvent,
     request_log_messages: MpvRequestLogMessages,
+    get_property_string: MpvGetPropertyString,
+    free: MpvFree,
 }
 
 /// A loaded mpv instance. `Drop` destroys it. Not `Sync`; drive it from one
@@ -171,6 +175,8 @@ impl Mpv {
                 observe_property: sym!("mpv_observe_property", MpvObserveProperty),
                 wait_event: sym!("mpv_wait_event", MpvWaitEvent),
                 request_log_messages: sym!("mpv_request_log_messages", MpvRequestLogMessages),
+                get_property_string: sym!("mpv_get_property_string", MpvGetPropertyString),
+                free: sym!("mpv_free", MpvFree),
             };
             let ctx = (api.create)();
             if ctx.is_null() {
@@ -208,6 +214,22 @@ impl Mpv {
         let mut ptrs: Vec<*const c_char> = cstrings.iter().map(|c| c.as_ptr()).collect();
         ptrs.push(std::ptr::null()); // NULL-terminated argv
         self.check(unsafe { (self.api.command)(self.ctx, ptrs.as_ptr()) })
+    }
+
+    /// Read a property as a string (mpv stringifies any type). `None` when the
+    /// property is unavailable (e.g. `time-pos` before anything is loaded).
+    /// The C string is owned by mpv and freed with `mpv_free` after copying.
+    pub fn get_property_string(&self, name: &str) -> Option<String> {
+        let n = cstr(name).ok()?;
+        unsafe {
+            let raw = (self.api.get_property_string)(self.ctx, n.as_ptr());
+            if raw.is_null() {
+                return None;
+            }
+            let value = cstr_to_string(raw);
+            (self.api.free)(raw as *mut c_void);
+            Some(value)
+        }
     }
 
     /// Subscribe to a property. mpv delivers one initial value immediately and

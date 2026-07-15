@@ -1103,6 +1103,7 @@ const Player = () => {
                 metaItem={player.metaItem}
                 nextVideo={player.nextVideo}
                 stream={player.selected !== null ? player.selected.stream : null}
+                thumbStreamUrl={typeof video.state.stream?.url === 'string' ? video.state.stream.url : null}
                 onPlayRequested={onPlayRequested}
                 onPauseRequested={onPauseRequested}
                 onNextVideoRequested={onNextVideoRequested}
