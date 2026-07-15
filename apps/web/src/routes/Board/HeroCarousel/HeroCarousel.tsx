@@ -29,9 +29,16 @@ const VISIBLE_SIDES = 3;
 // the gradient's darkening tail rather than below a hero that visibly ends. The
 // top fade keeps the floating nav readable over bright art.
 const SCRIM_BACKGROUND =
-    'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 92%, transparent) 0%, color-mix(in srgb, var(--color-bg) 60%, transparent) 42%, color-mix(in srgb, var(--color-bg) 0%, transparent) 74%), ' +
+    // A center band instead of the old left wall: the hero group (coverflow +
+    // text) sits centered now, so the darkness lives under IT and the art
+    // breathes on both edges.
+    'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 0%, transparent) 4%, color-mix(in srgb, var(--color-bg) 62%, transparent) 30%, color-mix(in srgb, var(--color-bg) 62%, transparent) 74%, color-mix(in srgb, var(--color-bg) 0%, transparent) 96%), ' +
     'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 12%), ' +
-    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 28%, var(--color-bg) 94%)';
+    // Starts at 18% and completes at exactly 100% (the viewport bottom): full
+    // black must never arrive BEFORE the fold, or everything after that line
+    // (the first row's title labels) reads as a separate section on flat black
+    // instead of the tail of one continuous gradient.
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 18%, var(--color-bg) 100%)';
 
 // IMDb rating and genres arrive as preview `links` (the core encodes them there);
 // category names are the core's constants.
@@ -156,132 +163,135 @@ const HeroCarousel = ({ className, items }: Props) => {
                 <div className="absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
             </div>
 
-            <div className="absolute bottom-12 left-12 z-[2] flex max-w-[min(36rem,44%)] flex-col items-start gap-3.5">
-                {
-                    typeof item.logo === 'string' && item.logo.length > 0 ?
-                        <img className="block max-h-32 max-w-[24rem] object-contain object-[left_bottom]" src={item.logo} alt={item.name} />
-                        :
-                        <div className="text-[2.5rem] font-extrabold leading-tight tracking-tight text-fg">{item.name}</div>
-                }
-                {
+            {/* The hero group: [smaller coverflow | title block], one centered
+                composition (Michael's layout pick) with the backdrop breathing on
+                both sides and the scrim's center band underneath for legibility. */}
+            <div className="absolute inset-0 z-[1] flex flex-row items-center justify-center gap-14 px-12">
+                {/* Poster coverflow: signed circular distance from the active card
+                    drives each card's translate/rotate/scale. The front card links
+                    to the title; side cards select on click. The fan may spill
+                    softly over the backdrop (no clip); hidden cards are opacity-0
+                    and pointer-events-none. pointer-events-none on the box is
+                    inherited-off; each visible card re-enables itself inline. */}
+                <div className="pointer-events-none relative h-[68%] w-[30rem] shrink-0 [perspective:1100px] [transform-style:preserve-3d] max-[64rem]:hidden">
+                    {
+                        slides.map(({ item: it, cardSrc }, i) => {
+                            let d = (((i - index) % count) + count) % count;
+                            if (d > count / 2) d -= count;
+                            const abs = Math.abs(d);
+                            const hidden = abs > VISIBLE_SIDES;
+                            const front = d === 0;
+                            return (
+                                <Button
+                                    key={it.id || i}
+                                    variant="ghost"
+                                    className={cn(
+                                        'absolute left-1/2 top-1/2 aspect-[2/3] h-[90%] overflow-hidden rounded-xl p-0',
+                                        front
+                                            ? 'brightness-100 shadow-[0_18px_50px_rgba(0,0,0,0.65)]'
+                                            : 'brightness-[0.55] shadow-[0_14px_40px_rgba(0,0,0,0.55)] hover:brightness-[0.8]',
+                                    )}
+                                    title={it.name}
+                                    href={front ? (it.deepLinks?.metaDetailsVideos || it.deepLinks?.metaDetailsStreams || undefined) : undefined}
+                                    onClick={front ? undefined : () => setIndex(i)}
+                                    style={{
+                                        transform: `translate(-50%, -50%) translateX(${d * 58}%) translateZ(${-abs * 5}rem) rotateY(${d * -24}deg)`,
+                                        zIndex: 30 - abs,
+                                        opacity: hidden ? 0 : 1,
+                                        pointerEvents: hidden ? 'none' : 'auto',
+                                        transition: CARD_TRANSITION,
+                                    }}
+                                >
+                                    <img className="block h-full w-full object-cover" src={cardSrc} alt={''} loading={'lazy'} onError={() => markBroken(cardSrc)} />
+                                </Button>
+                            );
+                        })
+                    }
+                </div>
+                <div className="flex min-w-0 max-w-[36rem] flex-col items-start gap-3.5">
+                    {
+                        typeof item.logo === 'string' && item.logo.length > 0 ?
+                            <img className="block max-h-32 max-w-[24rem] object-contain object-[left_bottom]" src={item.logo} alt={item.name} />
+                            :
+                            <div className="text-[2.5rem] font-extrabold leading-tight tracking-tight text-fg">{item.name}</div>
+                    }
+                    {
                     // The meta line: rating badge + facts, then genre chips. Every
                     // piece is optional (catalog previews vary by addon); the row
                     // only renders when at least one exists. The type label earns
                     // its place because the hero MIXES movies and series - without
                     // it a mixed carousel reads ambiguously.
-                    imdbRating !== null || item.releaseInfo || item.runtime || genres.length > 0 ?
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-fg-muted">
-                            {
-                                imdbRating !== null ?
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <span className="rounded bg-(--color-imdb) px-1.5 py-px text-xs font-bold text-black">IMDb</span>
-                                        <span className="font-semibold tabular-nums text-fg">{imdbRating}</span>
-                                    </span>
-                                    :
-                                    null
-                            }
-                            {
-                                item.type === 'series' || item.type === 'movie' ?
-                                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-subtle">
-                                        {item.type === 'series' ? 'Series' : 'Movie'}
-                                    </span>
-                                    :
-                                    null
-                            }
-                            {item.releaseInfo ? <span className="tabular-nums">{item.releaseInfo}</span> : null}
-                            {item.runtime ? <span>{item.runtime}</span> : null}
-                            {
-                                genres.map((genre) => (
-                                    <span key={genre} className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-fg-muted">{genre}</span>
-                                ))
-                            }
-                        </div>
-                        :
-                        null
-                }
-                {
-                    typeof item.description === 'string' && item.description.length > 0 ?
-                        <div className="line-clamp-3 text-[0.95rem] leading-[1.6em] text-fg-muted">{item.description}</div>
-                        :
-                        null
-                }
-                <div className="flex flex-row items-center gap-3">
-                    {
-                        watchHref ?
-                            <Button
-                                variant="default"
-                                className="h-11 px-6 text-[0.95rem] font-bold"
-                                href={watchHref}
-                                title={t('WATCH_NOW')}
-                            >
-                                <Play className="size-[1.1rem]" />
-                                <div className="whitespace-nowrap">{t('WATCH_NOW')}</div>
-                            </Button>
+                        imdbRating !== null || item.releaseInfo || item.runtime || genres.length > 0 ?
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-fg-muted">
+                                {
+                                    imdbRating !== null ?
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span className="rounded bg-(--color-imdb) px-1.5 py-px text-xs font-bold text-black">IMDb</span>
+                                            <span className="font-semibold tabular-nums text-fg">{imdbRating}</span>
+                                        </span>
+                                        :
+                                        null
+                                }
+                                {
+                                    item.type === 'series' || item.type === 'movie' ?
+                                        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-subtle">
+                                            {item.type === 'series' ? 'Series' : 'Movie'}
+                                        </span>
+                                        :
+                                        null
+                                }
+                                {item.releaseInfo ? <span className="tabular-nums">{item.releaseInfo}</span> : null}
+                                {item.runtime ? <span>{item.runtime}</span> : null}
+                                {
+                                    genres.map((genre) => (
+                                        <span key={genre} className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-fg-muted">{genre}</span>
+                                    ))
+                                }
+                            </div>
                             :
                             null
                     }
                     {
-                        infoHref ?
-                            <Button
-                                variant="outline"
-                                className="h-11 bg-surface px-6 text-[0.95rem] font-bold"
-                                href={infoHref}
-                                title={t('MORE_INFO')}
-                            >
-                                <div className="whitespace-nowrap">{t('MORE_INFO')}</div>
-                            </Button>
+                        typeof item.description === 'string' && item.description.length > 0 ?
+                            <div className="line-clamp-3 text-[0.95rem] leading-[1.6em] text-fg-muted">{item.description}</div>
                             :
                             null
                     }
+                    <div className="flex flex-row items-center gap-3">
+                        {
+                            watchHref ?
+                                <Button
+                                    variant="default"
+                                    className="h-11 px-6 text-[0.95rem] font-bold"
+                                    href={watchHref}
+                                    title={t('WATCH_NOW')}
+                                >
+                                    <Play className="size-[1.1rem]" />
+                                    <div className="whitespace-nowrap">{t('WATCH_NOW')}</div>
+                                </Button>
+                                :
+                                null
+                        }
+                        {
+                            infoHref ?
+                                <Button
+                                    variant="outline"
+                                    className="h-11 bg-surface px-6 text-[0.95rem] font-bold"
+                                    href={infoHref}
+                                    title={t('MORE_INFO')}
+                                >
+                                    <div className="whitespace-nowrap">{t('MORE_INFO')}</div>
+                                </Button>
+                                :
+                                null
+                        }
+                    </div>
                 </div>
-            </div>
-
-            {/* Poster coverflow: signed circular distance from the active card
-                drives each card's translate/rotate/scale. The front card links to
-                the title; side cards select on click. Hidden below 60rem.
-                Clips its own overflow now that the hero container cannot (the
-                viewport-tall backdrop must escape it); pointer-events-none on the
-                clip is inherited-off, and each visible card re-enables itself via
-                its inline pointerEvents. */}
-            <div className="pointer-events-none absolute inset-y-0 left-[46%] right-0 z-[1] overflow-hidden [perspective:1100px] [transform-style:preserve-3d] max-[60rem]:hidden">
-                {
-                    slides.map(({ item: it, cardSrc }, i) => {
-                        let d = (((i - index) % count) + count) % count;
-                        if (d > count / 2) d -= count;
-                        const abs = Math.abs(d);
-                        const hidden = abs > VISIBLE_SIDES;
-                        const front = d === 0;
-                        return (
-                            <Button
-                                key={it.id || i}
-                                variant="ghost"
-                                className={cn(
-                                    'absolute left-1/2 top-1/2 aspect-[2/3] h-[72%] overflow-hidden rounded-xl p-0',
-                                    front
-                                        ? 'brightness-100 shadow-[0_18px_50px_rgba(0,0,0,0.65)]'
-                                        : 'brightness-[0.55] shadow-[0_14px_40px_rgba(0,0,0,0.55)] hover:brightness-[0.8]',
-                                )}
-                                title={it.name}
-                                href={front ? (it.deepLinks?.metaDetailsVideos || it.deepLinks?.metaDetailsStreams || undefined) : undefined}
-                                onClick={front ? undefined : () => setIndex(i)}
-                                style={{
-                                    transform: `translate(-50%, -50%) translateX(${d * 58}%) translateZ(${-abs * 5}rem) rotateY(${d * -24}deg)`,
-                                    zIndex: 30 - abs,
-                                    opacity: hidden ? 0 : 1,
-                                    pointerEvents: hidden ? 'none' : 'auto',
-                                    transition: CARD_TRANSITION,
-                                }}
-                            >
-                                <img className="block h-full w-full object-cover" src={cardSrc} alt={''} loading={'lazy'} onError={() => markBroken(cardSrc)} />
-                            </Button>
-                        );
-                    })
-                }
             </div>
 
             {
                 count > 1 ?
-                    <div className="absolute bottom-8 right-8 z-[2] flex flex-row items-center gap-[0.4rem]">
+                    <div className="absolute bottom-6 left-1/2 z-[2] flex -translate-x-1/2 flex-row items-center gap-[0.4rem]">
                         {
                             slides.map(({ item: it }, i) => (
                                 <Button
