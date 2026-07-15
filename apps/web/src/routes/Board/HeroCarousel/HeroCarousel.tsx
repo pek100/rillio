@@ -62,7 +62,32 @@ const HeroCarousel = ({ className, items }: Props) => {
     const { t } = useTranslation();
     const [index, setIndex] = React.useState(0);
     const [paused, setPaused] = React.useState(false);
-    const count = items.length;
+
+    // Artwork URLs die (CDN rot); a dead background paints the whole hero black
+    // for that slide and a dead poster renders a broken-image ghost card. Track
+    // every src that fails and DROP slides with no working art - a missing slide
+    // is invisible, a broken one is a bug on screen.
+    const [brokenSrcs, setBrokenSrcs] = React.useState<Set<string>>(() => new Set());
+    const markBroken = React.useCallback((src: string) => {
+        setBrokenSrcs((prev) => prev.has(src) ? prev : new Set(prev).add(src));
+    }, []);
+    const usable = React.useCallback((...sources: unknown[]) => {
+        return sources.find((src): src is string =>
+            typeof src === 'string' && src.length > 0 && !brokenSrcs.has(src)) ?? null;
+    }, [brokenSrcs]);
+    const slides = React.useMemo(() => {
+        return items
+            .map((item) => ({
+                item,
+                // The backdrop prefers the wide art, the card the tall art; each
+                // falls back to the other before the slide is given up on.
+                backdropSrc: usable(item.background, item.poster),
+                cardSrc: usable(item.poster, item.background),
+            }))
+            .filter((slide): slide is { item: any; backdropSrc: string; cardSrc: string } =>
+                slide.backdropSrc !== null && slide.cardSrc !== null);
+    }, [items, usable]);
+    const count = slides.length;
 
     React.useEffect(() => {
         if (count > 0 && index >= count) {
@@ -86,7 +111,7 @@ const HeroCarousel = ({ className, items }: Props) => {
         return null;
     }
 
-    const item = items[Math.min(index, count - 1)];
+    const item = slides[Math.min(index, count - 1)].item;
     const deepLinks = item.deepLinks || {};
     const watchHref = deepLinks.metaDetailsStreams || deepLinks.player || deepLinks.metaDetailsVideos || undefined;
     const infoHref = deepLinks.metaDetailsVideos || deepLinks.metaDetailsStreams || undefined;
@@ -107,15 +132,16 @@ const HeroCarousel = ({ className, items }: Props) => {
                 pointer-events-none keeps it out of their way. */}
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-dvh overflow-hidden">
                 {
-                    items.map((it, i) => (
+                    slides.map(({ item: it, backdropSrc }, i) => (
                         <img
                             key={it.id || i}
                             className={cn(
                                 'absolute inset-0 h-full w-full object-cover object-[center_20%] opacity-0 transition-opacity duration-700 ease-smooth',
                                 i === index && 'opacity-100',
                             )}
-                            src={it.background || it.poster || ''}
+                            src={backdropSrc}
                             alt={''}
+                            onError={() => markBroken(backdropSrc)}
                         />
                     ))
                 }
@@ -211,7 +237,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                 its inline pointerEvents. */}
             <div className="pointer-events-none absolute inset-y-0 left-[46%] right-0 z-[1] overflow-hidden [perspective:1100px] [transform-style:preserve-3d] max-[60rem]:hidden">
                 {
-                    items.map((it, i) => {
+                    slides.map(({ item: it, cardSrc }, i) => {
                         let d = (((i - index) % count) + count) % count;
                         if (d > count / 2) d -= count;
                         const abs = Math.abs(d);
@@ -238,7 +264,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                                     transition: CARD_TRANSITION,
                                 }}
                             >
-                                <img className="block h-full w-full object-cover" src={it.poster || it.background || ''} alt={''} loading={'lazy'} />
+                                <img className="block h-full w-full object-cover" src={cardSrc} alt={''} loading={'lazy'} onError={() => markBroken(cardSrc)} />
                             </Button>
                         );
                     })
@@ -249,7 +275,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                 count > 1 ?
                     <div className="absolute bottom-8 right-8 z-[2] flex flex-row items-center gap-[0.4rem]">
                         {
-                            items.map((it, i) => (
+                            slides.map(({ item: it }, i) => (
                                 <Button
                                     key={it.id || i}
                                     variant="ghost"
