@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CONSTANTS, languages, onFileDrop, onShortcut, useToast } from 'rillio/common';
+import { CONSTANTS, onFileDrop, onShortcut, useToast } from 'rillio/common';
+import { pickSubtitlesTrack } from './smartTracks';
 
 const withFallbackLabels = (tracks?: SubtitleTrack[] | null): SubtitleTrack[] => {
     if (!Array.isArray(tracks)) {
@@ -23,16 +24,16 @@ const findTrackById = (tracks: SubtitleTrack[], id?: string | null) => {
     return tracks.find((track) => track.id === id);
 };
 
+// Language defaults go through smartTracks scoring, not find-first: find-first
+// took whatever the muxer listed first in the wanted language, which for anime
+// is routinely the "Signs & Songs" typesetting track, and a forced (partial)
+// track anywhere beats the full-dialogue one it precedes.
 const findTrackByLanguage = (tracks: SubtitleTrack[], language?: string | null) => {
     if (!language) {
         return undefined;
     }
 
-    const languageCode = languages.toCode(language);
-
-    return tracks.find((track) => {
-        return track.lang === language || languages.toCode(track.lang) === languageCode;
-    });
+    return pickSubtitlesTrack(tracks, language) ?? undefined;
 };
 
 const useSubtitles = ({
