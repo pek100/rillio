@@ -119,8 +119,13 @@ const HeroCarousel = ({ className, items }: Props) => {
     const genres = genresOf(item);
 
     return (
+        // overflow-visible is LOAD-BEARING, not a no-op: the global `*{overflow:
+        // hidden}` reset would otherwise clip the viewport-tall backdrop at the
+        // band's bottom edge - a hard horizontal cutoff instead of the gradient
+        // (subtle at small windows where the fade is nearly done by the band
+        // edge; glaring on an ultrawide where the art is still ~70% visible).
         <div
-            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full', className)}
+            className={cn('relative h-[clamp(22rem,58vh,42rem)] w-full overflow-visible', className)}
             onMouseEnter={pause}
             onMouseLeave={resume}
         >
