@@ -281,19 +281,25 @@ const CuratedStreams = ({ streams }: { streams: any[] }) => {
         // Normalize through toCode so detected/current codes always dedupe against
         // the catalog's canonical ISO 639-2 codes ('deu' and 'ger' are one row).
         const inStreams = [...new Set(availableLanguages(streams).map((code) => languages.toCode(code)))].sort(byLabel);
-        // Dedupe the catalog against the top group by code AND by visible label:
-        // a language must never appear twice across the two groups, whichever
-        // spelling of its code either side arrived with.
+        // Dedupe the catalog against the top group by code AND by VISUAL IDENTITY
+        // (label + flag), so a language never appears twice across the two groups
+        // whichever spelling of its code either side arrived with ('deu'/'ger' are
+        // one row). Keying on the label alone was wrong: two genuinely different
+        // languages can share a native label (Northern + Southern Ndebele are both
+        // "isiNdebele"), and that silently dropped the second one from the catalog.
+        // Same label + same flag is a real duplicate; same label + different flag
+        // is two distinct, individually-selectable languages.
+        const identity = (code: string) => `${languages.label(code)} ${flagFor(code) || ''}`;
         const seenCodes = new Set(inStreams);
-        const seenLabels = new Set(inStreams.map((code) => languages.label(code)));
+        const seenIdentities = new Set(inStreams.map(identity));
         const rest: string[] = [];
         for (const entry of languages.all as { code?: string }[]) {
             const code = entry.code;
             if (typeof code !== 'string' || code.length === 0 || seenCodes.has(code)) continue;
-            const label = languages.label(code);
-            if (seenLabels.has(label)) continue;
+            const id = identity(code);
+            if (seenIdentities.has(id)) continue;
             seenCodes.add(code);
-            seenLabels.add(label);
+            seenIdentities.add(id);
             rest.push(code);
         }
         rest.sort(byLabel);
