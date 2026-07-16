@@ -32,7 +32,11 @@ import { useTauriApi } from 'rillio/common/Platform/shell/isShell';
 
 // The kill switch for the paragraph above. Flip to true to blur the video for
 // real under the player's panels.
-export const SHADER_BLUR_ENABLED = false;
+// ON since 2026-07-16 (Michael asked for the sidebar blur); the HDR safety
+// analysis said structural-safe, and the live HDR verification happens now
+// that it is on - if HDR/DV content ever looks off with a panel open, flip
+// this back first.
+export const SHADER_BLUR_ENABLED = true;
 
 // Must match MAX_BLUR_RECTS in the shell and MAX_RECTS in the shader. Four covers
 // every combination the Player can actually produce (the side drawer plus a menu);
@@ -74,9 +78,32 @@ const useShaderBlurRect = (): ShaderBlurRegistry | null => {
     const measure = useCallback((): Rect[] => {
         const rects: Rect[] = [];
         panels.forEach((element) => {
+            // NO BLUR WHILE A PANEL ANIMATES (Michael's call): mpv repositions
+            // the blur only when it renders a video frame - 24fps steps against
+            // a 240Hz panel animation - so tracking the slide always trailed
+            // visibly, and predicting the resting rect (transform-stripping,
+            // then WAAPI jump-to-end sampling) never survived contact with
+            // Radix's animations. Instead the frost simply waits: it snaps in
+            // on the settled panel one tick after the animation ends, and drops
+            // the instant a close animation starts.
+            // The registered element is ShaderBlurRect's MARKER div inside the
+            // panel; the slide/zoom animation runs on an ANCESTOR (the Radix
+            // content element), so walk up - the marker's own subtree never
+            // sees it (that miss shipped once: rects streamed every frame,
+            // animated, straight through this gate). KEYFRAME ANIMATIONS ONLY:
+            // ancestors constantly run CSS TRANSITIONS (the immersion fades,
+            // and the ones triggered by BLUR_CLASS itself - a feedback loop
+            // that flapped the blur on/off every frame and lagged the player),
+            // while the panel enter/exit moves are CSSAnimations.
+            let animating = false;
+            for (let node: HTMLElement | null = element; node !== null && !animating; node = node.parentElement) {
+                animating = node.getAnimations().some((animation) =>
+                    animation instanceof CSSAnimation && animation.playState === 'running');
+            }
+            if (animating) return;
             const rect = element.getBoundingClientRect();
-            // A panel mid-fade or mid-slide can measure to nothing; there is no
-            // video to blur under a zero-sized rect.
+            // A panel mid-fade can also measure to nothing; there is no video
+            // to blur under a zero-sized rect.
             if (rect.width <= 0 || rect.height <= 0) return;
             if (rects.length >= MAX_RECTS) return;
             rects.push({

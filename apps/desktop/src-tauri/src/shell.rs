@@ -111,7 +111,10 @@ const MAX_BLUR_RECTS: usize = 4;
 /// flipping the flag changes where the blur comes from, not how strong it looks.
 /// A shell constant, never a web argument: the web chooses WHERE to blur, the
 /// shell chooses HOW MUCH.
-const BLUR_RADIUS_CSS_PX: f64 = 24.0;
+// 64, not the web fallback's 24: the shader blurs at QUARTER resolution (the
+// standard frosted-glass move - single-res gaussians read as haze, not frost),
+// and behind the panels' dark glass a 24px gaussian was invisible in practice.
+const BLUR_RADIUS_CSS_PX: f64 = 64.0;
 
 /// Minimum spacing between `glsl-shader-opts` writes. A panel open/close is one
 /// call, but a window drag-resize re-measures every frame; this throttles
@@ -838,6 +841,14 @@ fn ensure_blur_shader(app: &AppHandle, ctrl: &Arc<Controller>) -> Result<(), Str
     // no other user shader, and `config=no` keeps any on-machine mpv.conf out), and
     // appending would stack a duplicate copy on every load.
     ctrl.mpv.set_property("glsl-shaders", &text)?;
+    // Subtitles/OSD are drawn AFTER the video pipeline the shader hooks, so
+    // without this a subtitle line under a panel stays razor sharp on top of
+    // the frosted video. blend-subtitles folds them into the frame BEFORE the
+    // output pass, putting them under the blur with everything else. Best
+    // effort: an mpv build that rejects it just keeps sharp subs under panels.
+    if let Err(e) = ctrl.mpv.set_property("blend-subtitles", "yes") {
+        tracing::warn!("shell: blend-subtitles unavailable, subs stay above the panel blur: {e}");
+    }
     {
         let mut blur = ctrl.blur.lock().unwrap_or_else(|e| e.into_inner());
         blur.loaded = true;
@@ -1354,16 +1365,21 @@ mod tests {
         // Count DIRECTIVES, not substrings: the file's header comment discusses
         // both of these by name, and matching loosely would count the prose too.
         let directives = |d: &str| BLUR_SHADER.lines().filter(|line| line.trim_end() == d).count();
-        // Both stages must be skippable, or "loaded but closed" would not be free
-        // and the load-once-then-toggle choice would be wrong.
-        assert_eq!(directives("//!WHEN enabled 0 >"), 2);
+        // Every stage must be skippable, or "loaded but closed" would not be free
+        // and the load-once-then-toggle choice would be wrong. Four stages: the
+        // quarter-res chain is downsample -> horizontal -> vertical -> composite.
+        assert_eq!(directives("//!WHEN enabled 0 >"), 4);
         // The hook the whole HDR argument rests on: OUTPUT is downstream of the
         // colour conversion, so no hook here can disturb passthrough.
-        assert_eq!(directives("//!HOOK OUTPUT"), 2);
-        // Two passes, one saving the intermediate the other reads: a single-pass
-        // gaussian at these radii would cost an order of magnitude more.
-        assert_eq!(directives("//!SAVE RILLIO_PANEL_BLUR_H"), 1);
-        assert_eq!(directives("//!BIND RILLIO_PANEL_BLUR_H"), 1);
+        assert_eq!(directives("//!HOOK OUTPUT"), 4);
+        // The chain's intermediates: each stage saves what the next one reads,
+        // and only the composite touches the real OUTPUT.
+        for save in ["//!SAVE RB_DS", "//!SAVE RB_H", "//!SAVE RB_V"] {
+            assert_eq!(directives(save), 1, "{save} missing");
+        }
+        for bind in ["//!BIND RB_DS", "//!BIND RB_H", "//!BIND RB_V"] {
+            assert_eq!(directives(bind), 1, "{bind} missing");
+        }
     }
 
     /// Properties outside the player's set (including anything that could reach

@@ -31,10 +31,35 @@
 //
 // The two passes are a standard separable gaussian. Both early-out to the
 // untouched pixel outside the panels, so cost scales with the panel area, not the
-// frame. Both carry `//!WHEN enabled 0 >`: with the panels closed the stages are
+// frame. Both carry a `WHEN enabled 0 >` gate: with the panels closed the stages are
 // SKIPPED ENTIRELY rather than running a passthrough copy, which is what lets the
 // shell keep the shader loaded across a whole session instead of paying a
 // pipeline rebuild on every menu open.
+//
+// THE RECT PARAMS (r0x..r3c): four panel rects in OUTPUT-normalized coords -
+// (x, y) the top-left corner, (w, h) the size, and c the corner radius in OUTPUT
+// PIXELS (a length, so it stays circular rather than being squashed by a
+// non-square output rect). The radius is per-rect, not shared: the menus are
+// rounded but the side drawer sits flush against the window edge with square
+// corners. Bounds are deliberately far wider than [0,1]: a panel over a heavily
+// letterboxed video maps to large normalized values, and mpv rejects the whole
+// option string if any single value falls outside its declared range.
+//
+// COMMENT RULES ARE LOAD-BEARING in this file, two of them, and this file
+// shipped broken once for violating both:
+// 1. libplacebo splits the file into blocks at EVERY occurrence of the
+//    slash-slash-bang marker - ANYWHERE in the text, mid-line prose included.
+//    So that three-character sequence must never appear in this file except as
+//    a real directive (spell it out in prose, as here).
+// 2. Everything between a parameter's default value and the next directive is
+//    parsed as part of that value ("Failed parsing variable data"). So between
+//    directive blocks: nothing but values and blank lines; prose lives HERE,
+//    above the first directive.
+//
+// The PARAM directives below define, in order: `enabled` (1 while a panel is
+// open, 0 skips both passes), `count` (how many rects are live), `radius`
+// (gaussian radius in OUTPUT pixels), then four rects r0..r3 as x/y/w/h in
+// OUTPUT-normalized coords plus c, the corner radius in OUTPUT pixels.
 
 //!PARAM enabled
 //!DESC 1 while a player panel is open; 0 skips both passes entirely
@@ -56,16 +81,6 @@
 //!MINIMUM 0
 //!MAXIMUM 512
 32
-
-// The four panel rects, in OUTPUT-normalized coords: (x, y) is the top-left
-// corner, (w, h) the size, and c the corner radius in OUTPUT PIXELS (a length, so
-// it stays circular rather than being squashed by a non-square output rect).
-// The radius is per-rect, not shared: the menus are rounded but the side drawer
-// sits flush against the window edge with square corners.
-//
-// Bounds are deliberately far wider than [0,1]: a panel over a heavily
-// letterboxed video maps to large normalized values, and mpv rejects the whole
-// option string if any single value falls outside its declared range.
 
 //!PARAM r0x
 //!TYPE DYNAMIC float
@@ -189,20 +204,38 @@
 
 //!HOOK OUTPUT
 //!BIND HOOKED
-//!SAVE RILLIO_PANEL_BLUR_H
+//!SAVE RB_DS
+//!WIDTH HOOKED.w 4 /
+//!HEIGHT HOOKED.h 4 /
 //!WHEN enabled 0 >
-//!DESC Rillio panel blur (horizontal pass)
+//!DESC Rillio panel blur (downsample 1/4)
+
+// Frosted glass is blurred at QUARTER resolution, the standard technique
+// (Kawase-family blurs): the downsample itself averages pixels for free, every
+// gaussian tap then covers 4x the distance, and the bilinear upsample at the
+// end smooths the result further. A single full-resolution gaussian at UI
+// radii reads as light haze, not frost.
+vec4 hook() {
+    return HOOKED_texOff(vec2(0.0));
+}
+
+//!HOOK OUTPUT
+//!BIND RB_DS
+//!SAVE RB_H
+//!WIDTH HOOKED.w 4 /
+//!HEIGHT HOOKED.h 4 /
+//!WHEN enabled 0 >
+//!DESC Rillio panel blur (horizontal pass, 1/4 res)
 
 // Taps per side, so 2*TAPS+1 fetches per pass. Fixed, so the cost does not grow
-// with `radius`: the tap SPACING scales instead (step = radius / TAPS). At the
-// radii a UI backdrop uses this stays well inside the gaussian's smooth region,
-// and the sampler's bilinear filtering covers the gaps between taps.
+// with `radius`: the tap SPACING scales instead. At quarter resolution the
+// sampler's bilinear filtering covers the gaps between taps comfortably.
 #define TAPS 10
 #define MAX_RECTS 4
 
 // (x, y, w, h) in OUTPUT-normalized coords, plus the corner radius in OUTPUT px.
-// Indexed by hand because //!PARAM only takes scalars, so there is no array to
-// subscript.
+// Indexed by hand because PARAM directives only take scalars, so there is no
+// array to subscript.
 vec4 rillio_rect(int i) {
     if (i == 0) return vec4(r0x, r0y, r0w, r0h);
     if (i == 1) return vec4(r1x, r1y, r1w, r1h);
@@ -217,23 +250,23 @@ float rillio_corner(int i) {
     return r3c;
 }
 
-// Signed distance to a rounded rect (negative inside). `p`, `center`, `half_size`
-// and `rad` are all in OUTPUT pixels, so the corners stay circular no matter how
-// non-square the output rectangle is.
+// Signed distance to a rounded rect (negative inside). Everything in OUTPUT
+// pixels, so the corners stay circular no matter how non-square the output is.
 float rillio_sd_rrect(vec2 p, vec2 center, vec2 half_size, float rad) {
     rad = min(rad, min(half_size.x, half_size.y));
     vec2 q = abs(p - center) - (half_size - rad);
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
 }
 
-// Signed distance to the nearest open panel, in OUTPUT pixels.
-float rillio_sd_panels(vec2 p) {
+// Signed distance to the nearest open panel, p in OUTPUT-normalized coords
+// scaled by `size` (the full OUTPUT pixel size, whatever this pass renders at).
+float rillio_sd_panels(vec2 p, vec2 size) {
     float d = 1e9;
     for (int i = 0; i < MAX_RECTS; i++) {
         if (float(i) >= count) break;
         vec4 r = rillio_rect(i);
-        vec2 half_size = r.zw * 0.5 * HOOKED_size;
-        vec2 center = (r.xy + r.zw * 0.5) * HOOKED_size;
+        vec2 half_size = r.zw * 0.5 * size;
+        vec2 center = (r.xy + r.zw * 0.5) * size;
         d = min(d, rillio_sd_rrect(p, center, half_size, rillio_corner(i)));
     }
     return d;
@@ -241,16 +274,18 @@ float rillio_sd_panels(vec2 p) {
 
 vec4 hook()
 {
-    vec2 p = HOOKED_pos * HOOKED_size;
-    // Work a `radius`-wide margin AROUND each panel, not just inside it: the
-    // vertical pass reads up to `radius` away, so without this dilation the
-    // pixels along a panel's top/bottom edge would end up only horizontally
-    // blurred - the classic separable-blur-with-an-early-out seam.
-    if (rillio_sd_panels(p) > radius) {
-        return HOOKED_texOff(vec2(0.0));
+    // Fragment position in FULL-res OUTPUT pixels (RB_DS_pos is normalized, and
+    // the rects/radius params are in full-res terms).
+    vec2 p = RB_DS_pos * RB_DS_size * 4.0;
+    // Work a margin AROUND each panel, not just inside it: the vertical pass
+    // reads up to `radius` away, so without the dilation the pixels along a
+    // panel's edge would end up only horizontally blurred.
+    if (rillio_sd_panels(p, RB_DS_size * 4.0) > radius * 2.0) {
+        return RB_DS_texOff(vec2(0.0));
     }
 
-    float r = max(radius, 1.0);
+    // radius is in FULL-res pixels; this pass samples QUARTER-res texels.
+    float r = max(radius * 0.25, 1.0);
     float sigma = r * 0.5;
     float step = r / float(TAPS);
 
@@ -259,7 +294,72 @@ vec4 hook()
     for (int i = -TAPS; i <= TAPS; i++) {
         float o = float(i) * step;
         float w = exp(-0.5 * (o * o) / (sigma * sigma));
-        sum += w * HOOKED_texOff(vec2(o, 0.0));
+        sum += w * RB_DS_texOff(vec2(o, 0.0));
+        weight_sum += w;
+    }
+    return sum / weight_sum;
+}
+
+//!HOOK OUTPUT
+//!BIND RB_H
+//!SAVE RB_V
+//!WIDTH HOOKED.w 4 /
+//!HEIGHT HOOKED.h 4 /
+//!WHEN enabled 0 >
+//!DESC Rillio panel blur (vertical pass, 1/4 res)
+
+#define TAPS 10
+#define MAX_RECTS 4
+
+vec4 rillio_rect(int i) {
+    if (i == 0) return vec4(r0x, r0y, r0w, r0h);
+    if (i == 1) return vec4(r1x, r1y, r1w, r1h);
+    if (i == 2) return vec4(r2x, r2y, r2w, r2h);
+    return vec4(r3x, r3y, r3w, r3h);
+}
+
+float rillio_corner(int i) {
+    if (i == 0) return r0c;
+    if (i == 1) return r1c;
+    if (i == 2) return r2c;
+    return r3c;
+}
+
+float rillio_sd_rrect(vec2 p, vec2 center, vec2 half_size, float rad) {
+    rad = min(rad, min(half_size.x, half_size.y));
+    vec2 q = abs(p - center) - (half_size - rad);
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
+}
+
+float rillio_sd_panels(vec2 p, vec2 size) {
+    float d = 1e9;
+    for (int i = 0; i < MAX_RECTS; i++) {
+        if (float(i) >= count) break;
+        vec4 r = rillio_rect(i);
+        vec2 half_size = r.zw * 0.5 * size;
+        vec2 center = (r.xy + r.zw * 0.5) * size;
+        d = min(d, rillio_sd_rrect(p, center, half_size, rillio_corner(i)));
+    }
+    return d;
+}
+
+vec4 hook()
+{
+    vec2 p = RB_H_pos * RB_H_size * 4.0;
+    if (rillio_sd_panels(p, RB_H_size * 4.0) > radius) {
+        return RB_H_texOff(vec2(0.0));
+    }
+
+    float r = max(radius * 0.25, 1.0);
+    float sigma = r * 0.5;
+    float step = r / float(TAPS);
+
+    vec4 sum = vec4(0.0);
+    float weight_sum = 0.0;
+    for (int i = -TAPS; i <= TAPS; i++) {
+        float o = float(i) * step;
+        float w = exp(-0.5 * (o * o) / (sigma * sigma));
+        sum += w * RB_H_texOff(vec2(0.0, o));
         weight_sum += w;
     }
     return sum / weight_sum;
@@ -267,16 +367,12 @@ vec4 hook()
 
 //!HOOK OUTPUT
 //!BIND HOOKED
-//!BIND RILLIO_PANEL_BLUR_H
+//!BIND RB_V
 //!WHEN enabled 0 >
-//!DESC Rillio panel blur (vertical pass)
+//!DESC Rillio panel blur (composite)
 
-#define TAPS 10
 #define MAX_RECTS 4
 
-// (x, y, w, h) in OUTPUT-normalized coords, plus the corner radius in OUTPUT px.
-// Indexed by hand because //!PARAM only takes scalars, so there is no array to
-// subscript.
 vec4 rillio_rect(int i) {
     if (i == 0) return vec4(r0x, r0y, r0w, r0h);
     if (i == 1) return vec4(r1x, r1y, r1w, r1h);
@@ -297,13 +393,13 @@ float rillio_sd_rrect(vec2 p, vec2 center, vec2 half_size, float rad) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
 }
 
-float rillio_sd_panels(vec2 p) {
+float rillio_sd_panels(vec2 p, vec2 size) {
     float d = 1e9;
     for (int i = 0; i < MAX_RECTS; i++) {
         if (float(i) >= count) break;
         vec4 r = rillio_rect(i);
-        vec2 half_size = r.zw * 0.5 * HOOKED_size;
-        vec2 center = (r.xy + r.zw * 0.5) * HOOKED_size;
+        vec2 half_size = r.zw * 0.5 * size;
+        vec2 center = (r.xy + r.zw * 0.5) * size;
         d = min(d, rillio_sd_rrect(p, center, half_size, rillio_corner(i)));
     }
     return d;
@@ -312,29 +408,19 @@ float rillio_sd_panels(vec2 p) {
 vec4 hook()
 {
     vec2 p = HOOKED_pos * HOOKED_size;
-    float d = rillio_sd_panels(p);
-    // HOOKED is the ORIGINAL, untouched OUTPUT (the horizontal pass wrote to
-    // RILLIO_PANEL_BLUR_H via //!SAVE, so it never overwrote this one).
+    float d = rillio_sd_panels(p, HOOKED_size);
+    // HOOKED is the ORIGINAL, untouched OUTPUT (every blur pass wrote to its
+    // own SAVE texture, so nothing overwrote this one).
     if (d > 0.5) {
         return HOOKED_texOff(vec2(0.0));
     }
 
-    float r = max(radius, 1.0);
-    float sigma = r * 0.5;
-    float step = r / float(TAPS);
+    // Bilinear upsample of the quarter-res blur - the upsample itself adds the
+    // last touch of smoothing.
+    vec4 blurred = RB_V_texOff(vec2(0.0));
 
-    vec4 sum = vec4(0.0);
-    float weight_sum = 0.0;
-    for (int i = -TAPS; i <= TAPS; i++) {
-        float o = float(i) * step;
-        float w = exp(-0.5 * (o * o) / (sigma * sigma));
-        sum += w * RILLIO_PANEL_BLUR_H_texOff(vec2(0.0, o));
-        weight_sum += w;
-    }
-    vec4 blurred = sum / weight_sum;
-
-    // A 1px feather across the panel's own edge. The web panel is drawn over this
-    // boundary with the same rounded rect, and any subpixel disagreement between
-    // the two would otherwise read as a hard sharp/blurred seam.
+    // A 1px feather across the panel's own edge. The web panel is drawn over
+    // this boundary with the same rounded rect, and any subpixel disagreement
+    // between the two would otherwise read as a hard sharp/blurred seam.
     return mix(blurred, HOOKED_texOff(vec2(0.0)), smoothstep(-0.5, 0.5, d));
 }

@@ -305,7 +305,14 @@ html.window-fullscreen { --nav-top-gap: 0rem; }
  * on specificity and reaches the PORTALED side drawer, which no player-scoped
  * container could. The class is only ever present while a panel is blurred, so
  * with the flag off this rule never matches anything. */
-html.player-shader-blur { --color-glass-panel: rgba(0, 0, 0, 0.42); }
+html.player-shader-blur {
+    --color-glass-panel: rgba(0, 0, 0, 0.42);
+    /* And the panels' CSS backdrop blur steps UP to match the video frost: the
+     * house 6px token is glass-over-dark-UI, but with the shader blurring the
+     * video at frost strength, web content under a panel (control bar, pills)
+     * read as sharp leaks next to it at 6px. */
+    --glass-blur: 24px;
+}
 
 /* Player immersion (ported verbatim from the former Player/styles.less). After the
  * idle timeout the Player container gets `data-immersed`; the cursor is hidden and
