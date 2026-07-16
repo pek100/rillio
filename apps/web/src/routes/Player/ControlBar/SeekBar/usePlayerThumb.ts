@@ -14,10 +14,10 @@ import { getTauri } from 'rillio/common/Platform/shell/isShell';
 
 // Must match thumbs.rs BUCKET_SECONDS.
 const BUCKET_SECONDS = 2;
-const RETRY_MS = 250;
+const RETRY_MS = 100;
 // A not-yet-generated bucket is retried this many times while hovered (a live
 // torrent region that is not downloaded gives up until the next hover).
-const MAX_TRIES = 12;
+const MAX_TRIES = 30;
 
 const bucketOf = (timeSec: number) => Math.round(timeSec / BUCKET_SECONDS);
 
@@ -33,6 +33,15 @@ const usePlayerThumb = (streamUrl: string | null, hoverTimeMs: number | null): s
     useEffect(() => {
         cache.current = new Map();
         const t = getTauri();
+        // Warm the shadow up front: the FIRST hover otherwise pays the whole
+        // shadow spawn (dll load + loadfile + first keyframe seek, ~1s) before
+        // any preview can appear. Asking for bucket 0 now makes the shell spawn
+        // the shadow while playback is starting, so the first real hover only
+        // pays a warm seek+capture. The frame itself lands in the shell cache.
+        if (typeof streamUrl === 'string' && t?.core?.invoke) {
+            t.core.invoke('player_thumb', { url: streamUrl, timeSec: 0 })
+                .catch(() => { /* shell-only */ });
+        }
         return () => {
             t?.core?.invoke?.('player_thumb_stop').catch(() => { /* shell-only */ });
         };
