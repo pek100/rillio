@@ -22,8 +22,8 @@ Rillio's Rust equivalent:
 | `PlatformConfig.detectPlatform()` + capability flags | `platform::detect()` + `PlatformCaps` |
 | `createBleService()` factory | `create_*` factory fns returning `Box<dyn Trait>` |
 | noble backend (Windows/Mac) | libmpv backend (Windows) |
-| node-ble backend (Linux) | Media3 backend (Android) [Phase 2] |
-| `NodeBleToNobleAdapter` | `Media3` adapter emitting mpv-shaped props [Phase 2] |
+| node-ble backend (Linux) | libmpv backend, Android build (Phase 2 - see decision below) |
+| `NodeBleToNobleAdapter` | (not needed: same backend on both platforms) |
 
 Rust nuance: the trait gives runtime polymorphism (the "dynamic per device"
 ask, calling code stays platform-agnostic via `Box<dyn Trait>`), while the
@@ -36,7 +36,8 @@ target supports compiles. Interface = runtime; construction = compile-time.
    interface the web `ShellVideo` talks to over `shell_send`/`shell-signal`.
    Windows impl = `MpvBackend` wrapping today's `Controller`. Capability-gated
    methods (blur, snapshot, scene-scan) have default no-op impls, matching
-   TropX's feature flags. Android impl [Phase 2] = Media3 behind the same trait.
+   TropX's feature flags. Android impl [Phase 2] = libmpv again (see decision
+   record below) - the same `Controller`, different surface + option profile.
 
 2. **`NativeSurface`** (render target + compositing). Formalize the already
    `#[cfg]`-stubbed `main_window_wid()` + `composite_behind_webview()` into one
@@ -83,12 +84,43 @@ inert untested code now would be speculative): the D-pad input source in
 `direction` dispatch) and the `'android'` arm in `packages/video/src/platform.js`
 (VO / player selection) both land when the Android player exists to test against.
 
-## Phase 2 (Android TV, separate branch, later)
+## Phase 2 (Android TV, branch cross-platform-seams)
 
-Android impls behind each trait: `AndroidSurface` (SurfaceView), `Media3Backend`
-(ExoPlayer, DV/HDR gated on `Display.getHdrCapabilities()`), `AndroidHost`
-(scoped storage + Play update). Cross-compile streaming server to
-aarch64-linux-android (switch `default-tls` -> rustls). Leanback manifest.
-D-pad key events into the input seam. Then CI/CD (NDK + keystore + arm64 AAB).
-See the research in the session that produced this doc; DV Profile 7 degrades to
-HDR10 on nearly all TV hardware (honest caveat).
+### DECISION RECORD (2026-07-17): the Android player is libmpv, NOT Media3
+
+The original Phase 2 plan said `Media3Backend` (ExoPlayer) because it is the only
+path to hardware Dolby Vision passthrough on Android TV. Michael explicitly
+reversed this: **Android uses the same libmpv + libplacebo engine as Windows.**
+
+Rationale (consistency + testability + less hardware dependence):
+- One rendering pipeline on every platform: libplacebo applies the DV RPU
+  identically, same look, same bugs, same shader stack (blur, trickplay,
+  snapshots, libass subs all come along for free instead of a Kotlin rewrite).
+- DV correctness becomes a software question: verifiable by frame-diffing the
+  same frame on Android vs Windows, on an emulator, with no HDR panel or DV
+  license involved. Media3 DV was only verifiable on licensed hardware.
+- Works on panels/boxes that never licensed DV (renders DV -> HDR10/SDR).
+
+Accepted costs (stated at decision time):
+- No hardware Dolby Vision passthrough - the TV's "Dolby Vision" badge will not
+  light up; we shader-render like Windows. (This was the original doc's whole
+  argument for Media3; the goal changed, so the conclusion changed.)
+- Perf now depends on SoC muscle: libplacebo needs frame access, so decode is
+  `hwdec=mediacodec-copy`. Fine Shield-class, unproven on weak Amlogic sticks -
+  benchmark on a real box before declaring victory.
+- HDR *output* (PQ swapchain on Android) is a follow-up; tone-mapped SDR ships
+  first and proves the pipeline.
+
+Plan + atomic decomposition: docs/android-mpv/decomposition.md, checklist at
+checklists/android-mpv.md.
+
+### Phase 2 status
+
+Done so far: both Rust crates cross-compile to aarch64-linux-android (rustls,
+per-target sha1, API 24), Android scaffold + TV manifest + banner, desktop-only
+plugins cfg-gated, mobile WebView window (`build_mobile_window`), APK builds and
+the full web UI renders + is interactive on an Android TV emulator; streaming
+server + DHT verified downloading real torrents on-device. Remaining: the libmpv
+Android player (see decision above), D-pad key events into the input seam,
+`'android'` arm in `packages/video/src/platform.js`, hide the shell window
+controls on Android, then CI/CD (NDK + keystore + arm64 AAB).
