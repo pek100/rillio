@@ -31,20 +31,31 @@ url = { version = "2.4", features = ["serde"] }
 tracing = "0.1"
 
 # Torrent engine (M1). Pinned exact; 9.0.0-rc is a pre-release we avoid.
-# default-features off drops librqbit's own http-api-client/webui. We use
-# `default-tls` (reqwest default-tls = schannel on Windows / OpenSSL on Linux)
-# rather than `rust-tls`: the rustls path pulls aws-lc-sys, whose Windows build
-# needs the NASM assembler. Revisit the backend when packaging the Linux image.
-librqbit = { version = "=8.1.1", default-features = false, features = ["default-tls"] }
+# default-features off drops librqbit's own http-api-client/webui. TLS backend
+# is rustls with the ring crypto provider (no NASM/aws-lc-sys on Windows, and it
+# cross-compiles to aarch64-linux-android for the Android port, where
+# `default-tls` = SChannel/OpenSSL is a dead end). We enable NEITHER of
+# librqbit's tls features: `default-tls` would pull reqwest/default-tls, and
+# `rust-tls` bundles sha1w's misnamed `sha1-ring` which is actually aws-lc-rs.
+# Instead reqwest below carries `rustls-tls` (feature unification gives
+# librqbit's reqwest the same rustls+ring stack), and the sha1 backend is
+# selected via the direct sha1w dep right after.
+librqbit = { version = "=8.1.1", default-features = false }
+# Feature-injection only (each layer asserts exactly one sha1 backend and we
+# skip the librqbit feature bundles that would pick one): platform-native
+# crypto-hash sha1, same as the old `default-tls` bundle selected.
+librqbit-sha1-wrapper = { version = "4.1", default-features = false, features = ["sha1-crypto-hash"] }
+librqbit-bencode = { version = "3.1", default-features = false, features = ["sha1-crypto-hash"] }
+librqbit-core = { version = "5", default-features = false, features = ["sha1-crypto-hash"] }
 hex = "0.4"                                        # /create blob is hex
 mime_guess = "2"                                   # Content-Type via mime.lookup parity
 tokio-util = { version = "0.7", features = ["io"] } # ReaderStream: FileStream -> axum body
 bytes = "1"
 anyhow = "1"
 regex = "1"                                        # fileMustInclude (linear-time, ReDoS-immune)
-# /proxy (M3a): outbound HTTP with manual redirects. default-tls (schannel/OpenSSL)
-# for the same NASM-avoidance reason as librqbit; stream for chunked bodies.
-reqwest = { version = "0.12", default-features = false, features = ["default-tls", "stream"] }
+# /proxy (M3a): outbound HTTP with manual redirects. rustls+ring for the same
+# no-NASM / Android-portability reason as librqbit; stream for chunked bodies.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 futures-util = "0.3"                               # StreamExt for the playlist rewriter
 form_urlencoded = "1"                              # decode/encode the <opts> blob
 
@@ -60,5 +71,5 @@ bin = ["dep:tracing-subscriber"]
 
 [dev-dependencies]
 # Oracle-diff harness + hermetic local origins for proxy tests.
-reqwest = { version = "0.12", default-features = false, features = ["default-tls", "stream", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
