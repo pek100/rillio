@@ -324,6 +324,14 @@ pub fn run() {
                     }
                 }
             }
+            // Mobile: with `app.windows` empty in the config, Tauri creates no
+            // window on its own (desktop builds one in build_main_window, which is
+            // cfg(desktop)-only). Without this the Android Activity shows only a
+            // black surface. See build_mobile_window.
+            #[cfg(mobile)]
+            {
+                build_mobile_window(app)?;
+            }
             spawn_update_check(app.handle().clone());
             setup_deep_links(app);
             Ok(())
@@ -476,6 +484,29 @@ fn clear_stale_webview_cache(identifier: String, current: String) {
     if let Err(e) = std::fs::write(&marker, &current) {
         tracing::warn!("cache-clear: could not write version marker: {e}");
     }
+}
+
+/// Mobile only: create the WebView that hosts the shared web UI. The config's
+/// `app.windows` is empty (desktop makes its frameless window in code), so on
+/// Android nothing would be shown otherwise. None of the desktop chrome applies
+/// here (the OS owns the frame, sizing and back button), so this is deliberately
+/// minimal: a single fullscreen WebView pointed at the bundled index, with the
+/// same navigation allowlist as desktop so a custom-scheme link in addon content
+/// can never navigate the WebView to `file:`/unknown protocols. External-scheme
+/// launching (magnet:, external players) is a later Android task (needs an OS
+/// intent, not the `open` crate), so for now non-web schemes are just blocked.
+#[cfg(mobile)]
+fn build_mobile_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
+    tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
+        .title("Rillio")
+        .on_navigation(|url| match url.scheme() {
+            "http" | "https" | "tauri" | "data" | "blob" | "about" => true,
+            scheme => {
+                tracing::warn!("blocked navigation to non-web scheme {scheme:?}: {url}");
+                false
+            }
+        })
+        .build()
 }
 
 /// Desktop only: builds the frameless, transparent main window in code. The
