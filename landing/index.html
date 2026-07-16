@@ -441,7 +441,7 @@
         <div class="feature-row reveal" id="hdr">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 14 8-14 8V4Z"/></svg>
-            <h3>True 4K HDR and Dolby Vision, in the app</h3>
+            <h3>4K HDR and Dolby Vision, in the app</h3>
           </div>
           <div>
             <ul class="vs-list">
@@ -454,7 +454,7 @@
               </li>
               <li class="yes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Rillio plays them natively, right in the app</li>
             </ul>
-            <p class="vs-note">True HDR passthrough on HDR displays and full Dolby Vision rendering, built on mpv.</p>
+            <p class="vs-note">HDR passthrough on HDR displays, and Dolby Vision metadata processed in-app through mpv and libplacebo, with no fallback to SDR. Exact output depends on your stream, GPU and display.</p>
           </div>
         </div>
         <div class="feature-row reveal">
@@ -510,7 +510,7 @@
         </div>
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <div><h3>Downloads stay in their box</h3><p>A torrent can only ever write inside Rillio's own cache folder. Anything that tries to reach the rest of your disk is rejected and thrown out. See <a class="ilink" href="#security">the threat model</a> for why that matters.</p></div>
+          <div><h3>Downloads stay in their box</h3><p>Every file path a torrent declares must resolve inside Rillio's own cache folder; a path reaching for anywhere else is rejected and the torrent thrown out. See <a class="ilink" href="#security">the threat model</a> for why that matters.</p></div>
         </div>
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
