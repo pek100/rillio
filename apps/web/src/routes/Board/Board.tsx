@@ -108,26 +108,20 @@ const Board = () => {
 
         loadBoardRows({ start, end });
     }, [boardCatalogsOffset]);
-    const onScrollDebounced = React.useCallback(debounce(onVisibleRangeChange, 250), [onVisibleRangeChange]);
-    // Nav scrim state for the full-bleed hero: past ~half the nav height the
-    // rows are under the nav and it needs its dark backing. Cheap comparison on
-    // every scroll event, state write only on the flip.
-    const [scrolled, setScrolled] = React.useState(false);
-    const onScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
-        setScrolled(event.currentTarget.scrollTop > 32);
-        onScrollDebounced();
-    }, [onScrollDebounced]);
+    const onScroll = React.useCallback(debounce(onVisibleRangeChange, 250), [onVisibleRangeChange]);
     React.useLayoutEffect(() => {
         onVisibleRangeChange();
     }, [board.catalogs, onVisibleRangeChange]);
     return (
         <div className="flex h-[calc(100%-var(--safe-area-inset-bottom))] w-full flex-col max-[640px]:relative max-[640px]:z-0">
             <EventModal />
+            {/* The nav scrim stays ON whenever the board is full-bleed (Michael's
+                call): the nav always sits over art here, scrolled or not. */}
             <MainNavBars
                 className="flex-1 self-stretch bg-transparent"
                 route={'board'}
                 fullBleed={heroItems.length > 0}
-                navScrim={heroItems.length > 0 && scrolled}
+                navScrim={heroItems.length > 0}
             >
                 <div ref={scrollContainerRef} className="h-full w-full overflow-y-auto px-4" onScroll={onScroll}>
                     {

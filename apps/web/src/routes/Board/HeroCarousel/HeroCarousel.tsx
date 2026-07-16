@@ -18,8 +18,16 @@ import { Button } from 'rillio/components/ui/button';
 import { cn } from 'rillio/components/ui/cn';
 
 const ROTATE_MS = 7000;
-// How many cards are visible on each side of the front one.
-const VISIBLE_SIDES = 3;
+// How many cards are visible on each side of the front one, and how far each
+// step slides (as a fraction of card width). The fan's total spread is
+// card_width * (1 + 2 * sides * STEP) = 3 * card_width; with cards at 90% of
+// the box height and 2/3 aspect that spread equals 1.8 * box_height, which is
+// exactly the box's aspect ratio below - so the box hugs the fan with NO
+// internal slack (the box only reserves layout space, the transformed cards
+// ignore it; slack read as phantom margins). Change SIDES/STEP -> re-derive
+// the box aspect.
+const VISIBLE_SIDES = 2;
+const CARD_STEP = 0.5;
 
 // Left + top + bottom scrim gradients (color-mix on --color-bg) kept as an inline
 // style: multi-stop color-mix() gradients are far clearer here than as a Tailwind
@@ -29,16 +37,16 @@ const VISIBLE_SIDES = 3;
 // the gradient's darkening tail rather than below a hero that visibly ends. The
 // top fade keeps the floating nav readable over bright art.
 const SCRIM_BACKGROUND =
-    // A center band instead of the old left wall: the hero group (coverflow +
-    // text) sits centered now, so the darkness lives under IT and the art
-    // breathes on both edges.
-    'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 0%, transparent) 4%, color-mix(in srgb, var(--color-bg) 62%, transparent) 30%, color-mix(in srgb, var(--color-bg) 62%, transparent) 74%, color-mix(in srgb, var(--color-bg) 0%, transparent) 96%), ' +
+    // A left wall under the left-aligned hero group (coverflow + text), fading
+    // out toward the right where the art shows clean.
+    'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 82%, transparent) 0%, color-mix(in srgb, var(--color-bg) 62%, transparent) 40%, color-mix(in srgb, var(--color-bg) 28%, transparent) 62%, color-mix(in srgb, var(--color-bg) 0%, transparent) 84%), ' +
     'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 72%, transparent) 0%, color-mix(in srgb, var(--color-bg) 0%, transparent) 12%), ' +
-    // Starts at 18% and completes at exactly 100% (the viewport bottom): full
-    // black must never arrive BEFORE the fold, or everything after that line
-    // (the first row's title labels) reads as a separate section on flat black
-    // instead of the tail of one continuous gradient.
-    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 18%, var(--color-bg) 100%)';
+    // Starts at 15% and completes at exactly 100% (the viewport bottom), but
+    // darkens HARD through the middle: by ~65% the art is nearly gone, so the
+    // first row's posters sit on near-black rather than visible art, while the
+    // last stop still lands at 100% so full black never arrives before the fold
+    // as a visible line.
+    'linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 0%, transparent) 15%, color-mix(in srgb, var(--color-bg) 55%, transparent) 42%, color-mix(in srgb, var(--color-bg) 90%, transparent) 65%, var(--color-bg) 100%)';
 
 // IMDb rating and genres arrive as preview `links` (the core encodes them there);
 // category names are the core's constants.
@@ -121,7 +129,6 @@ const HeroCarousel = ({ className, items }: Props) => {
     const item = slides[Math.min(index, count - 1)].item;
     const deepLinks = item.deepLinks || {};
     const watchHref = deepLinks.metaDetailsStreams || deepLinks.player || deepLinks.metaDetailsVideos || undefined;
-    const infoHref = deepLinks.metaDetailsVideos || deepLinks.metaDetailsStreams || undefined;
     const imdbRating = imdbRatingOf(item);
     const genres = genresOf(item);
 
@@ -163,17 +170,19 @@ const HeroCarousel = ({ className, items }: Props) => {
                 <div className="absolute inset-0" style={{ background: SCRIM_BACKGROUND }} />
             </div>
 
-            {/* The hero group: [smaller coverflow | title block], one centered
-                composition (Michael's layout pick) with the backdrop breathing on
-                both sides and the scrim's center band underneath for legibility. */}
-            <div className="absolute inset-0 z-[1] flex flex-row items-center justify-center gap-14 px-12">
+            {/* The hero group: [smaller coverflow | title block], one left-aligned
+                composition over the scrim's left wall, the art showing clean on
+                the right. overflow-visible on BOTH the group and the fan box is
+                load-bearing against the global reset: the fan's side cards spread
+                past the box's edges and were being clipped to hard vertical lines. */}
+            <div className="absolute inset-0 z-[1] flex flex-row items-center justify-start gap-5 overflow-visible pl-5 pr-12 pt-16">
                 {/* Poster coverflow: signed circular distance from the active card
                     drives each card's translate/rotate/scale. The front card links
-                    to the title; side cards select on click. The fan may spill
-                    softly over the backdrop (no clip); hidden cards are opacity-0
-                    and pointer-events-none. pointer-events-none on the box is
+                    to the title; side cards select on click. The fan spills softly
+                    over the backdrop (no clip); hidden cards are opacity-0 and
+                    pointer-events-none. pointer-events-none on the box is
                     inherited-off; each visible card re-enables itself inline. */}
-                <div className="pointer-events-none relative h-[68%] w-[30rem] shrink-0 [perspective:1100px] [transform-style:preserve-3d] max-[64rem]:hidden">
+                <div className="pointer-events-none relative aspect-[1.8/1] h-[63%] shrink-0 overflow-visible [perspective:1100px] [transform-style:preserve-3d] max-[90rem]:hidden">
                     {
                         slides.map(({ item: it, cardSrc }, i) => {
                             let d = (((i - index) % count) + count) % count;
@@ -195,7 +204,7 @@ const HeroCarousel = ({ className, items }: Props) => {
                                     href={front ? (it.deepLinks?.metaDetailsVideos || it.deepLinks?.metaDetailsStreams || undefined) : undefined}
                                     onClick={front ? undefined : () => setIndex(i)}
                                     style={{
-                                        transform: `translate(-50%, -50%) translateX(${d * 58}%) translateZ(${-abs * 5}rem) rotateY(${d * -24}deg)`,
+                                        transform: `translate(-50%, -50%) translateX(${d * CARD_STEP * 100}%) translateZ(${-abs * 5}rem) rotateY(${d * -24}deg)`,
                                         zIndex: 30 - abs,
                                         opacity: hidden ? 0 : 1,
                                         pointerEvents: hidden ? 'none' : 'auto',
@@ -268,19 +277,6 @@ const HeroCarousel = ({ className, items }: Props) => {
                                 >
                                     <Play className="size-[1.1rem]" />
                                     <div className="whitespace-nowrap">{t('WATCH_NOW')}</div>
-                                </Button>
-                                :
-                                null
-                        }
-                        {
-                            infoHref ?
-                                <Button
-                                    variant="outline"
-                                    className="h-11 bg-surface px-6 text-[0.95rem] font-bold"
-                                    href={infoHref}
-                                    title={t('MORE_INFO')}
-                                >
-                                    <div className="whitespace-nowrap">{t('MORE_INFO')}</div>
                                 </Button>
                                 :
                                 null
