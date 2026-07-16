@@ -12,6 +12,7 @@ import { useContentGamepadNavigation } from 'rillio/services/GamepadNavigation';
 import { useSettings, useProfile, useFullscreen, useBinaryState, useToast, useStreamingServer, withCoreSuspender, usePlatform, onShortcut, useDiscord, EMPTY_DISCORD_TIMESTAMPS, getPlaybackDiscordActivity } from 'rillio/common';
 import { toPath } from 'rillio-router';
 import { Presence, ContextMenu } from 'rillio/components';
+import { cn } from 'rillio/components/ui/cn';
 import TopBar from './TopBar';
 import Buffering from './Buffering';
 import VolumeChangeIndicator from './VolumeChangeIndicator';
@@ -35,6 +36,7 @@ import SkipPill from './SkipPill/SkipPill';
 import { pickAudioTrack } from './smartTracks';
 import useVideo from './useVideo';
 import useSubtitles from './useSubtitles';
+import useTimelineChapters from './timelineChapters';
 import useVideoSnapshotBackdrop from './useVideoSnapshotBackdrop';
 import useShaderBlurRect from './useShaderBlurRect';
 import { SnapshotBackdropContext } from './SnapshotBackdrop';
@@ -63,6 +65,12 @@ const INDICATOR_LAYER = 'absolute bottom-40 left-0 right-0 z-0';
 // The house floating-panel material (identical to every app menu/dialog): glass-panel
 // fill + a border-line hairline + shadow-elevated + the glass blur token, plus this
 // layer's fixed bottom-right placement.
+// Whether an event target sits inside the body-portalled sonner toaster. Used by
+// the immersion handlers: the toaster is OUTSIDE the player container, so pointer
+// moves onto/off toasts look like leaving/entering the player.
+const isInToaster = (node: EventTarget | null): boolean =>
+    node instanceof Element && node.closest('[data-sonner-toaster]') !== null;
+
 const MENU_LAYER = 'player-immersion-fade absolute bottom-(--player-chrome-clearance) left-auto right-16 top-auto z-0 max-h-[calc(100%-13rem)] max-w-[calc(100%-4rem)] overflow-auto rounded-card border border-line bg-glass-panel shadow-elevated backdrop-blur-(--glass-blur) [@media(orientation:portrait)_and_(max-width:640px)]:bottom-44 [@media(orientation:portrait)_and_(max-width:640px)]:right-10';
 
 // Replaced by smartTracks.pickAudioTrack: find-first took whatever the muxer
@@ -216,6 +224,12 @@ const Player = () => {
         navigate(`/metadetails/${segments.join('/')}`);
     }, [type, id, videoId, navigate]);
 
+    const overlayHidden = React.useMemo(() => {
+        // Hides while PAUSED too (paused !== null only guards the not-yet-loaded
+        // state, where the chrome must stay). Same 4s idle countdown either way.
+        return immersed && !casting && video.state.paused !== null && !menusOpen;
+    }, [immersed, casting, video.state.paused, menusOpen]);
+
     const {
         streamSubtitles,
         allSubtitleTracks,
@@ -231,13 +245,26 @@ const Player = () => {
         closeMenus,
         closeSubtitlesMenu,
         toggleSubtitlesMenu,
+        // Lift the subtitles clear of the control bar while the chrome is up;
+        // they drop back to the user's own offset when it fades. Suspended only
+        // while the SUBTITLES menu is open (its offset slider must show and move
+        // the REAL value, not the lifted one) - other panels (side drawer,
+        // audio, ...) keep the lift, or opening them visibly shifts the subs.
+        liftOffset: !overlayHidden && !subtitlesMenuOpen,
     });
 
-    const overlayHidden = React.useMemo(() => {
-        // Hides while PAUSED too (paused !== null only guards the not-yet-loaded
-        // state, where the chrome must stay). Same 4s idle countdown either way.
-        return immersed && !casting && video.state.paused !== null && !menusOpen;
-    }, [immersed, casting, video.state.paused, menusOpen]);
+    // Seek-bar segments: real chapter marks merged with subtitle silence gaps
+    // (the selected EXTERNAL track's cues) and the shell's visual scene sweep,
+    // per availability (see timelineChapters.ts).
+    const selectedExtraSubtitleTrackUrl = React.useMemo(() => {
+        const track = (extraSubtitleTracks as any[]).find((t: any) => t?.id === selectedExtraSubtitleTrackId);
+        return typeof track?.url === 'string' ? track.url : null;
+    }, [extraSubtitleTracks, selectedExtraSubtitleTrackId]);
+    const timelineChapters = useTimelineChapters(
+        video.state.chapters ?? [],
+        typeof video.state.stream?.url === 'string' ? video.state.stream.url : null,
+        selectedExtraSubtitleTrackUrl,
+    );
 
     // Mirror the chrome's visibility onto <html>, the same way WindowControls
     // publishes `window-fullscreen`. The toast layer is portalled to <body>, so
@@ -491,9 +518,49 @@ const Player = () => {
         setImmersedDebounced(true);
     }, []);
 
-    const onContainerMouseLeave = React.useCallback(() => {
+    const onContainerMouseLeave = React.useCallback((event: React.MouseEvent) => {
+        // Moving onto a toast is NOT leaving the player. The toaster is portalled
+        // to <body>, so the pointer entering it fires this leave handler; immersing
+        // here drops the toast out from under the cursor (the chrome-clearance
+        // offset animates away), the container underneath gets boundary/move
+        // events, the chrome comes back, the toast lifts back under the cursor -
+        // an infinite 200ms flicker. Treat it as ordinary activity instead; the
+        // toaster hover-hold effect below keeps the chrome up from there.
+        if (isInToaster(event.relatedTarget)) {
+            setImmersed(false);
+            setImmersedDebounced(true);
+            return;
+        }
         setImmersedDebounced.cancel();
         setImmersed(true);
+    }, []);
+
+    // While the pointer rests ON a toast, HOLD the chrome visible (cancel the 4s
+    // idle countdown outright, do not just restart it): a stationary cursor gets
+    // no further events, so a running countdown would expire, drop the toast out
+    // from under it and start the same flicker loop the mouseleave guard above
+    // prevents. The countdown restarts the moment the pointer leaves the toaster.
+    // Document-level delegation because the toaster lives outside this tree and
+    // outlives it.
+    React.useEffect(() => {
+        const onOver = (event: MouseEvent) => {
+            if (isInToaster(event.target) && !isInToaster(event.relatedTarget)) {
+                setImmersedDebounced.cancel();
+                setImmersed(false);
+            }
+        };
+        const onOut = (event: MouseEvent) => {
+            if (isInToaster(event.target) && !isInToaster(event.relatedTarget)) {
+                setImmersed(false);
+                setImmersedDebounced(true);
+            }
+        };
+        document.addEventListener('mouseover', onOver);
+        document.addEventListener('mouseout', onOut);
+        return () => {
+            document.removeEventListener('mouseover', onOver);
+            document.removeEventListener('mouseout', onOut);
+        };
     }, []);
 
     // Keyboard input is user activity too: any key while the route is focused
@@ -1090,7 +1157,16 @@ const Player = () => {
             }
             <ControlBar
                 ref={controlBarRef}
-                className={CONTROL_BAR_LAYER}
+                // Fades under the open side drawer: a Chromium compositing
+                // limitation keeps the drawer's backdrop-filter from sampling
+                // the chrome (it sits on its own composited layer for the
+                // immersion fades), so it stays razor sharp through the frost.
+                // It is unusable behind the drawer anyway - hide it.
+                className={cn(
+                    CONTROL_BAR_LAYER,
+                    'transition-opacity duration-200',
+                    sideDrawerOpen && 'pointer-events-none opacity-0',
+                )}
                 paused={video.state.paused}
                 time={video.state.time}
                 duration={video.state.duration}
@@ -1104,6 +1180,7 @@ const Player = () => {
                 nextVideo={player.nextVideo}
                 stream={player.selected !== null ? player.selected.stream : null}
                 thumbStreamUrl={typeof video.state.stream?.url === 'string' ? video.state.stream.url : null}
+                chapters={timelineChapters}
                 onPlayRequested={onPlayRequested}
                 onPauseRequested={onPauseRequested}
                 onNextVideoRequested={onNextVideoRequested}
