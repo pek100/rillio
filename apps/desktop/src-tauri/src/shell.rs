@@ -32,10 +32,70 @@ use crate::mpv::{self, Mpv, MpvEvent};
 /// Lazily-created native player. Held in Tauri state; `None` until the web
 /// client first talks to the shell (on mount, via [`shell_init`]).
 #[derive(Default)]
-pub struct ShellState(Mutex<Option<Arc<Controller>>>);
+pub struct ShellState(Mutex<Option<NativePlayer>>);
+
+/// The native player, chosen per device (the factory in [`ShellState::ensure`]
+/// picks the variant at runtime). Windows = embedded libmpv; Android [Phase 2]
+/// = a Media3 bridge forwarding to a Kotlin plugin. The web bridge
+/// ([`shell_send`]) and the direct commands drive playback through this enum, so
+/// no calling code names a concrete backend. Cheap to clone (each variant holds
+/// an `Arc`). This is the Rust-idiomatic form of TropxMotion's transport factory
+/// for a closed backend set: runtime selection, one interface.
+#[derive(Clone)]
+pub enum NativePlayer {
+    Mpv(Arc<Controller>),
+}
+
+impl NativePlayer {
+    /// An outbound `mpv-command` argv (already allowlist-checked by the caller).
+    fn command(&self, refs: &[&str]) -> Result<(), String> {
+        match self {
+            NativePlayer::Mpv(ctrl) => ctrl.run_command(refs),
+        }
+    }
+    fn set_property(&self, name: &str, value: &str) -> Result<(), String> {
+        match self {
+            NativePlayer::Mpv(ctrl) => ctrl.mpv.set_property(name, value),
+        }
+    }
+    fn observe_property(&self, name: &str) -> Result<(), String> {
+        match self {
+            NativePlayer::Mpv(ctrl) => ctrl.mpv.observe_property(name),
+        }
+    }
+    /// Snapshot of the last-known player properties (the stats panel).
+    fn stats(&self) -> serde_json::Map<String, Value> {
+        match self {
+            NativePlayer::Mpv(ctrl) => ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clone(),
+        }
+    }
+    /// A JPEG data-URL of the current frame for the panel backdrop. Blocking.
+    /// Capability: only where the player renders behind the WebView (embed).
+    fn snapshot_blocking(&self) -> Result<String, String> {
+        match self {
+            NativePlayer::Mpv(ctrl) => {
+                if let Some(cached) = ctrl.recent_snapshot() {
+                    return Ok(cached);
+                }
+                capture_snapshot(ctrl, &snapshot_temp_path())
+            }
+        }
+    }
+    /// Blur the live video under the given panel rects. Capability: gpu_blur.
+    fn blur_rect(
+        &self,
+        app: &AppHandle,
+        rects: Vec<BlurRect>,
+        viewport: BlurViewport,
+    ) -> Result<(), String> {
+        match self {
+            NativePlayer::Mpv(ctrl) => blur_rect_mpv(ctrl, app, rects, viewport),
+        }
+    }
+}
 
 /// A live mpv instance plus a cache of its latest property values.
-struct Controller {
+pub struct Controller {
     mpv: Arc<Mpv>,
     /// Latest value of every observed mpv property, for the "Stats for nerds"
     /// panel (`shell_mpv_stats`). Updated by the event loop on every change.
@@ -240,18 +300,22 @@ struct ShellSignal {
 }
 
 impl ShellState {
-    /// Get the controller, creating (and initializing mpv) on first use. Cheap
-    /// after the first call. Errors if libmpv can't be loaded/initialized.
-    fn ensure(&self, app: &AppHandle) -> Result<Arc<Controller>, String> {
+    /// Get the native player, creating it (per-device backend) on first use.
+    /// Cheap after the first call. Errors if the backend can't be initialized
+    /// (e.g. libmpv can't be loaded on Windows).
+    fn ensure(&self, app: &AppHandle) -> Result<NativePlayer, String> {
         let mut guard = self.0.lock().unwrap();
-        if let Some(ctrl) = guard.as_ref() {
-            return Ok(ctrl.clone());
+        if let Some(player) = guard.as_ref() {
+            return Ok(player.clone());
         }
-        // Embed mpv into the main window (its HWND is the mpv `wid`) so video
-        // renders inside the app instead of a separate top-level window. The web
-        // UI, transparent during playback, overlays it. Falls back to a separate
-        // mpv window if the HWND isn't available.
-        let wid = main_window_wid(app);
+        // Embed mpv into the app's native surface (on Windows, the main window's
+        // HWND is the mpv `wid`) so video renders inside the app instead of a
+        // separate top-level window. The web UI, transparent during playback,
+        // overlays it. The surface backend is chosen per platform (see
+        // `surface::create`); a platform without embedding returns no wid and mpv
+        // opens its own window.
+        let surface = crate::surface::create();
+        let wid = surface.video_wid(app);
         let ctrl = Arc::new(Controller::create(wid)?);
         spawn_event_loop(ctrl.clone(), app.clone());
         // With force-window, mpv's (black) output window exists from startup; push
@@ -259,36 +323,17 @@ impl ShellState {
         if wid.is_some() {
             let app = app.clone();
             std::thread::spawn(move || {
+                let surface = crate::surface::create();
                 for _ in 0..30 {
                     std::thread::sleep(Duration::from_millis(50));
-                    composite_behind_webview(&app);
+                    surface.composite_behind_ui(&app);
                 }
             });
         }
-        *guard = Some(ctrl.clone());
+        let player = NativePlayer::Mpv(ctrl);
+        *guard = Some(player.clone());
         tracing::info!("shell: native mpv player ready (wid={wid:?})");
-        Ok(ctrl)
-    }
-}
-
-/// The main window's native handle as an mpv `wid`, if in-window embedding is
-/// enabled (Windows + `RILLIO_EMBED_MPV`). Otherwise `None` → mpv uses its own
-/// output window (the working default; see `lib::mpv_embed_enabled`).
-fn main_window_wid(app: &AppHandle) -> Option<isize> {
-    #[cfg(windows)]
-    {
-        use tauri::Manager;
-        if !crate::mpv_embed_enabled() {
-            return None;
-        }
-        let window = app.get_webview_window("main")?;
-        let hwnd = window.hwnd().ok()?;
-        return Some(hwnd.0 as isize);
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = app;
-        None
+        Ok(player)
     }
 }
 
@@ -426,6 +471,37 @@ impl Controller {
         snap.data_url = Some(data_url.to_string());
         snap.at = Some(Instant::now());
     }
+
+    /// Run an already-allowlist-checked `mpv-command` argv, applying the two
+    /// mpv-specific normalizations the web client's argv needs. Kept here (in the
+    /// mpv backend) rather than in `shell_send` so the bridge dispatch stays
+    /// backend-agnostic.
+    fn run_command(&self, refs: &[&str]) -> Result<(), String> {
+        // Drop cached stats when playback stops so the panel doesn't show a
+        // previous title's codec/bitrate.
+        if refs.first() == Some(&"stop") {
+            self.props.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        }
+        // Normalize `loadfile`. The web client appends a positional
+        // `replace`/index/`start=+N` (resume time) form whose exact shape depends
+        // on its mpv-version guess; this libmpv build misparses it ("loadfile
+        // option must be an integer: start=+90") and the load fails, so nothing
+        // ever streams. Apply the resume time via the `start` property and issue a
+        // clean two-arg loadfile instead.
+        if refs.first() == Some(&"loadfile") {
+            // URL already validated as http(s) by check_mpv_command.
+            let url = refs.get(1).copied().unwrap_or_default();
+            let start = refs
+                .iter()
+                .find_map(|a| a.strip_prefix("start=+").or_else(|| a.strip_prefix("start=")));
+            // Reset to "none" for fresh plays so a prior resume point doesn't leak
+            // into the next title.
+            let _ = self.mpv.set_property("start", start.unwrap_or("none"));
+            tracing::debug!("mpv loadfile url={url} start={start:?}");
+            return self.mpv.command(&["loadfile", url, "replace"]);
+        }
+        self.mpv.command(refs)
+    }
 }
 
 /// The event-loop thread: block on mpv events and forward the ones the web
@@ -467,7 +543,7 @@ fn spawn_event_loop(ctrl: Arc<Controller>, app: AppHandle) {
                     // when in-window embedding is enabled (S4).
                     if name == "video-params" && value.is_object() && !composited {
                         if crate::mpv_embed_enabled() {
-                            composite_behind_webview(&app);
+                            crate::surface::create().composite_behind_ui(&app);
                         }
                         composited = true;
                     }
@@ -525,54 +601,6 @@ fn spawn_event_loop(ctrl: Arc<Controller>, app: AppHandle) {
         .expect("spawn mpv-events thread");
 }
 
-/// Push mpv's embedded video child window to the bottom of the main window's
-/// z-order, so the (transparent-during-playback) WebView renders on top and its
-/// controls overlay the video. mpv registers its output window with class "mpv"
-/// as a child of the `wid` we gave it.
-#[cfg(windows)]
-fn composite_behind_webview(app: &AppHandle) {
-    use tauri::Manager;
-    use windows::core::BOOL;
-    use windows::Win32::Foundation::{HWND, LPARAM};
-    use windows::Win32::UI::WindowsAndMessaging::{
-        EnumChildWindows, GetClassNameW, SetWindowPos, HWND_BOTTOM, SWP_NOACTIVATE, SWP_NOMOVE,
-        SWP_NOSIZE,
-    };
-
-    let Some(window) = app.get_webview_window("main") else { return };
-    let Ok(hwnd) = window.hwnd() else { return };
-
-    unsafe extern "system" fn enum_cb(child: HWND, _: LPARAM) -> BOOL {
-        let mut buf = [0u16; 32];
-        let len = unsafe { GetClassNameW(child, &mut buf) };
-        if len > 0 {
-            let class = String::from_utf16_lossy(&buf[..len as usize]);
-            if class == "mpv" {
-                let _ = unsafe {
-                    SetWindowPos(
-                        child,
-                        Some(HWND_BOTTOM),
-                        0,
-                        0,
-                        0,
-                        0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
-                    )
-                };
-            }
-        }
-        BOOL(1)
-    }
-
-    unsafe {
-        let _ = EnumChildWindows(Some(HWND(hwnd.0 as *mut _)), Some(enum_cb), LPARAM(0));
-    }
-    tracing::debug!("shell: composited mpv behind WebView");
-}
-
-#[cfg(not(windows))]
-fn composite_behind_webview(_app: &AppHandle) {}
-
 fn emit(app: &AppHandle, event: &str, payload: Value) {
     if let Err(e) = app.emit("shell-signal", ShellSignal { event: event.into(), payload }) {
         tracing::warn!("shell: emit {event} failed: {e}");
@@ -604,7 +632,7 @@ pub fn shell_init(app: AppHandle, state: State<ShellState>) -> ShellInit {
 #[tauri::command]
 pub fn shell_mpv_stats(app: AppHandle, state: State<ShellState>) -> Value {
     match state.ensure(&app) {
-        Ok(ctrl) => Value::Object(ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clone()),
+        Ok(player) => Value::Object(player.stats()),
         Err(_) => Value::Object(serde_json::Map::new()),
     }
 }
@@ -629,17 +657,11 @@ pub fn shell_mpv_stats(app: AppHandle, state: State<ShellState>) -> Value {
 /// any of the file/decode steps fail.
 #[tauri::command]
 pub async fn player_snapshot(app: AppHandle, state: State<'_, ShellState>) -> Result<String, String> {
-    let ctrl = state.ensure(&app)?;
-    // Cheap shell-side rate limit: serve the previous frame to anything asking
-    // faster than SNAPSHOT_MIN_INTERVAL rather than driving mpv + a decode.
-    if let Some(cached) = ctrl.recent_snapshot() {
-        return Ok(cached);
-    }
-    let temp = snapshot_temp_path();
+    let player = state.ensure(&app)?;
     // The mpv round-trip, the file read and the PNG decode + resize + JPEG
     // encode are all blocking and run at ~3/s: keep them off the async runtime's
-    // worker threads.
-    tauri::async_runtime::spawn_blocking(move || capture_snapshot(&ctrl, &temp))
+    // worker threads. The recent-snapshot rate limit lives inside the backend.
+    tauri::async_runtime::spawn_blocking(move || player.snapshot_blocking())
         .await
         .map_err(|e| format!("player_snapshot: capture task failed: {e}"))?
 }
@@ -763,13 +785,24 @@ pub fn player_blur_rect(
             rects.len()
         ));
     }
-    let ctrl = state.ensure(&app)?;
+    state.ensure(&app)?.blur_rect(&app, rects, viewport)
+}
+
+/// The mpv implementation of the panel blur (called from `NativePlayer::blur_rect`
+/// for the `Mpv` variant). Takes the concrete `Arc<Controller>` because the
+/// throttle's trailing apply clones it into a thread.
+fn blur_rect_mpv(
+    ctrl: &Arc<Controller>,
+    app: &AppHandle,
+    rects: Vec<BlurRect>,
+    viewport: BlurViewport,
+) -> Result<(), String> {
     // "Stop blurring" before anything was ever blurred: nothing to do, and in
     // particular nothing worth loading a shader for.
     if rects.is_empty() && !ctrl.blur.lock().unwrap_or_else(|e| e.into_inner()).loaded {
         return Ok(());
     }
-    ensure_blur_shader(&app, &ctrl)?;
+    ensure_blur_shader(app, ctrl)?;
 
     let wait = {
         let mut blur = ctrl.blur.lock().unwrap_or_else(|e| e.into_inner());
@@ -788,7 +821,7 @@ pub fn player_blur_rect(
         }
     };
     match wait {
-        None => apply_blur(&ctrl),
+        None => apply_blur(ctrl),
         Some(delay) => {
             let ctrl = ctrl.clone();
             std::thread::Builder::new()
@@ -1010,32 +1043,9 @@ pub fn shell_send(
             // player is even loaded, so hostile input is rejected (and logged
             // loudly) even if mpv is unavailable, and never reaches mpv.command().
             check_mpv_command(&refs)?;
-            let ctrl = state.ensure(&app)?;
+            let player = state.ensure(&app)?;
             tracing::debug!("mpv command {refs:?}");
-            // Drop cached stats when playback stops so the panel doesn't show a
-            // previous title's codec/bitrate.
-            if refs.first() == Some(&"stop") {
-                ctrl.props.lock().unwrap_or_else(|e| e.into_inner()).clear();
-            }
-            // Normalize `loadfile`. The web client appends a positional
-            // `replace`/index/`start=+N` (resume time) form whose exact shape
-            // depends on its mpv-version guess; this libmpv build misparses it
-            // ("loadfile option must be an integer: start=+90") and the load
-            // fails, so nothing ever streams. Apply the resume time via the
-            // `start` property and issue a clean two-arg loadfile instead.
-            if refs.first() == Some(&"loadfile") {
-                // URL already validated as http(s) by check_mpv_command.
-                let url = refs.get(1).copied().unwrap_or_default();
-                let start = refs
-                    .iter()
-                    .find_map(|a| a.strip_prefix("start=+").or_else(|| a.strip_prefix("start=")));
-                // Reset to "none" for fresh plays so a prior resume point doesn't
-                // leak into the next title.
-                let _ = ctrl.mpv.set_property("start", start.unwrap_or("none"));
-                tracing::debug!("mpv loadfile url={url} start={start:?}");
-                return ctrl.mpv.command(&["loadfile", url, "replace"]);
-            }
-            ctrl.mpv.command(&refs)
+            player.command(&refs)
         }
         "mpv-set-prop" => {
             let list = arg0.as_array().ok_or("mpv-set-prop: expected [name, value]")?;
@@ -1047,9 +1057,9 @@ pub fn shell_send(
             // (and log) anything else before touching the native player.
             check_mpv_setprop(name)?;
             let value = json_to_mpv_str(list.get(1).unwrap_or(&Value::Null));
-            let ctrl = state.ensure(&app)?;
+            let player = state.ensure(&app)?;
             tracing::debug!("mpv set-prop {name} = {value}");
-            if let Err(e) = ctrl.mpv.set_property(name, &value) {
+            if let Err(e) = player.set_property(name, &value) {
                 // A minimal build may reject a prop (e.g. vo=gpu-next); log but
                 // don't fail the whole load sequence.
                 tracing::warn!("mpv set-prop {name}={value} failed: {e}");
@@ -1058,7 +1068,7 @@ pub fn shell_send(
         }
         "mpv-observe-prop" => {
             let name = arg0.as_str().ok_or("mpv-observe-prop: expected a name")?;
-            let ctrl = state.ensure(&app)?;
+            let player = state.ensure(&app)?;
             // ALWAYS observe - never de-dupe. The web client builds a fresh
             // ShellVideo per playback and relies on mpv re-emitting each
             // property's initial value; `mpv-version` in particular gates the
@@ -1067,7 +1077,7 @@ pub fn shell_send(
             // title silently "wouldn't resume/play". (mpv fires an initial value
             // per observe registration; duplicates are cheap and HF props are
             // throttled downstream.)
-            ctrl.mpv.observe_property(name)
+            player.observe_property(name)
         }
         // GPU video processing (mpv shaders) - not wired yet; accept silently so
         // the web client's load sequence isn't interrupted.

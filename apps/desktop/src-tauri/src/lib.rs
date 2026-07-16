@@ -5,7 +5,9 @@
 //! web client reaches it at http://127.0.0.1:11470 exactly as before.
 
 pub mod mpv;
+pub mod platform;
 mod shell;
+mod surface;
 mod thumbs;
 
 use std::sync::Mutex;
