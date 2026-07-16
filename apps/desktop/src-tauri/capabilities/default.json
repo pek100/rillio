@@ -13,7 +13,6 @@
     "core:window:allow-is-maximized",
     "core:window:allow-set-fullscreen",
     "core:window:allow-is-fullscreen",
-    "core:window:allow-show",
-    "deep-link:default"
+    "core:window:allow-show"
   ]
 }

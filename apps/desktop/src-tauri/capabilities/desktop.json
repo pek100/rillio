@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop",
+  "description": "Desktop-only permissions. The deep-link plugin does not exist on the Android build (its plugin dep is gated out in Cargo.toml), so scope its permission to the desktop platforms.",
+  "platforms": ["linux", "macOS", "windows"],
+  "windows": ["main"],
+  "permissions": ["deep-link:default"]
+}

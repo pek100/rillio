@@ -1088,6 +1088,10 @@ pub fn shell_send(
         "win-set-visibility" => {
             use tauri::Manager;
             let fullscreen = arg0.get("fullscreen").and_then(Value::as_bool).unwrap_or(false);
+            // Desktop toggles the OS window's fullscreen; on Android the app is
+            // already immersive and the API does not exist. The web UI still gets
+            // its echo below either way.
+            #[cfg(desktop)]
             if let Some(window) = app.get_webview_window("main") {
                 if let Err(e) = window.set_fullscreen(fullscreen) {
                     tracing::warn!("shell: set_fullscreen({fullscreen}) failed: {e}");

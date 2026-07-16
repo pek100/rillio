@@ -217,6 +217,12 @@ pub(crate) fn mark_web_ready_and_flush(app: &tauri::AppHandle) {
 /// machine's real `stremio://` handler to point at a dev build. Production
 /// registration is done by the NSIS installer from the `plugins.deep-link`
 /// config in tauri.conf.json.
+/// Android build: OS deep links arrive through the manifest intent-filter, not
+/// this desktop plugin (which is gated out). Wired in Phase 2.
+#[cfg(not(desktop))]
+fn setup_deep_links(_app: &tauri::App) {}
+
+#[cfg(desktop)]
 fn setup_deep_links(app: &tauri::App) {
     use tauri_plugin_deep_link::DeepLinkExt;
 
@@ -267,7 +273,13 @@ pub fn run() {
         );
     }
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Desktop-only plugins (single-instance, deep-link, updater). On Android
+    // none apply: the app store handles updates, launchMode=singleTask handles
+    // single-instance, and deep links are manifest-driven. Gated so the Android
+    // build has no reference to the (non-existent there) plugin crates.
+    #[cfg(desktop)]
+    let builder = builder
         // Single-instance MUST be the first plugin registered (Tauri requirement).
         // On a second launch, focus the running window instead of starting a
         // second shell that would fail to bind :11470 and clobber the WebView2
@@ -283,24 +295,34 @@ pub fn run() {
         // the single-instance `deep-link` feature can forward a warm-launch URL
         // into this plugin's on_open_url. See setup_deep_links.
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build());
+    builder
         .manage(MpvState::default())
         .manage(UpdateInFlight::default())
         .manage(shell::ShellState::default())
         .manage(thumbs::ThumbsState::default())
         .manage(DeepLinkState::default())
         .setup(|app| {
+            // The streaming server is cross-platform (loopback HTTP); runs on
+            // every target.
             start_streaming_server(app.handle());
-            let window = build_main_window(app)?;
-            spawn_update_check(app.handle().clone());
-            setup_deep_links(app);
-            // S3 part-2 render proof: RILLIO_MPV_TEST=<url|"test"> embeds mpv in
-            // the window and plays it. "test" = a generated color pattern.
-            if let Ok(src) = std::env::var("RILLIO_MPV_TEST") {
-                if let Err(e) = start_mpv_embedded(app.handle(), &window, &src) {
-                    tracing::error!("mpv embed test failed: {e}");
+            // Desktop builds the frameless/transparent main window in code (the
+            // builder options below are desktop-only). On Android the WebView is
+            // created by Tauri from the mobile config; that window setup is a
+            // Phase 2 runtime task (needs a device to exercise).
+            #[cfg(desktop)]
+            {
+                let window = build_main_window(app)?;
+                // S3 part-2 render proof: RILLIO_MPV_TEST=<url|"test"> embeds mpv
+                // in the window and plays it. "test" = a generated color pattern.
+                if let Ok(src) = std::env::var("RILLIO_MPV_TEST") {
+                    if let Err(e) = start_mpv_embedded(app.handle(), &window, &src) {
+                        tracing::error!("mpv embed test failed: {e}");
+                    }
                 }
             }
+            spawn_update_check(app.handle().clone());
+            setup_deep_links(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -453,6 +475,10 @@ fn clear_stale_webview_cache(identifier: String, current: String) {
     }
 }
 
+/// Desktop only: builds the frameless, transparent main window in code. The
+/// builder options here (decorations, transparent, additional_browser_args) are
+/// desktop-specific; on Android the WebView comes from the mobile config.
+#[cfg(desktop)]
 fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
     // In-window mpv compositing (S4) is opt-in behind RILLIO_EMBED_MPV: on
     // Windows a transparent (layered) top-level window does NOT display child
@@ -527,6 +553,12 @@ fn build_main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
 /// [`install_update`]. Runs on every startup, so the toast reappears until the
 /// update is taken. Fails quietly: no release yet / offline / an unconfigured
 /// signing key all just log at debug and leave the running app untouched.
+/// Android build: updates come from the app store, not the in-app updater
+/// (gated out). No-op.
+#[cfg(not(desktop))]
+fn spawn_update_check(_app: tauri::AppHandle) {}
+
+#[cfg(desktop)]
 fn spawn_update_check(app: tauri::AppHandle) {
     use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
@@ -574,6 +606,16 @@ fn spawn_update_check(app: tauri::AppHandle) {
 /// The webview must never be alive when the process exits for an update.
 #[tauri::command]
 async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    // Stays in the invoke_handler list on every target (the generate_handler
+    // macro can't cfg an entry), but the body is desktop-only: Android takes
+    // updates from the app store, so the web toast is never wired there.
+    #[cfg(not(desktop))]
+    {
+        let _ = app;
+        return Err("in-app updates are unavailable on this platform".into());
+    }
+    #[cfg(desktop)]
+    {
     use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
@@ -636,6 +678,7 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
         app.restart();
     }
     Ok(())
+    }
 }
 
 /// Wait (up to 10s) for the WebView2 browser process to shut down and release
