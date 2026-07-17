@@ -1,4 +1,4 @@
-﻿# Standalone workspace: native-only (Tauri pulls url >=2.5, like the streaming
+# Standalone workspace: native-only (Tauri pulls url >=2.5, like the streaming
 # server), isolated from the root wasm workspace. Build from this directory.
 [workspace]
 
