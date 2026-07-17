@@ -152,7 +152,27 @@ const HeroCarousel = ({ className, items }: Props) => {
                 (this container deliberately creates no stacking context) drops
                 it behind the rows that follow in the scroll container;
                 pointer-events-none keeps it out of their way. */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-dvh overflow-hidden">
+            <div
+                className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-dvh overflow-hidden"
+                // Edge mask on the whole backdrop composite (art + scrim): the
+                // section must never END in a hard line. The scrim darkens the
+                // art but both cut off together at the container's boundary,
+                // which reads as a hard vertical/horizontal edge wherever the
+                // container is narrower than the window (ultrawide layouts).
+                // rem-based fades are invisible at normal widths and melt the
+                // edges everywhere else; the bottom needs none (the scrim
+                // completes at full page color there).
+                style={{
+                    WebkitMaskImage:
+                        'linear-gradient(to right, transparent 0, #000 3.5rem, #000 calc(100% - 3.5rem), transparent 100%), ' +
+                        'linear-gradient(to bottom, transparent 0, #000 3rem, #000 100%)',
+                    WebkitMaskComposite: 'source-in',
+                    maskImage:
+                        'linear-gradient(to right, transparent 0, #000 3.5rem, #000 calc(100% - 3.5rem), transparent 100%), ' +
+                        'linear-gradient(to bottom, transparent 0, #000 3rem, #000 100%)',
+                    maskComposite: 'intersect',
+                }}
+            >
                 {
                     slides.map(({ item: it, backdropSrc }, i) => (
                         <img
