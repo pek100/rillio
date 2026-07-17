@@ -5,14 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Rillio - everything you watch, in one calm place</title>
 <meta name="description" content="Rillio brings movies, series and live TV together through open add-ons, with a native 4K player. Local-first, open source, and built to respect you." />
+<meta name="application-name" content="Rillio" />
 <meta property="og:title" content="Rillio, everything you watch in one place" />
 <meta property="og:description" content="Everything you watch, in one calm place. Free, open source, and yours." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://rillio.app/" />
-<meta property="og:image" content="https://rillio.app/rillio-app.jpg" />
+<meta property="og:site_name" content="Rillio" />
+<meta property="og:image" content="https://rillio.app/rillio-home-clean.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:image" content="https://rillio.app/rillio-app.jpg" />
+<meta name="twitter:title" content="Rillio, everything you watch in one place" />
+<meta name="twitter:description" content="Everything you watch, in one calm place. Free, open source, and yours." />
+<meta name="twitter:image" content="https://rillio.app/rillio-home-clean.jpg" />
 <meta name="theme-color" content="#020407" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800;6..12,900&display=swap" rel="stylesheet" />
@@ -84,11 +89,20 @@
     padding-bottom: 0.06em;
   }
 
+  /* The app's nav treatment (MainNavBars): a transparent FLOATING bar, no
+     blurred box. At the top of the page it sits directly on the hero; once
+     scrolled, a black gradient scrim fades in BEHIND it (down past the bar
+     into transparency) so the labels stay readable over passing content. */
   header {
     position: sticky; top: 0; z-index: 20;
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    background: rgba(2,4,7,0.55);
   }
+  header::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: -2.25rem;
+    z-index: -1; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.72) 60%, transparent 100%);
+    opacity: 0; transition: opacity 0.3s var(--ease);
+  }
+  header.scrolled::before { opacity: 1; }
   .nav { display: flex; align-items: center; justify-content: space-between; height: 4.25rem; }
   .brand { display: inline-flex; align-items: center; gap: 0.6rem; }
   .brand .logo-mark { height: 1.9rem; }
@@ -128,7 +142,43 @@
   .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 
-  .hero { text-align: center; padding: 5.5rem 0 3.5rem; }
+  .hero { text-align: center; padding: 5.5rem 0 3.5rem; position: relative; }
+  /* The ambient liquid: the same slow amber flow the desktop update window
+     plays, tuned dimmer and slower for the page. Full-bleed behind the hero,
+     melting into the page background at the edges; pure decoration. */
+  /* Confined to the hero band (a small bleed only): its tail used to run 18rem
+     into the sections below and read as a stray fog band over the showcase. */
+  .hero-liquid { position: absolute; left: 50%; top: -9rem; width: 100vw; height: calc(100% + 12rem); transform: translateX(-50%); z-index: -1; pointer-events: none; }
+
+  /* Alternating SECTION tones: blue sections are flat navy, black sections are
+     the page; each blue section melts into black over long edge gradients (the
+     ::before/::after), so every seam is a smooth tone transition and nothing
+     ever starts or ends in a hard line. Deliberately no liquid at the seams:
+     the mist canvases composited opaquely over the navy and read as patches -
+     the liquid lives in the hero, where it works. */
+  /* The band's tone is a gradient that fades to TRANSPARENT at both ends (not
+     to a fixed bg color), so it dissolves into whatever section sits above or
+     below - no hard line even where a neighbor carries its own tint. Deep navy
+     (the darker blue), tunable in one place. */
+  .band-blue { position: relative; --band: var(--bg); background: linear-gradient(to bottom, transparent 0%, var(--band) 16%, var(--band) 84%, transparent 100%); }
+  /* Content rides above the tone layers. */
+  .band-blue > * { position: relative; z-index: 1; }
+  /* Liquid clouds at selected seam lines. Keeping them to every other
+     transition makes the motif feel ambient instead of decorative, while the
+     left/right alternation gives the page a loose visual rhythm. The shader
+     emits real alpha and the mask dissolves every edge into the section tones. */
+  .seam-liquid {
+    position: absolute; width: min(78rem, 82vw); height: 16rem; z-index: 0; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+    mask-composite: intersect;
+  }
+  .seam-top { top: -8rem; }
+  .seam-left { left: 0; right: auto; }
+  .seam-right { left: auto; right: 0; }
+  @media (max-width: 640px) { .seam-liquid { width: 94vw; } }
+  @media (prefers-reduced-motion: reduce) { .hero-liquid, .seam-liquid { display: none; } }
   .hero h1 { font-size: clamp(2.6rem, 6.4vw, 4.5rem); font-weight: 900; margin-bottom: 0.9rem; }
   /* A rill draws itself under the headline. */
   .hero-rill { display: block; width: min(16rem, 60vw); height: 1.5rem; margin: 0 auto 1.4rem; overflow: visible; }
@@ -159,7 +209,9 @@
   }
 
   /* FAQ: flat divided disclosure rows, no boxes. */
-  .faq { border-top: 1px solid var(--edge); }
+  /* No border-top: this black section follows the Security blue band, and the
+     hairline at that seam read as a hard line. */
+  .faq { }
   .faq details { border-bottom: 1px solid var(--edge); }
   .faq summary {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -179,29 +231,54 @@
   .cta-row { display: flex; gap: 0.9rem; justify-content: center; flex-wrap: wrap; }
   .cta-note { margin-top: 1.25rem; font-size: 0.9rem; color: var(--fg-3); }
 
-  /* Product shot: the actual app in a lit frame, tilting in 3D toward the
-     pointer with a light sweep, like a card you could pick up. */
-  .showcase { padding-top: 1rem; }
-  .shot-wrap { position: relative; max-width: 68rem; margin: 0 auto; perspective: 1400px; }
-  .shot-wrap::before {
-    content: ''; position: absolute; left: 6%; right: 6%; top: -8%; bottom: 14%; z-index: 0;
-    background: radial-gradient(closest-side, rgba(255, 160, 51, 0.24), transparent 72%);
-    filter: blur(48px); pointer-events: none;
+  /* Five real app captures arranged as a shallow panoramic display. The
+     center stays readable; the outer screens carry the stronger perspective. */
+  .showcase { padding: 1rem 0 0; overflow: hidden; }
+  .steps-section { padding-top: 0; }
+  .screen-gallery {
+    --center-half: min(34rem, 34vw);
+    position: relative; height: clamp(20rem, 36vw, 36rem); margin: 0 auto;
+    perspective: 180rem;
   }
-  .shot {
-    position: relative; z-index: 1;
-    border-radius: 16px; overflow: hidden;
-    border: 1px solid var(--edge-lit); box-shadow: var(--elev-4);
-    background: var(--bg);
-    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-    transition: transform 0.25s var(--ease);
-    will-change: transform;
+  .screen-card {
+    appearance: none; position: absolute; left: 50%; top: 0; margin: 0; padding: 0;
+    overflow: hidden; background: var(--bg); cursor: pointer;
+    aspect-ratio: 17 / 9; border: 1px solid var(--edge-lit);
+    border-radius: 1rem;
+    filter: drop-shadow(0 2.2rem 3.5rem rgba(0,0,0,.68));
+    backface-visibility: hidden; will-change: transform;
+    transition: width .8s var(--ease), top .8s var(--ease), transform .8s var(--ease), filter .2s var(--ease);
   }
-  .shot img { display: block; width: 100%; height: auto; }
-  .shot::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(38rem 24rem at var(--gx, 50%) var(--gy, -20%), rgba(255,255,255,0.10), transparent 62%);
-    opacity: var(--glare, 0); transition: opacity 0.3s var(--ease);
+  .screen-card:hover { filter: brightness(1.08) drop-shadow(0 2.2rem 3.5rem rgba(0,0,0,.68)); }
+  .screen-card:focus-visible { outline: 2px solid var(--fg-2); outline-offset: 4px; }
+  .screen-card img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .screen-center {
+    z-index: 3; width: min(68rem, 68vw);
+    transform: translateX(-50%) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  }
+  .screen-side {
+    z-index: 1; top: 1rem; width: min(56rem, 54vw); opacity: 1;
+    filter: brightness(.58) drop-shadow(0 2.2rem 3.5rem rgba(0,0,0,.68));
+  }
+  .screen-left {
+    transform-origin: right center;
+    transform: translateX(calc(-100% - var(--center-half) + 15rem)) rotateY(34deg) scale(.92);
+  }
+  .screen-right {
+    transform-origin: left center;
+    transform: translateX(calc(var(--center-half) - 15rem)) rotateY(-34deg) scale(.92);
+  }
+  .screen-hidden {
+    z-index: 0; width: min(56rem, 54vw); opacity: 0; visibility: hidden; pointer-events: none;
+    transform: translateX(-50%) scale(.82);
+  }
+  @media (max-width: 52rem) {
+    .screen-gallery { height: 49.8vw; }
+    .screen-side, .screen-hidden { display: none; }
+    .screen-center { width: 94vw; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen-card { transition: none; }
   }
 
   section { padding: var(--sy) 0; }
@@ -302,8 +379,10 @@
   }
   .feature-row .vs-note { color: var(--fg-3); font-size: 0.98rem; }
 
-  /* Privacy: an honest statement, then a tight two-column list, no boxes. */
-  .privacy { border-top: 1px solid var(--edge); background: linear-gradient(180deg, transparent, rgba(255,160,51,0.02)); }
+  /* Privacy: an honest statement, then a tight two-column list, no boxes. No
+     border-top / own background: this is a black section between two blue
+     bands, and a hairline at that boundary read as a hard seam. */
+  .privacy { }
   .privacy-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem 3rem; }
   .privacy-item { display: flex; gap: 0.85rem; }
   .privacy-item .tick { color: var(--accent); flex: none; margin-top: 0.2rem; }
@@ -312,7 +391,8 @@
   .privacy-note { margin: 3rem auto 0; max-width: 42rem; text-align: center; color: var(--fg-3); font-size: 1rem; line-height: 1.7; }
   .privacy-note b { color: var(--fg-2); font-weight: 800; }
 
-  .final { text-align: center; }
+  .final { position: relative; text-align: center; background: var(--bg); }
+  .final > .wrap { position: relative; z-index: 1; }
   .final .box { padding: 1.5rem 2rem; max-width: 46rem; margin: 0 auto; }
   .final h2 { font-size: clamp(1.9rem, 4vw, 2.7rem); font-weight: 900; margin-bottom: 0.75rem; }
   .final p { color: var(--fg-2); margin-bottom: 2rem; font-size: 1.1rem; }
@@ -375,6 +455,7 @@
 
 <main id="top">
   <section class="hero wrap">
+    <canvas class="hero-liquid" aria-hidden="true"></canvas>
     <h1 class="reveal" style="transition-delay:0.1s">
       <span class="headline-fill">Everything you watch,<br />in one</span> <span class="accent-fill">calm</span> <span class="headline-fill">place.</span>
     </h1>
@@ -396,15 +477,30 @@
     <p class="cta-note reveal" style="transition-delay:0.28s">No account required. Windows today, macOS and Linux coming.</p>
   </section>
 
-  <section class="showcase wrap reveal" style="transition-delay:0.34s">
-    <div class="shot-wrap">
-      <div class="shot">
-        <img src="rillio-app.jpg" width="2754" height="1340" alt="The Rillio app: a home board with a featured title, a fanned 3D carousel of movie posters, and a row of popular movies" loading="lazy" />
-      </div>
+  <!-- The first blue band: full-bleed (wrap moved INSIDE so the tone spans the
+       page), so the hero melts straight into it - the seam Michael called the
+       most important one. -->
+  <section class="showcase band-blue reveal" style="transition-delay:0.34s">
+    <div class="screen-gallery" aria-label="Rillio app screens">
+      <button class="screen-card screen-side screen-left" type="button" aria-label="Show the Discover screen">
+        <img src="rillio-discover-clean.jpg" width="1700" height="900" alt="Rillio's Discover view with filters and a movie catalog" loading="lazy" />
+      </button>
+      <button class="screen-card screen-center" type="button" aria-label="Show the Home screen" aria-current="true">
+        <img src="rillio-home-clean.jpg" width="1700" height="900" alt="The Rillio home view with a featured title and popular movies" loading="eager" />
+      </button>
+      <button class="screen-card screen-side screen-right" type="button" aria-label="Show the Add-ons screen">
+        <img src="rillio-addons-clean.jpg" width="1700" height="900" alt="Rillio's add-on manager showing installed catalog and subtitle add-ons" loading="lazy" />
+      </button>
+      <button class="screen-card screen-hidden" type="button" aria-label="Show how Rillio chooses a source">
+        <img src="rillio-sources-clean.jpg" width="1700" height="900" alt="Rillio choosing the best Big Buck Bunny torrent across 4K, 1080p and 720p sources" loading="lazy" />
+      </button>
+      <button class="screen-card screen-hidden" type="button" aria-label="Show the Rillio player">
+        <img src="rillio-player-clean.jpg" width="1700" height="900" alt="Rillio's native player showing the open movie Big Buck Bunny" loading="lazy" />
+      </button>
     </div>
   </section>
 
-  <section class="wrap">
+  <section class="wrap steps-section">
     <div class="steps reveal">
       <div class="step">
         <div class="num">01</div>
@@ -424,7 +520,8 @@
     </div>
   </section>
 
-  <section id="features">
+  <section id="features" class="band-blue">
+    <canvas class="seam-liquid seam-top seam-right" aria-hidden="true"></canvas>
     <div class="wrap">
       <div class="section-head reveal">
         <h2>One app for all of it</h2>
@@ -474,9 +571,16 @@
         <div class="feature-row reveal">
           <div class="lead">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
-            <h3>Bring your Stremio library</h3>
+            <h3>Sync through Stremio, if you want</h3>
           </div>
-          <p>Switching is one sign-in: Rillio pulls your library and add-ons from Stremio, stores them on your device, and disconnects. Your old account stays untouched.</p>
+          <p>Your account is local. Optionally connect a Stremio account as a sync service: your library and add-ons stay in sync across devices, both ways, and Rillio shows you exactly what will move before it does. Disconnect anytime, everything stays on your device.</p>
+        </div>
+        <div class="feature-row reveal">
+          <div class="lead">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <h3>One device, many profiles</h3>
+          </div>
+          <p>Create as many local profiles as you like and switch in two clicks. Each keeps its own library, history and settings, all on this machine.</p>
         </div>
         <div class="feature-row reveal">
           <div class="lead">
@@ -498,7 +602,7 @@
       <div class="privacy-list reveal">
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <div><h3>Local-first, no account</h3><p>Your library and history live on your device by default, not on someone else's server.</p></div>
+          <div><h3>Local-first, no account</h3><p>Your library and history live on your device, not on someone else's server. Stremio sync is optional and additive: connect it if you want cross-device sync, and disconnecting keeps everything local.</p></div>
         </div>
         <div class="privacy-item">
           <svg class="tick" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -533,7 +637,8 @@
     </div>
   </section>
 
-  <section id="security">
+  <section id="security" class="band-blue">
+    <canvas class="seam-liquid seam-top seam-left" aria-hidden="true"></canvas>
     <div class="wrap">
       <div class="section-head reveal">
         <h2>The threat model, in the open</h2>
@@ -619,7 +724,7 @@
       <div class="faq reveal">
         <details>
           <summary>Do I need an account?</summary>
-          <p class="a">No. Rillio works fully anonymously from the first launch. Your library, history and settings live in the app on your device. If you ever want them on another machine, export them as a sync code and paste it there.</p>
+          <p class="a">No. Rillio works fully anonymously from the first launch, and you can create multiple local profiles on one machine, each with its own library and settings. To move to another device, export a sync code and paste it there, or connect a Stremio account and let it sync.</p>
         </details>
         <details>
           <summary>Where does the content come from?</summary>
@@ -627,7 +732,7 @@
         </details>
         <details>
           <summary>Can I bring my Stremio library?</summary>
-          <p class="a">Yes, with one sign-in. Rillio pulls your library and add-ons, stores them locally on your device, and disconnects. Your Stremio account is left exactly as it was.</p>
+          <p class="a">Yes. Connect your Stremio account and Rillio merges its library and add-ons with what you already have, keeps both in sync while connected, and shows you a live diff of what moves. Nothing depends on it: disconnect whenever you like and everything synced stays saved on your device.</p>
         </details>
         <details>
           <summary>Is it really free?</summary>
@@ -638,6 +743,7 @@
   </section>
 
   <section class="final">
+    <canvas class="seam-liquid seam-top seam-right seam-yellow" aria-hidden="true"></canvas>
     <div class="wrap">
       <div class="box reveal">
         <h2>Ready when you are.</h2>
@@ -752,26 +858,88 @@
     }
   })();
 
-  // Product-shot tilt: the frame leans toward the pointer with a light sweep.
+  // The five real screens cycle like the fan in the app. Hovering or focusing
+  // pauses the sequence; clicking a side screen promotes it to the center.
+  (function () {
+    var gallery = document.querySelector('.screen-gallery');
+    if (!gallery) return;
+    var cards = Array.prototype.slice.call(gallery.querySelectorAll('.screen-card'));
+    var active = 1, timer = null;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function render() {
+      cards.forEach(function (card, index) {
+        var offset = (index - active + cards.length) % cards.length;
+        card.classList.remove('screen-left', 'screen-center', 'screen-right', 'screen-side', 'screen-hidden');
+        if (offset === 0) {
+          card.classList.add('screen-center');
+          card.setAttribute('aria-current', 'true');
+        } else if (offset === 1) {
+          card.classList.add('screen-side', 'screen-right');
+          card.removeAttribute('aria-current');
+        } else if (offset === cards.length - 1) {
+          card.classList.add('screen-side', 'screen-left');
+          card.removeAttribute('aria-current');
+        } else {
+          card.classList.add('screen-hidden');
+          card.removeAttribute('aria-current');
+        }
+      });
+    }
+    function stop() {
+      if (timer) { window.clearInterval(timer); timer = null; }
+    }
+    function start() {
+      stop();
+      if (!reduce && !document.hidden && !gallery.matches(':hover') && !gallery.contains(document.activeElement)) {
+        timer = window.setInterval(function () {
+          active = (active + 1) % cards.length;
+          render();
+        }, 5200);
+      }
+    }
+    cards.forEach(function (card, index) {
+      card.addEventListener('click', function (event) {
+        active = index;
+        render();
+        // Pointer clicks behave like the app's fan and resume after the pointer
+        // leaves. Keyboard activation keeps focus, so autoplay stays paused.
+        if (event.detail > 0) card.blur();
+        start();
+      });
+    });
+    gallery.addEventListener('pointerenter', stop);
+    gallery.addEventListener('pointerleave', start);
+    gallery.addEventListener('focusin', stop);
+    gallery.addEventListener('focusout', function (event) {
+      if (!gallery.contains(event.relatedTarget)) start();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+    render();
+    start();
+  })();
+
+  // The readable center screen leans very slightly toward the pointer.
   (function () {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || !window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
-    var wrap = document.querySelector('.shot-wrap');
-    var shot = wrap && wrap.querySelector('.shot');
-    if (!wrap || !shot) return;
+    var wrap = document.querySelector('.screen-gallery');
+    if (!wrap) return;
     wrap.addEventListener('pointermove', function (e) {
+      var shot = wrap.querySelector('.screen-center');
+      if (!shot) return;
       var r = wrap.getBoundingClientRect();
       var px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-      shot.style.setProperty('--ry', ((px - 0.5) * 7).toFixed(2) + 'deg');
-      shot.style.setProperty('--rx', ((0.5 - py) * 5).toFixed(2) + 'deg');
-      shot.style.setProperty('--gx', (px * 100).toFixed(1) + '%');
-      shot.style.setProperty('--gy', (py * 100).toFixed(1) + '%');
-      shot.style.setProperty('--glare', '1');
+      shot.style.setProperty('--ry', ((px - 0.5) * 2.4).toFixed(2) + 'deg');
+      shot.style.setProperty('--rx', ((0.5 - py) * 1.6).toFixed(2) + 'deg');
     });
     wrap.addEventListener('pointerleave', function () {
-      shot.style.setProperty('--rx', '0deg');
-      shot.style.setProperty('--ry', '0deg');
-      shot.style.setProperty('--glare', '0');
+      var shot = wrap.querySelector('.screen-center');
+      if (shot) {
+        shot.style.setProperty('--rx', '0deg');
+        shot.style.setProperty('--ry', '0deg');
+      }
     });
   })();
 
@@ -789,5 +957,100 @@
      (404s until then). This measures the marketing site, not the app, the app
      stays telemetry-free. -->
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+// Ambient liquid layers: the desktop update window's WebGL flow (fbm-warped
+// liquid pooling low, shimmer, hard edge fades), parameterized per mount -
+// amber behind the hero, deep blue at each blue band's seam. Slow, dim,
+// DPR-capped, IntersectionObserver-gated (only visible layers render), and
+// skipped entirely on reduced motion or without WebGL (the page is complete
+// without it: the CSS band gradients carry the tone alone).
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function mountLiquid(canvas, o) {
+    var gl = canvas.getContext('webgl');
+    if (!gl) return;
+    try {
+      var dpr = Math.min(1.5, window.devicePixelRatio || 1);
+      function size() {
+        canvas.width = canvas.clientWidth * dpr;
+        canvas.height = canvas.clientHeight * dpr;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+      size();
+      var vs = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+      var fs = 'precision highp float;varying vec2 uv;uniform float T;uniform vec2 R;uniform vec3 CD;uniform vec3 CA;uniform float IN;' +
+        'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}' +
+        'float nz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}' +
+        'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*nz(p);p*=2.03;a*=.5;}return v;}' +
+        'void main(){vec2 p=uv;p.x*=R.x/R.y;' +
+        'vec2 q=vec2(fbm(p*1.4+T*.018),fbm(p*1.4+vec2(4.7,2.1)-T*.015));' +
+        'vec2 w=vec2(fbm(p*1.9+q*1.7+T*.024),fbm(p*1.9+q*1.7-T*.018));' +
+        'float n=fbm(p*2.2+w*1.6);' +
+        'float pool=smoothstep(.5,.95,n);' +
+        'vec3 col=mix(vec3(0.),CD,smoothstep(.3,.85,n));' +
+        'col=mix(col,CA*.38,pool*.4);' +
+        'float shimmer=smoothstep(.7,.74,fbm(p*2.8+w*2.+T*.036))*pool;' +
+        'col+=CA*shimmer*.14;' +
+        'float vig=smoothstep(1.05,.35,length((uv-vec2(.5,.52))*vec2(1.15,1.5)));' +
+        // TRANSPARENT output (premultiplied): alpha follows brightness, so dark
+        // regions are see-through and the layer BLENDS over whatever tone is
+        // beneath. Opaque alpha=1 was the bug that made the seam mist read as
+        // dark rectangles punched into the navy bands.
+        'vec3 oc=col*vig*IN;' +
+        'float a=clamp(max(oc.r,max(oc.g,oc.b))*2.2,0.,1.);' +
+        'gl_FragColor=vec4(oc,a);}';
+      function sh(t, s) { var o2 = gl.createShader(t); gl.shaderSource(o2, s); gl.compileShader(o2); if (!gl.getShaderParameter(o2, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o2)); return o2; }
+      var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+      gl.useProgram(pr);
+      var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var pl = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(pl); gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform3fv(gl.getUniformLocation(pr, 'CD'), o.deep);
+      gl.uniform3fv(gl.getUniformLocation(pr, 'CA'), o.accent);
+      gl.uniform1f(gl.getUniformLocation(pr, 'IN'), o.intensity);
+      var uT = gl.getUniformLocation(pr, 'T'), uR = gl.getUniformLocation(pr, 'R');
+      window.addEventListener('resize', size);
+      var visible = true;
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; }).observe(canvas);
+      }
+      var start = performance.now() - (o.seed || 0) * 1000;
+      (function frame(now) {
+        if (!document.body.contains(canvas)) return;
+        if (visible) {
+          gl.uniform1f(uT, (now - start) / 1000);
+          gl.uniform2f(uR, canvas.width, canvas.height);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+        requestAnimationFrame(frame);
+      })(performance.now());
+    } catch (e) { canvas.remove(); }
+  }
+  var amberLiquid = { deep: [0.045, 0.026, 0.008], accent: [1, 0.627, 0.2], intensity: 0.8 };
+  var hero = document.querySelector('.hero-liquid');
+  if (hero) mountLiquid(hero, amberLiquid);
+  // Sparse seam clouds at selected boundaries, each offset in time so the
+  // clouds do not visibly breathe in sync. The final CTA gets a warm yellow
+  // cloud to echo the product accent; the remaining clouds stay blue.
+  var seams = document.querySelectorAll('.seam-liquid');
+  for (var i = 0; i < seams.length; i++) {
+    var yellow = seams[i].classList.contains('seam-yellow');
+    mountLiquid(seams[i], {
+      deep: yellow ? amberLiquid.deep : [0.014, 0.034, 0.085],
+      accent: yellow ? amberLiquid.accent : [0.32, 0.52, 1],
+      intensity: yellow ? amberLiquid.intensity : 0.55,
+      seed: i * 47
+    });
+  }
+})();
+// Scrolled-state scrim for the floating header (same behavior as the app nav).
+(function () {
+  var head = document.querySelector('header');
+  if (!head) return;
+  function update() { head.classList.toggle('scrolled', window.scrollY > 8); }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+</script>
 </body>
 </html>
