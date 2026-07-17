@@ -38,7 +38,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
@@ -64,7 +64,7 @@ jobs:
       # Android SDK cmdline-tools, then the exact NDK + platform + build-tools the
       # gen/android project expects. NDK 27.x matches the local toolchain that
       # produced the committed scaffold.
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+      - uses: android-actions/setup-android@v3
       - name: Install NDK + platform
         run: |
           sdkmanager --install "ndk;27.2.12479018" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
@@ -72,7 +72,7 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
       - name: Install cargo-ndk + tauri-cli
-        uses: cargo-bins/cargo-binstall@8aac5aa2bf0dfaa2863eccad9f43c68fe40e5ec8 # main
+        uses: cargo-bins/cargo-binstall@main
       - run: cargo binstall -y cargo-ndk tauri-cli
 
       - name: Install dependencies
@@ -105,7 +105,7 @@ jobs:
       # workflow_dispatch (no tag): keep the APK as a run artifact for manual test.
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: ${{ steps.apk.outputs.path }}
@@ -113,7 +113,7 @@ jobs:
       # tag push: publish a GitHub PRERELEASE (never marked latest).
       - name: Publish prerelease
         if: startsWith(github.ref, 'refs/tags/android-v')
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: 'Rillio Android TV ${{ github.ref_name }}'
