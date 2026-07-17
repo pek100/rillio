@@ -1,68 +1,98 @@
 // Copyright (C) 2017-2026 Smart code 203358507
 
 /**
- * Local-account Sync modal, opened from the account menu via a window event
- * (OPEN_SYNC_EVENT). Ported onto the kit Dialog / Input / Button; every sync flow is
- * preserved verbatim. Three jobs, no server of our own:
- *   Backup & restore - export the whole local account as one compact code (+ a QR
- *     when it fits) and restore from a pasted code.
- *   Import from Stremio - a one-time sign-in (email, Facebook, or Apple, the same
- *     options Stremio offers) that pulls the Stremio library + add-ons into the
- *     local store, then drops the connection (kept anonymous, local).
- *   Upload to Stremio - the reverse: a one-time sign-in that pushes this device's
- *     library + add-ons to the Stremio account (common/stremioUpload talks to the
- *     Stremio API directly with a temporary session; local data stays untouched).
+ * Sync modal, opened from the account menu via a window event (OPEN_SYNC_EVENT).
+ * Two tabs, no server of our own:
+ *   Backup & restore - export the whole local account as one compact code (+ a
+ *     QR when it fits) and restore from a pasted code.
+ *   Stremio - a PERSISTENT connection to a Stremio account. Connecting signs in
+ *     and the core MERGES the account with the local data (settings kept, local
+ *     library/add-ons kept and pushed up - update_profile.rs / update_library.rs
+ *     CtxAuthResult); the app then stays connected and autosyncs both ways
+ *     (common/useStremioSync). Disconnect (Ctx.Disconnect) closes the session
+ *     but keeps everything on the device. The old one-shot Import (sign in,
+ *     pull, drop auth) and Upload (temporary session, push, sign out) are gone:
+ *     both are subsumed by connect + two-way sync.
  *
- * The kit Dialog owns Escape / outside-click / focus-trap; both route through the
- * busy-aware `close` (via onOpenChange) so a Stremio login in flight keeps its
- * listeners attached and can never leave the app silently signed in.
+ * Trust, verified: a Differences panel diffs the local buckets against the
+ * server (common/stremioApi, read-only) so a sync is PROVABLE - before: what
+ * will move; after: both sides converged. A Recent-activity list shows what the
+ * core actually did (common/syncActivity).
  */
 
 import React from 'react';
-import { X, Check, Link } from 'lucide-react';
+import { X, Check, Link, RefreshCw } from 'lucide-react';
 import { Apple, Facebook } from 'rillio/components/ui/brand-icons';
 import { useCore } from 'rillio/core';
 import { cn, Dialog, DialogContent, DialogTitle, Button, IconButton, Input } from 'rillio/components/ui';
 import useToast from 'rillio/common/Toast/useToast';
-import { setDisplayName } from 'rillio/common/useDisplayName';
 import { OPEN_SYNC_EVENT } from 'rillio/common/syncEvents';
-import { exportLocalData, importLocalData, anonymizeBucket } from 'rillio/common/localData';
-import { uploadToStremio, type UploadAuth, type UploadResult } from 'rillio/common/stremioUpload';
+import { exportLocalData, importLocalData } from 'rillio/common/localData';
+import { computeSyncDiff, diffIsClean, type SyncDiff } from 'rillio/common/stremioApi';
+import { readSyncLog, onSyncActivity, logSync, type SyncLogEntry } from 'rillio/common/syncActivity';
 import { makeQrSvg } from 'rillio/common/qr';
-import useFacebookLogin from 'rillio/routes/Intro/useFacebookLogin';
-import useAppleLogin from 'rillio/routes/Intro/useAppleLogin';
+import useFacebookLogin from 'rillio/common/useFacebookLogin';
+import useAppleLogin from 'rillio/common/useAppleLogin';
 
-// Buckets pulled from Stremio that carry an owner id; rewritten to anonymous.
-const OWNED_BUCKETS = ['library', 'library_recent', 'notifications', 'calendar', 'streams', 'search_history'];
+const useProfile = require('rillio/common/useProfile');
 
-// UserAuthenticated only means the core pulled the profile + library into memory;
-// the writes to storage are async effects that complete with these events
-// (crates/core/src/models/ctx/update_profile.rs and update_library.rs). Both
-// always fire after a successful login (auth and the library owner change), so
-// wait for them instead of guessing with a timer.
+// UserAuthenticated only means the core pulled + merged the profile + library in
+// memory; the writes to storage are async effects that complete with these
+// events (update_profile.rs / update_library.rs). Both always fire after a
+// successful login, so wait for them instead of guessing with a timer.
 const PERSIST_EVENTS = ['ProfilePushedToStorage', 'LibraryItemsPushedToStorage'];
-// Generous ceiling for those storage writes; hitting it is an error, not a signal
-// to proceed.
+// Generous ceiling for those storage writes; hitting it is an error, not a
+// signal to proceed.
 const PERSIST_TIMEOUT_MS = 30000;
 
 const LABEL = 'text-[11px] font-semibold uppercase tracking-wider text-fg-subtle';
 const HINT = 'mt-1.5 mb-3 text-sm leading-snug text-fg-muted';
 
 type Tab = 'backup' | 'stremio';
-// Which way the Stremio tab moves data. Import and Upload used to be two tabs
-// carrying two copies of the same sign-in form; they need the SAME credentials,
-// so the sign-in is shared now and this only picks what it does afterwards.
-type Direction = 'import' | 'upload';
+
+const formatTs = (ts: number): string => {
+    const d = new Date(ts);
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return sameDay ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`;
+};
+
+// A capped list of diff rows ("name" or the raw id), with an "and N more" tail.
+const DiffList = ({ entries, tone }: { entries: { id?: string, transportUrl?: string, name: string | null, removed?: boolean }[], tone: string }) => {
+    const MAX_ROWS = 6;
+    const shown = entries.slice(0, MAX_ROWS);
+    return (
+        <div className="mb-2">
+            {shown.map((entry, i) => (
+                <div key={i} className="flex items-center gap-2 py-0.5 text-[0.82rem] text-fg-muted">
+                    <span className={cn('size-1.5 shrink-0 rounded-full', tone)} />
+                    <span className="min-w-0 flex-1 truncate">{entry.name || entry.id || entry.transportUrl}</span>
+                    {entry.removed ? <span className="shrink-0 text-[0.72rem] uppercase tracking-wide text-fg-subtle">removal</span> : null}
+                </div>
+            ))}
+            {entries.length > MAX_ROWS ?
+                <div className="py-0.5 pl-3.5 text-[0.78rem] text-fg-subtle">and {entries.length - MAX_ROWS} more</div>
+                : null}
+        </div>
+    );
+};
 
 const SyncModal = () => {
     const core = useCore();
     const toast = useToast();
+    const profile = useProfile();
     const [startFacebookLogin] = useFacebookLogin();
     const [startAppleLogin] = useAppleLogin();
 
+    // Loose null checks: before the first core state lands profile.auth can be
+    // undefined, and that must read as "not connected", never as a crash.
+    const connected = profile.auth != null;
+    const authKey: string | null = (profile.auth as any)?.key ?? null;
+    const accountEmail: string | null = (profile.auth as any)?.user?.email ?? null;
+
     const [open, setOpen] = React.useState(false);
     const [tab, setTab] = React.useState<Tab>('backup');
-    const [direction, setDirection] = React.useState<Direction>('import');
 
     const [code, setCode] = React.useState('');
     const [exportError, setExportError] = React.useState<string | null>(null);
@@ -75,11 +105,11 @@ const SyncModal = () => {
     const [error, setError] = React.useState<string | null>(null);
     const detachRef = React.useRef<(() => void) | null>(null);
 
-    // Upload to Stremio: `uploadStage` doubles as the in-flight flag and the
-    // progress label on the confirm button.
-    const [uploadStage, setUploadStage] = React.useState<string | null>(null);
-    const uploadStageRef = React.useRef<string | null>(null);
-    React.useEffect(() => { uploadStageRef.current = uploadStage; }, [uploadStage]);
+    const [syncing, setSyncing] = React.useState(false);
+    const [diff, setDiff] = React.useState<SyncDiff | null>(null);
+    const [diffBusy, setDiffBusy] = React.useState(false);
+    const [diffError, setDiffError] = React.useState<string | null>(null);
+    const [activity, setActivity] = React.useState<SyncLogEntry[]>([]);
 
     // Mirrors for the auth listeners, which outlive renders (and, mid-login, the
     // modal itself).
@@ -89,11 +119,9 @@ const SyncModal = () => {
     React.useEffect(() => { busyRef.current = busy; }, [busy]);
 
     const close = React.useCallback(() => {
-        // While a Stremio login is in flight, keep its listeners attached: if
-        // UserAuthenticated fires after the modal is gone, the same
-        // anonymize-and-reload cleanup still runs, so the app can never be left
-        // silently signed in to Stremio. `busy` stays on so reopening shows the
-        // in-flight state.
+        // While a connect is in flight, keep its listeners attached: the
+        // post-connect sync dispatches and the outcome toast still run if
+        // UserAuthenticated arrives after the modal is gone.
         if (!busyRef.current) {
             if (detachRef.current) { detachRef.current(); detachRef.current = null; }
             setBusy(false);
@@ -106,7 +134,6 @@ const SyncModal = () => {
             const detail = (event as CustomEvent).detail;
             const requested = detail ? detail.tab : null;
             setTab(requested === 'stremio' ? 'stremio' : 'backup');
-            setDirection('import');
             setError(null);
             setRestoreDraft('');
             try {
@@ -140,27 +167,37 @@ const SyncModal = () => {
         setTimeout(() => window.location.reload(), 400);
     }, [restoreDraft, toast]);
 
-    // After a Stremio sign-in the core has pulled + persisted the library/add-ons.
-    // Rewrite the buckets to anonymous, drop auth locally (without the server-side
-    // logout, so the real Stremio session stays alive), name the guest from the
-    // email, then reload so the core boots anonymous with everything intact.
-    const finishStremioImport = React.useCallback(() => {
-        OWNED_BUCKETS.forEach(anonymizeBucket);
-        let userEmail = null;
-        try {
-            const raw = window.localStorage.getItem('profile');
-            if (raw) {
-                const profile = JSON.parse(raw);
-                userEmail = profile && profile.auth && profile.auth.user ? profile.auth.user.email : null;
-                if (profile && 'auth' in profile) {
-                    profile.auth = null;
-                    window.localStorage.setItem('profile', JSON.stringify(profile));
-                }
-            }
-        } catch { /* leave profile as-is */ }
-        if (userEmail && userEmail.indexOf('@') > 0) setDisplayName(userEmail.split('@')[0]);
-        window.location.reload();
-    }, []);
+    // ---- Differences panel ----------------------------------------------
+
+    const refreshDiff = React.useCallback(() => {
+        if (!authKey) return;
+        setDiffBusy(true);
+        setDiffError(null);
+        computeSyncDiff(authKey)
+            .then((next) => setDiff(next))
+            .catch((e: Error) => setDiffError((e && e.message) || 'Could not compare with the account.'))
+            .finally(() => setDiffBusy(false));
+    }, [authKey]);
+
+    // Compute on opening the connected Stremio tab, and re-compute shortly
+    // after sync activity settles - the "after" half of before/after.
+    React.useEffect(() => {
+        if (!open || tab !== 'stremio' || !connected) return;
+        refreshDiff();
+        setActivity(readSyncLog());
+        let debounce: ReturnType<typeof setTimeout> | null = null;
+        const unsubscribe = onSyncActivity(() => {
+            setActivity(readSyncLog());
+            if (debounce !== null) clearTimeout(debounce);
+            debounce = setTimeout(() => { refreshDiff(); setSyncing(false); }, 1500);
+        });
+        return () => {
+            unsubscribe();
+            if (debounce !== null) clearTimeout(debounce);
+        };
+    }, [open, tab, connected, refreshDiff]);
+
+    // ---- Connect (persistent session; the core merges local + account) ----
 
     const attachAuth = React.useCallback(() => {
         const pending = new Set(PERSIST_EVENTS);
@@ -176,16 +213,15 @@ const SyncModal = () => {
             detach();
             setBusy(false);
             setError(message);
-            // The modal may have been closed mid-login; make the failure visible.
             if (!openRef.current) {
-                toast.show({ type: 'error', title: 'Stremio import failed', message, timeout: 6000 });
+                toast.show({ type: 'error', title: 'Stremio connect failed', message, timeout: 6000 });
             }
         };
         const onEvent = (name: string) => {
             if (name === 'UserAuthenticated') {
                 authenticated = true;
                 timeoutId = setTimeout(() => {
-                    fail('Signed in, but saving the imported data locally did not finish. Nothing was switched over, please try again.');
+                    fail('Signed in, but saving the merged data locally did not finish. Please try again.');
                 }, PERSIST_TIMEOUT_MS);
                 return;
             }
@@ -193,8 +229,20 @@ const SyncModal = () => {
                 pending.delete(name);
                 if (pending.size === 0) {
                     detach();
-                    toast.show({ type: 'success', title: 'Imported from Stremio', message: 'Reloading…', timeout: 2500 });
-                    finishStremioImport();
+                    setBusy(false);
+                    setPassword('');
+                    // Push the merged-in local add-ons (union from
+                    // CtxAuthResult). The library sync is NOT dispatched here:
+                    // useStremioSync fires a full guarded run when `connected`
+                    // flips true - dispatching it here too double-pushed on
+                    // connect ("Sent 20 library items" twice in the log).
+                    core.transport.dispatch({ action: 'Ctx', args: { action: 'PushAddonsToAPI' } });
+                    toast.show({
+                        type: 'success',
+                        title: 'Stremio sync connected',
+                        message: 'Your data stays on this device and now also syncs via Stremio. Disconnect anytime.',
+                        timeout: 6000,
+                    });
                 }
             }
         };
@@ -204,15 +252,15 @@ const SyncModal = () => {
             if (event === 'UserAuthenticated') {
                 fail(message || 'Sign-in failed. Check your details and try again.');
             } else if (authenticated && PERSIST_EVENTS.indexOf(event) !== -1) {
-                fail(message ? `Could not save the imported data: ${message}` : 'Could not save the imported data.');
+                fail(message ? `Could not save the merged data: ${message}` : 'Could not save the merged data.');
             }
         };
         core.on('event', onEvent);
         core.on('error', onError);
         detachRef.current = detach;
-    }, [core, toast, finishStremioImport]);
+    }, [core, toast]);
 
-    const importWithEmail = React.useCallback(() => {
+    const connectWithEmail = React.useCallback(() => {
         if (busy) return;
         if (!email || !password) { setError('Enter your Stremio email and password.'); return; }
         setError(null); setBusy(true);
@@ -220,7 +268,7 @@ const SyncModal = () => {
         core.transport.dispatch({ action: 'Ctx', args: { action: 'Authenticate', args: { type: 'Login', email, password } } });
     }, [busy, email, password, attachAuth, core]);
 
-    const importWithFacebook = React.useCallback(() => {
+    const connectWithFacebook = React.useCallback(() => {
         if (busy) return;
         setError(null); setBusy(true);
         attachAuth();
@@ -235,7 +283,7 @@ const SyncModal = () => {
             });
     }, [busy, attachAuth, startFacebookLogin, core]);
 
-    const importWithApple = React.useCallback(() => {
+    const connectWithApple = React.useCallback(() => {
         if (busy) return;
         setError(null); setBusy(true);
         attachAuth();
@@ -250,83 +298,35 @@ const SyncModal = () => {
             });
     }, [busy, attachAuth, startAppleLogin, core]);
 
-    // Run the whole upload (common/stremioUpload): sign in with a temporary
-    // session, push this device's library + add-ons to the account, sign out.
-    // Local data is never modified, so no reload is needed. The promise outlives
-    // the modal; if it was closed mid-upload, the outcome surfaces as a toast.
-    const runUpload = React.useCallback((auth: UploadAuth) => {
-        setError(null);
-        setUploadStage('Starting…');
-        uploadToStremio(auth, (stage: string) => setUploadStage(stage))
-            .then(({ itemsPushed, addonsAdded, removalsPushed }: UploadResult) => {
-                setUploadStage(null);
-                // Count what will actually be VISIBLE on the account. Most of a typical
-                // library is `removed: true` - things taken out, plus the "temp"
-                // continue-watching entries never explicitly added. Those sync as
-                // tombstones and then appear nowhere, so reporting them as "library
-                // items sent" reads as a lie: the account looks unchanged. Say the
-                // visible number, and mention the removals as what they are.
-                const added = itemsPushed - removalsPushed;
-                const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-                const parts: string[] = [];
-                if (added > 0) parts.push(plural(added, 'library item'));
-                if (addonsAdded > 0) parts.push(plural(addonsAdded, 'add-on'));
-                const message = parts.length === 0 ?
-                    (removalsPushed > 0 ?
-                        `Your account was already up to date; synced ${plural(removalsPushed, 'removal')}.` :
-                        'Your Stremio account already has everything on this device.') :
-                    `Sent ${parts.join(' and ')} to your account.` +
-                        (removalsPushed > 0 ? ` (${plural(removalsPushed, 'removal')} also synced.)` : '');
-                toast.show({ type: 'success', title: 'Uploaded to Stremio', message, timeout: 6000 });
-            })
-            .catch((e: Error) => {
-                setUploadStage(null);
-                const message = (e && e.message) || 'Upload failed. Please try again.';
-                setError(message);
-                if (!openRef.current) {
-                    toast.show({ type: 'error', title: 'Stremio upload failed', message, timeout: 6000 });
-                }
+    // ---- Connected actions ------------------------------------------------
+
+    const syncNow = React.useCallback(() => {
+        if (syncing) return;
+        setSyncing(true);
+        logSync('manual', 'Sync started (manual)');
+        core.transport.dispatch({ action: 'Ctx', args: { action: 'SyncLibraryWithAPI' } });
+        core.transport.dispatch({ action: 'Ctx', args: { action: 'PullAddonsFromAPI' } });
+        core.transport.dispatch({ action: 'Ctx', args: { action: 'PullUserFromAPI', args: {} } });
+        // The activity subscription clears `syncing` and refreshes the diff
+        // when the resulting events settle; this is only a stuck-guard.
+        setTimeout(() => setSyncing(false), 8000);
+    }, [syncing, core]);
+
+    const disconnect = React.useCallback(() => {
+        const onEvent = (name: string) => {
+            if (name !== 'SessionDisconnected') return;
+            core.off('event', onEvent);
+            toast.show({
+                type: 'success',
+                title: 'Disconnected from Stremio',
+                message: 'Everything synced stays saved on this device.',
+                timeout: 5000,
             });
-    }, [toast]);
-
-    const uploadWithEmail = React.useCallback(() => {
-        if (uploadStage !== null) return;
-        if (!email || !password) { setError('Enter your Stremio email and password.'); return; }
-        runUpload({ type: 'Login', email, password });
-    }, [uploadStage, email, password, runUpload]);
-
-    const uploadWithFacebook = React.useCallback(() => {
-        if (uploadStage !== null) return;
-        setError(null);
-        setUploadStage('Waiting for Facebook…');
-        startFacebookLogin()
-            .then(({ email: fbEmail, password: fbPassword }: { email: string, password: string }) => {
-                runUpload({ type: 'Login', email: fbEmail, password: fbPassword, facebook: true });
-            })
-            .catch((e: Error) => {
-                setUploadStage(null);
-                if (e && e.message) setError(e.message);
-            });
-    }, [uploadStage, startFacebookLogin, runUpload]);
-
-    const uploadWithApple = React.useCallback(() => {
-        if (uploadStage !== null) return;
-        setError(null);
-        setUploadStage('Waiting for Apple…');
-        startAppleLogin()
-            .then(({ token, sub, email: appleEmail, name }) => {
-                runUpload({ type: 'Apple', token, sub, email: appleEmail, name });
-            })
-            .catch((e) => {
-                setUploadStage(null);
-                if (e && e.message) setError(e.message);
-            });
-    }, [uploadStage, startAppleLogin, runUpload]);
-
-    // Either flow being in flight locks the whole shared form.
-    const inFlight = busy || uploadStage !== null;
-
-    const submitWithEmail = direction === 'import' ? importWithEmail : uploadWithEmail;
+        };
+        core.on('event', onEvent);
+        core.transport.dispatch({ action: 'Ctx', args: { action: 'Disconnect' } });
+        setDiff(null);
+    }, [core, toast]);
 
     if (!open) return null;
 
@@ -342,31 +342,20 @@ const SyncModal = () => {
 
     const tabBtn = (id: Tab, label: string) => pillBtn(tab === id, label, () => { setError(null); setTab(id); });
 
-    // Switching direction mid-flight would leave the in-flight flow's label on the
-    // other direction's button, so it is locked while either is running.
-    const directionBtn = (id: Direction, label: string) => pillBtn(
-        direction === id,
-        label,
-        () => { if (!inFlight) { setError(null); setDirection(id); } },
-    );
+    const diffSummary = diff === null ? null : diffIsClean(diff) ?
+        'Everything is in sync.' :
+        [
+            diff.toPush.length > 0 ? `${diff.toPush.length} to send` : null,
+            diff.toPull.length > 0 ? `${diff.toPull.length} to fetch` : null,
+            diff.addonsLocalOnly.length > 0 ? `${diff.addonsLocalOnly.length} add-on${diff.addonsLocalOnly.length === 1 ? '' : 's'} to send` : null,
+            diff.addonsServerOnly.length > 0 ? `${diff.addonsServerOnly.length} add-on${diff.addonsServerOnly.length === 1 ? '' : 's'} to fetch` : null,
+        ].filter(Boolean).join(', ');
 
     return (
         <Dialog open onOpenChange={(next) => { if (!next) close(); }}>
-            {/* No bg / radius overrides: DialogContent already paints the house panel
-                (panel-tint + bg-card + border-line + rounded-squircle + shadow). This
-                used to pass `bg-surface rounded-[22px]`, and since cn() is twMerge those
-                REPLACED the panel with the 5%-white lift meant for cards on the page -
-                translucent over the scrim, so the blurred backdrop showed straight
-                through the panel and its buttons. rounded-[22px] was --radius-squircle
-                spelled out by hand. Only p-0 stays: the header and bodies own theirs.
-
-                The BODY scrolls, not the panel - same shape as the Cached modal. A
-                sticky header inside a scrolling panel needs an opaque fill of its own to
-                hide rows passing under it, and that fill paints over --panel-gradient
-                exactly where the gradient is strongest (it spans 24rem from the panel's
-                top), leaving a flat black band across the head of the modal. Taking the
-                header out of the scroller means it needs no fill at all, so the panel's
-                own gradient runs behind it, unbroken. */}
+            {/* Panel styling notes preserved from the previous revision: DialogContent
+                paints the house panel; only p-0 here, the bodies own their padding;
+                the BODY scrolls, not the panel, so the header needs no fill. */}
             <DialogContent
                 showClose={false}
                 className="flex max-h-[85dvh] w-full max-w-md flex-col gap-0 overflow-hidden p-0"
@@ -415,55 +404,98 @@ const SyncModal = () => {
                                 <Button variant="ghost" className="w-full bg-surface-hover text-fg hover:brightness-110" onClick={restore}>Restore</Button>
                             </div>
                             :
-                            <div className="flex flex-col px-5 pb-6 pt-1">
-                                {/* One sign-in, two directions. Both flows need the same
-                                Stremio credentials, so the form (and the Facebook /
-                                Apple buttons, which have to know which way to go before
-                                they open their popup) is shared and this picks what the
-                                sign-in does. */}
-                                <div className={LABEL}>Stremio</div>
-                                <div className={HINT}>Move your library and add-ons between this device and a Stremio account. Sign in once; we never stay connected.</div>
+                            connected ?
+                                <div className="flex flex-col px-5 pb-6 pt-1">
+                                    <div className={LABEL}>Stremio sync service</div>
+                                    <div className={HINT}>
+                                        Syncing via <span className="text-fg">{accountEmail}</span>. Your data always
+                                        lives on this device; Stremio keeps your library and add-ons in sync across
+                                        your devices, both ways. Disconnect anytime - everything stays saved here.
+                                    </div>
 
-                                <div className="mb-4 inline-flex gap-1 self-start rounded-full bg-surface-hover p-1">
-                                    {directionBtn('import', 'Import')}
-                                    {directionBtn('upload', 'Upload')}
-                                </div>
+                                    <div className="flex gap-2.5">
+                                        <Button className={cn('flex-1', syncing && 'pointer-events-none opacity-70')} onClick={syncNow}>
+                                            {syncing ? 'Syncing…' : 'Sync now'}
+                                        </Button>
+                                        <Button variant="ghost" className="flex-1 bg-surface-hover text-fg hover:brightness-110" onClick={disconnect}>
+                                            Disconnect
+                                        </Button>
+                                    </div>
 
-                                <div className={cn(HINT, 'mt-0')}>
+                                    <div className="my-5 h-px bg-line" />
+
+                                    <div className="flex items-center justify-between">
+                                        <div className={LABEL}>Differences</div>
+                                        <IconButton size="sm" title="Compare with the account again" onClick={refreshDiff}>
+                                            <RefreshCw className={cn('size-3.5', diffBusy && 'animate-spin')} />
+                                        </IconButton>
+                                    </div>
                                     {
-                                        direction === 'import' ?
-                                            'Pulls your Stremio library and add-ons into Rillio and stores them locally. Your Stremio session is untouched.'
+                                        diffError ?
+                                            <div className="mb-2 rounded-lg bg-danger/10 px-3 py-2 text-[0.82rem] text-danger">{diffError}</div>
                                             :
-                                            'Pushes this device’s library and add-ons to your Stremio account, then signs out. Nothing on the account is removed, newer account data is kept, and your local data stays untouched.'
+                                            diff === null ?
+                                                <div className={HINT}>Comparing this device with the account…</div>
+                                                :
+                                                <>
+                                                    <div className={cn(HINT, 'mb-2')}>
+                                                        {diffSummary} <span className="text-fg-subtle">({diff.localItems} items here, {diff.serverItems} on the account)</span>
+                                                    </div>
+                                                    {diff.toPush.length > 0 ? <DiffList entries={diff.toPush} tone="bg-accent" /> : null}
+                                                    {diff.toPull.length > 0 ? <DiffList entries={diff.toPull} tone="bg-fg-subtle" /> : null}
+                                                    {diff.addonsLocalOnly.length > 0 ? <DiffList entries={diff.addonsLocalOnly} tone="bg-accent" /> : null}
+                                                    {diff.addonsServerOnly.length > 0 ? <DiffList entries={diff.addonsServerOnly} tone="bg-fg-subtle" /> : null}
+                                                </>
+                                    }
+
+                                    <div className="my-5 h-px bg-line" />
+
+                                    <div className={LABEL}>Recent activity</div>
+                                    {
+                                        activity.length === 0 ?
+                                            <div className={HINT}>No sync activity yet.</div>
+                                            :
+                                            <div className="mt-1.5 max-h-44 divide-y divide-line overflow-y-auto">
+                                                {activity.slice(0, 30).map((entry, i) => (
+                                                    <div key={i} className="flex items-baseline gap-2.5 py-1.5">
+                                                        <span className="shrink-0 font-mono text-[0.72rem] text-fg-subtle">{formatTs(entry.ts)}</span>
+                                                        <span className={cn('min-w-0 flex-1 text-[0.82rem] leading-snug', entry.error ? 'text-danger' : 'text-fg-muted')}>{entry.message}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                     }
                                 </div>
+                                :
+                                <div className="flex flex-col px-5 pb-6 pt-1">
+                                    <div className={LABEL}>Stremio sync service</div>
+                                    <div className={HINT}>
+                                        Your account is local: everything lives on this device, no servers needed.
+                                        Optionally, connect a Stremio account as a sync service - your library and
+                                        add-ons then stay in sync across your devices, both ways. Disconnect anytime;
+                                        everything synced stays saved here.
+                                    </div>
 
-                                <Input className="mb-2.5" type="email" placeholder="Stremio email" value={email} autoComplete="off" disabled={inFlight} onChange={(e) => setEmail(e.target.value)} />
-                                <Input className="mb-3" type="password" placeholder="Stremio password" value={password} disabled={inFlight} onChange={(e) => setPassword(e.target.value)} onSubmit={submitWithEmail} />
-                                <Button className={cn('w-full', inFlight && 'pointer-events-none opacity-70')} onClick={submitWithEmail}>
-                                    {
-                                        direction === 'import' ?
-                                            (busy ? 'Importing…' : 'Import my data')
-                                            :
-                                            (uploadStage !== null ? uploadStage : 'Upload my data')
-                                    }
-                                </Button>
-
-                                <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-fg-subtle">
-                                    <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
-                                </div>
-
-                                <div className="flex flex-col gap-2.5">
-                                    <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithFacebook : uploadWithFacebook}>
-                                        <Facebook className="size-4" />
-                                        Continue with Facebook
+                                    <Input className="mb-2.5" type="email" placeholder="Stremio email" value={email} autoComplete="off" disabled={busy} onChange={(e) => setEmail(e.target.value)} />
+                                    <Input className="mb-3" type="password" placeholder="Stremio password" value={password} disabled={busy} onChange={(e) => setPassword(e.target.value)} onSubmit={connectWithEmail} />
+                                    <Button className={cn('w-full', busy && 'pointer-events-none opacity-70')} onClick={connectWithEmail}>
+                                        {busy ? 'Connecting…' : 'Connect'}
                                     </Button>
-                                    <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', inFlight && 'pointer-events-none opacity-50')} onClick={direction === 'import' ? importWithApple : uploadWithApple}>
-                                        <Apple className="size-4" />
-                                        Continue with Apple
-                                    </Button>
+
+                                    <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-fg-subtle">
+                                        <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
+                                    </div>
+
+                                    <div className="flex flex-col gap-2.5">
+                                        <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', busy && 'pointer-events-none opacity-50')} onClick={connectWithFacebook}>
+                                            <Facebook className="size-4" />
+                                            Continue with Facebook
+                                        </Button>
+                                        <Button variant="ghost" className={cn('w-full bg-surface-hover text-fg hover:brightness-110', busy && 'pointer-events-none opacity-50')} onClick={connectWithApple}>
+                                            <Apple className="size-4" />
+                                            Continue with Apple
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
                     }
                 </div>
             </DialogContent>

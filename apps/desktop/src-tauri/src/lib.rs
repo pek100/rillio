@@ -9,6 +9,8 @@ pub mod platform;
 mod shell;
 mod surface;
 mod thumbs;
+#[cfg(desktop)]
+mod update_window;
 
 use std::sync::Mutex;
 
@@ -269,6 +271,22 @@ pub fn run() {
     // capability rather than `#cfg` so the seam is one readable switch; on
     // Windows the cap is true and this runs exactly as before.
     let ctx = tauri::generate_context!();
+
+    // The detached update-window process mode (docs/update-window): a minimal
+    // one-window app that shows update.html while the real update runs. It must
+    // branch BEFORE the stale-cache sweep below - that sweep touches the MAIN
+    // app's WebView2 profile, which is alive and in use when this spawns.
+    #[cfg(desktop)]
+    if std::env::args().any(|arg| arg == "--update-window") {
+        update_window::run(ctx);
+        return;
+    }
+    // Normal launch: remove any update progress file. During an update this is
+    // the "new version is up" signal the update window waits for; any other
+    // leftover is stale.
+    #[cfg(desktop)]
+    let _ = std::fs::remove_file(update_window::progress_path());
+
     if platform::PlatformCaps::current().webview2_cache {
         clear_stale_webview_cache(
             ctx.config().identifier.clone(),
@@ -666,11 +684,31 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "no update available".to_string())?;
 
+    // The custom update window (docs/update-window): a detached process that
+    // shows the liquid progress page through download AND install (this process
+    // exits at install handoff, so an in-process window could not). The main
+    // window hides immediately - the small window IS the update experience.
+    // Presentation only: if the splash fails to spawn, the update proceeds and
+    // the in-app overlay (still fed by `update-progress` below) covers it.
+    update_window::write_progress(&update_window::UpdateProgress {
+        phase: "downloading".into(),
+        downloaded: 0,
+        total: 0,
+        message: None,
+    });
+    update_window::spawn_update_window();
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+
     // Stream download progress to the web UI's updating overlay
-    // (apps/web App/UpdatingOverlay); `content_len` is the total size when known.
+    // (apps/web App/UpdatingOverlay) and to the update window's progress file
+    // (throttled; the file poller runs at 150ms). `content_len` is the total
+    // size when known.
     let app_cb = app.clone();
     let mut downloaded: u64 = 0;
-    let bytes = update
+    let mut last_file_write = std::time::Instant::now() - std::time::Duration::from_secs(1);
+    let download_result = update
         .download(
             move |chunk_len, content_len| {
                 downloaded += chunk_len as u64;
@@ -678,11 +716,44 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
                     "update-progress",
                     serde_json::json!({ "downloaded": downloaded, "total": content_len }),
                 );
+                if last_file_write.elapsed() >= std::time::Duration::from_millis(100) {
+                    last_file_write = std::time::Instant::now();
+                    update_window::write_progress(&update_window::UpdateProgress {
+                        phase: "downloading".into(),
+                        downloaded,
+                        total: content_len.unwrap_or(0),
+                        message: None,
+                    });
+                }
             },
             || {},
         )
-        .await
-        .map_err(|e| e.to_string())?;
+        .await;
+    let bytes = match download_result {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            // Failed download: tell the update window (it shows the error and
+            // exits), bring the main window back, and surface the error to the
+            // web UI's toast as before.
+            update_window::write_progress(&update_window::UpdateProgress {
+                phase: "error".into(),
+                downloaded: 0,
+                total: 0,
+                message: Some(e.to_string()),
+            });
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+            return Err(e.to_string());
+        }
+    };
+    update_window::write_progress(&update_window::UpdateProgress {
+        phase: "installing".into(),
+        downloaded: 0,
+        total: 0,
+        message: None,
+    });
 
     // From here on the webview goes away, so this command's JS response will
     // never be delivered - that's fine, the next thing the user sees is the
@@ -708,12 +779,20 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     // Hands off to the installer and exits this process, so this normally
-    // never returns.
+    // never returns. NSIS runs QUIET (installMode in tauri.conf.json): the
+    // update window is the only thing on screen through the install.
     if let Err(e) = update.install(bytes) {
         // The webview is already gone: without a relaunch this process would be
-        // a headless zombie. Restart the (still old) app; the update toast will
-        // re-offer the update on the next launch.
+        // a headless zombie. Tell the update window, then restart the (still
+        // old) app; the update toast will re-offer the update on next launch
+        // (whose boot also deletes the progress file).
         tracing::error!("update: install failed, relaunching the current version: {e}");
+        update_window::write_progress(&update_window::UpdateProgress {
+            phase: "error".into(),
+            downloaded: 0,
+            total: 0,
+            message: Some(format!("Install failed: {e}")),
+        });
         app.restart();
     }
     Ok(())

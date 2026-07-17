@@ -1,9 +1,8 @@
 // Copyright (C) 2017-2025 Smart code 203358507
 
 import React from 'react';
-import { Routes as RRoutes, Route as RRoute, useLocation, useNavigate, matchPath } from 'react-router';
+import { Routes as RRoutes, Route as RRoute, useLocation, matchPath } from 'react-router';
 import type { Location } from 'react-router';
-import { useProfile } from 'rillio/common';
 import routerPaths from './routerPaths';
 import Route from './Route';
 
@@ -45,27 +44,10 @@ const getNextViews = (currentViews: (CachedView | null)[], location: Location) =
 
 const Routes = () => {
     const location = useLocation();
-    const navigate = useNavigate();
-    const profile = useProfile();
-    const previousAuthRef = React.useRef(profile.auth);
     const [views, setViews] = React.useState<(CachedView | null)[]>(() => getNextViews([], location));
-
-    /**
-     * Replaced onRouteChange with following useEffect:
-     */
-    React.useEffect(() => {
-        // Handle redirect if user logs out
-        if (previousAuthRef.current !== null && profile.auth === null) {
-            previousAuthRef.current = profile.auth;
-            navigate('/intro', { replace: true });
-        }
-
-        // Handle redirect if user is logged in on intro screen
-        if (profile.auth !== null && location.pathname === '/intro') {
-            navigate('/', { replace: true });
-        }
-        previousAuthRef.current = profile.auth;
-    }, [location.pathname, profile.auth]);
+    // (No auth-driven redirects: the /intro signup surface is gone - the app is
+    // local-first, and connecting Stremio as a sync service lives in the Sync
+    // modal, which never navigates.)
 
     React.useLayoutEffect(() => {
         setViews((currentViews) => getNextViews(currentViews, location));

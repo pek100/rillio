@@ -40,6 +40,19 @@ pub struct ShellState(Mutex<Option<NativePlayer>>);
 #[cfg(target_os = "android")]
 static ANDROID_PLAYER: Mutex<Option<std::sync::Weak<Controller>>> = Mutex::new(None);
 
+/// Whether the main window was maximized when it last entered fullscreen.
+///
+/// tao's undecorated-window `WM_NCCALCSIZE` handler insets the client area while
+/// a borderless window is maximized (so a maximized frameless window keeps the
+/// taskbar edge reachable and does not spill off the monitor). Entering
+/// fullscreen with `WS_MAXIMIZE` still set carries that inset into fullscreen, so
+/// the video + overlays stop at the taskbar edge while the frame reaches the full
+/// monitor (tao#1087, tauri#11788). We unmaximize before going fullscreen and
+/// restore the maximized state on exit; this remembers it across the toggle.
+#[cfg(desktop)]
+static WAS_MAXIMIZED_BEFORE_FS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 /// Android JNI-callback entry point (called from `surface::android` on
 /// surfaceCreated): attach the current video Surface to the live player, if any.
 /// No-op before the player exists - `ensure` attaches the stored surface then.
@@ -1191,8 +1204,33 @@ pub fn shell_send(
             // its echo below either way.
             #[cfg(desktop)]
             if let Some(window) = app.get_webview_window("main") {
-                if let Err(e) = window.set_fullscreen(fullscreen) {
-                    tracing::warn!("shell: set_fullscreen({fullscreen}) failed: {e}");
+                use std::sync::atomic::Ordering;
+                if fullscreen {
+                    // Drop maximize BEFORE going fullscreen so tao's maximized
+                    // client-area inset (which reserves the taskbar edge on a
+                    // borderless window) does not ride into fullscreen and leave
+                    // the video/overlays short of the taskbar (see
+                    // WAS_MAXIMIZED_BEFORE_FS). Skip the capture if already
+                    // fullscreen so a repeated toggle can't forget the state.
+                    if !window.is_fullscreen().unwrap_or(false) {
+                        let was_max = window.is_maximized().unwrap_or(false);
+                        WAS_MAXIMIZED_BEFORE_FS.store(was_max, Ordering::Relaxed);
+                        if was_max {
+                            let _ = window.unmaximize();
+                        }
+                    }
+                    if let Err(e) = window.set_fullscreen(true) {
+                        tracing::warn!("shell: set_fullscreen(true) failed: {e}");
+                    }
+                } else {
+                    if let Err(e) = window.set_fullscreen(false) {
+                        tracing::warn!("shell: set_fullscreen(false) failed: {e}");
+                    }
+                    // tao restores the (unmaximized) placement we saved above, so
+                    // re-maximize explicitly to return to the prior state.
+                    if WAS_MAXIMIZED_BEFORE_FS.swap(false, Ordering::Relaxed) {
+                        let _ = window.maximize();
+                    }
                 }
             }
             emit(

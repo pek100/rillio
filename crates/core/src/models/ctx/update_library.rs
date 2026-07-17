@@ -42,6 +42,16 @@ pub fn update_library<E: Env + 'static>(
                 Effects::none().unchanged()
             }
         }
+        Msg::Internal(Internal::Disconnect) => {
+            // Keep every item, drop the owner: the library continues as the
+            // local anonymous one. LibraryChanged(false) persists the retag.
+            if library.uid.is_some() {
+                library.uid = None;
+                Effects::msg(Msg::Internal(Internal::LibraryChanged(false)))
+            } else {
+                Effects::none().unchanged()
+            }
+        }
         Msg::Action(Action::Ctx(ActionCtx::AddToLibrary(meta_preview))) => {
             let mut library_item = match library.items.get(&meta_preview.id) {
                 Some(library_item) => LibraryItem::from((meta_preview, library_item)),
@@ -204,10 +214,19 @@ pub fn update_library<E: Env + 'static>(
                     ..
                 }),
             ) if loading_auth_request == auth_request => {
-                let next_library = LibraryBucket::new(
+                let mut next_library = LibraryBucket::new(
                     Some(auth.user.id.to_owned()),
                     library_items_result.to_owned().unwrap_or_default(),
                 );
+                // Connecting FROM the anonymous profile keeps the local
+                // library: merge it in (mtime last-write-wins, the same rule
+                // sync uses). The host app dispatches SyncLibraryWithAPI right
+                // after connecting, which pushes the merged-in local items to
+                // the account (they are missing there, or newer here). An
+                // account-to-account switch keeps the replace semantics.
+                if library.uid.is_none() {
+                    next_library.merge_items(library.items.values().cloned().collect());
+                }
                 if *library != next_library {
                     *library = next_library;
                     Effects::msg(Msg::Internal(Internal::LibraryChanged(false)))

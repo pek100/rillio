@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useCore } from 'rillio/core';
 import { useDisplayName } from 'rillio/common/useDisplayName';
 import { openSync } from 'rillio/common/syncEvents';
@@ -11,25 +10,20 @@ type Props = {
 };
 
 const User = ({ profile }: Props) => {
-    const { t } = useTranslation();
     const core = useCore();
     const [displayName, setDisplayName] = useDisplayName();
 
-    const avatar = useMemo(() => (
-        !profile.auth ?
-            `url('${require('/assets/images/avatar-anonymous.svg')}')`
-            :
-            profile.auth.user.avatar ?
-                `url('${profile.auth.user.avatar}')`
-                :
-                `url('${require('/assets/images/avatar-default.svg')}')`
-    ), [profile.auth]);
+    // The identity is the LOCAL profile, always: a connected Stremio account is
+    // an attached sync service, not who you are. Same avatar either way.
+    const avatar = useMemo(() => `url('${require('/assets/images/avatar-anonymous.svg')}')`, []);
 
-    const onLogout = useCallback(() => {
+    // Disconnect, never Logout: the session ends but every local bucket stays
+    // (core Ctx.Disconnect). The bucket-wiping Logout is not reachable from UI.
+    const onDisconnect = useCallback(() => {
         core.transport.dispatch({
             action: 'Ctx',
             args: {
-                action: 'Logout'
+                action: 'Disconnect'
             }
         });
     }, []);
@@ -46,21 +40,18 @@ const User = ({ profile }: Props) => {
                     value={displayName}
                     onCommit={setDisplayName}
                 />
-                <div className="text-[0.95rem] text-fg opacity-50" title={profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}>
-                    {profile.auth === null ? t('ANONYMOUS_USER') : profile.auth.user.email}
+                <div className="text-[0.95rem] text-fg opacity-50" title={profile.auth === null ? 'Local profile' : `Syncing via ${profile.auth.user.email}`}>
+                    {profile.auth === null ? 'Local profile' : `Local profile - syncing via ${profile.auth.user.email}`}
                 </div>
-                {/* No "Upload to Stremio" row: Import and Upload are one Stremio tab
-                    now (sign in once, pick a direction), so a third link would open the
-                    same place Import does. It was also broken - it asked for a tab that
-                    no longer exists and silently landed on Backup & restore. */}
+                {/* Sync & backup / Stremio sync moved to the account dropdown (the
+                    NavMenu) - account-shaped actions live with the account. Only the
+                    connection state remains here. */}
                 <div className="mt-2 flex flex-row flex-wrap gap-4">
-                    <Link label={'Sync & backup'} onClick={() => openSync('backup')} />
-                    <Link label={'Import from Stremio'} onClick={() => openSync('stremio')} />
                     {
                         profile.auth !== null ?
-                            <Link label={t('LOG_OUT')} onClick={onLogout} />
+                            <Link label={'Disconnect'} onClick={onDisconnect} />
                             :
-                            null
+                            <Link label={'Connect Stremio account'} onClick={() => openSync('stremio')} />
                     }
                 </div>
             </div>

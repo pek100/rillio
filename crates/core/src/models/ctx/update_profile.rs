@@ -30,6 +30,20 @@ pub fn update_profile<E: Env + 'static>(
                 Effects::none().unchanged()
             }
         }
+        Msg::Internal(Internal::Disconnect) => {
+            // Leave the account but KEEP the local data: addons and settings
+            // stay as they are, only the session is dropped (ctx.rs closes it
+            // server-side). The profile continues as the local anonymous one.
+            if profile.auth.is_some() {
+                profile.auth = None;
+                // A lock from a failed last addon pull must not outlive the
+                // session: offline, the local addons are simply usable.
+                profile.addons_locked = false;
+                Effects::msg(Msg::Internal(Internal::ProfileChanged))
+            } else {
+                Effects::none().unchanged()
+            }
+        }
         Msg::Action(Action::Ctx(ActionCtx::DeleteAccount(password))) => match profile.auth_key() {
             Some(auth_key) => Effects::one(delete_account::<E>(auth_key, password)).unchanged(),
             _ => Effects::msg(Msg::Event(Event::Error {
@@ -302,11 +316,36 @@ pub fn update_profile<E: Env + 'static>(
                     ..
                 }),
             ) if loading_auth_request == auth_request => {
+                // Connecting FROM the anonymous profile merges instead of
+                // replacing: local settings are kept, and local addons the
+                // account lacks are appended (the host app pushes the union
+                // back with PushAddonsToAPI right after connecting). Switching
+                // between two real accounts keeps the old replace semantics so
+                // one account's data never leaks into another.
+                let previous_was_anonymous = profile.auth.is_none();
+                let mut next_addons = addons_result.to_owned().unwrap_or(OFFICIAL_ADDONS.clone());
+                if previous_was_anonymous {
+                    let account_transport_urls = next_addons
+                        .iter()
+                        .map(|addon| addon.transport_url.to_owned())
+                        .collect::<HashSet<_>>();
+                    next_addons.extend(
+                        profile
+                            .addons
+                            .iter()
+                            .filter(|addon| !account_transport_urls.contains(&addon.transport_url))
+                            .cloned(),
+                    );
+                }
                 let next_profile = Profile {
                     auth: Some(auth.to_owned()),
-                    addons: addons_result.to_owned().unwrap_or(OFFICIAL_ADDONS.clone()),
+                    addons: next_addons,
                     addons_locked: addons_result.is_err(),
-                    settings: Settings::default(),
+                    settings: if previous_was_anonymous {
+                        profile.settings.to_owned()
+                    } else {
+                        Settings::default()
+                    },
                 };
                 if *profile != next_profile {
                     *profile = next_profile;
@@ -398,8 +437,12 @@ pub fn update_profile<E: Env + 'static>(
             },
             Err(error) => {
                 let session_expired_effects = match error {
+                    // Session expired: DISCONNECT (keep all local data), never
+                    // Logout - an expired Stremio session must not wipe the
+                    // local library/addons/settings now that the app stays
+                    // connected across launches.
                     CtxError::API(APIError { code, .. }) if *code == 1 => {
-                        Effects::msg(Msg::Internal(Internal::Logout(false))).unchanged()
+                        Effects::msg(Msg::Internal(Internal::Disconnect)).unchanged()
                     }
                     _ => Effects::none().unchanged(),
                 };

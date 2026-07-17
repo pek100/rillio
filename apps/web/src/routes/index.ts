@@ -11,7 +11,6 @@ import NotFound from './NotFound';
 import Search from './Search';
 import Settings from './Settings';
 import Player from './Player';
-import Intro from './Intro';
 
 export default {
     Addons,
@@ -24,6 +23,5 @@ export default {
     NotFound,
     Search,
     Settings,
-    Player,
-    Intro
+    Player
 };

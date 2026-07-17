@@ -23,6 +23,15 @@ pub fn update_events<E: Env + 'static>(
             *dismissed_events = next_dismissed_events;
             Effects::msg(Msg::Internal(Internal::DismissedEventsChanged))
         }
+        Msg::Internal(Internal::Disconnect) => {
+            // Keep the dismissals, drop the owner tag.
+            if dismissed_events.uid.is_some() {
+                dismissed_events.uid = None;
+                Effects::msg(Msg::Internal(Internal::DismissedEventsChanged))
+            } else {
+                Effects::none().unchanged()
+            }
+        }
         Msg::Action(Action::Ctx(ActionCtx::GetEvents)) => {
             let modal_effects = eq_update(&mut events.modal, Loadable::Loading);
             let notification_effects = eq_update(&mut events.notification, Loadable::Loading);

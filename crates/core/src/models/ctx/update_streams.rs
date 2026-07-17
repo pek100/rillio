@@ -24,6 +24,15 @@ pub fn update_streams<E: Env + 'static>(
                 Effects::none().unchanged()
             }
         }
+        Msg::Internal(Internal::Disconnect) => {
+            // Keep the stream history, drop the owner tag.
+            if streams.uid.is_some() {
+                streams.uid = None;
+                Effects::msg(Msg::Internal(Internal::StreamsChanged(false)))
+            } else {
+                Effects::none().unchanged()
+            }
+        }
         Msg::Internal(Internal::StreamLoaded {
             stream,
             stream_request: Some(stream_request),

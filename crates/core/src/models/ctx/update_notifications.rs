@@ -122,6 +122,20 @@ pub fn update_notifications<E: Env + 'static>(
             Msg::Internal(Internal::DismissNotificationItem(id.to_owned())),
         )
         .unchanged(),
+        Msg::Internal(Internal::Disconnect) => {
+            // Keep the notifications (they belong to the kept library), drop
+            // the owner tag. In-flight catalogs reset; they re-request against
+            // the anonymous uid.
+            let notification_catalogs_effects = eq_update(notification_catalogs, vec![]);
+            if notifications.uid.is_some() {
+                notifications.uid = None;
+                notification_catalogs_effects
+                    .join(Effects::msg(Msg::Internal(Internal::NotificationsChanged)))
+                    .unchanged()
+            } else {
+                notification_catalogs_effects.unchanged()
+            }
+        }
         Msg::Internal(Internal::Logout(_)) => {
             let notification_catalogs_effects = eq_update(notification_catalogs, vec![]);
             let next_notifications = NotificationsBucket::new::<E>(profile.uid(), vec![]);

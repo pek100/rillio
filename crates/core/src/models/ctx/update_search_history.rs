@@ -18,6 +18,15 @@ pub fn update_search_history<E: Env + 'static>(
             *search_history = next_search_history;
             Effects::msg(Msg::Internal(Internal::SearchHistoryChanged))
         }
+        Msg::Internal(Internal::Disconnect) => {
+            // Keep the history, drop the owner tag.
+            if search_history.uid.is_some() {
+                search_history.uid = None;
+                Effects::msg(Msg::Internal(Internal::SearchHistoryChanged))
+            } else {
+                Effects::none().unchanged()
+            }
+        }
         Msg::Action(Action::Ctx(ActionCtx::ClearSearchHistory)) => {
             search_history.items.clear();
             Effects::msg(Msg::Internal(Internal::SearchHistoryChanged))

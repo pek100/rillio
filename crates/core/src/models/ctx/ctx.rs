@@ -117,6 +117,53 @@ impl<E: Env + 'static> Update<E> for Ctx {
             Msg::Action(Action::Ctx(ActionCtx::Logout)) => {
                 Effects::msg(Msg::Internal(Internal::Logout(false))).unchanged()
             }
+            Msg::Action(Action::Ctx(ActionCtx::Disconnect)) => {
+                Effects::msg(Msg::Internal(Internal::Disconnect)).unchanged()
+            }
+            Msg::Internal(Internal::Disconnect) => {
+                let uid = self.profile.uid();
+                // Close the session server-side first (best effort; an expired
+                // key just fails the request). Captured before update_profile
+                // drops the auth.
+                let session_effects = match self.profile.auth_key() {
+                    Some(auth_key) => Effects::one(delete_session::<E>(auth_key)).unchanged(),
+                    _ => Effects::none().unchanged(),
+                };
+                let profile_effects =
+                    update_profile::<E>(&mut self.profile, &mut self.streams, &self.status, msg);
+                let library_effects =
+                    update_library::<E>(&mut self.library, &self.profile, &self.status, msg);
+                let streams_effects = update_streams::<E>(&mut self.streams, &self.status, msg);
+                let search_history_effects =
+                    update_search_history::<E>(&mut self.search_history, &self.status, msg);
+                let events_effects =
+                    update_events::<E>(&mut self.events, &mut self.dismissed_events, msg);
+                let trakt_addon_effects = update_trakt_addon::<E>(
+                    &mut self.trakt_addon,
+                    &self.profile,
+                    &self.status,
+                    msg,
+                );
+                let notifications_effects = update_notifications::<E>(
+                    &mut self.notifications,
+                    &mut self.notification_catalogs,
+                    &self.profile,
+                    &self.library,
+                    &self.status,
+                    msg,
+                );
+                self.status = CtxStatus::Ready;
+                Effects::msg(Msg::Event(Event::SessionDisconnected { uid }))
+                    .unchanged()
+                    .join(session_effects)
+                    .join(profile_effects)
+                    .join(library_effects)
+                    .join(streams_effects)
+                    .join(search_history_effects)
+                    .join(events_effects)
+                    .join(trakt_addon_effects)
+                    .join(notifications_effects)
+            }
             Msg::Internal(Internal::Logout(deleted)) => {
                 let uid = self.profile.uid();
                 let session_effects = match self.profile.auth_key() {

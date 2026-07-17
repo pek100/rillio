@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Info, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toPath } from 'rillio-router';
 import { useCore } from 'rillio/core';
 import { Button, IconButton, ModalRoute, cn } from 'rillio/components/ui';
+import AnimatedPercentage from 'rillio/components/ui/animated-percentage';
+import SpeedChart from 'rillio/components/ui/speed-chart';
 import useCachedTorrents, { CacheEntry } from './useCachedTorrents';
 
 // Same parser the stream cards use: quality/HDR/languages are encoded in the
@@ -85,7 +87,20 @@ const QualityBadges = ({ name }: { name: string }) => {
 type LibraryLinks = {
     metaLink: string | null,
     playerLink: string,
+    // Mined alongside the links for the download hero: the clean library title
+    // (the entry name is a scene-tagged FILENAME) and the meta id, which for
+    // IMDb ids resolves artwork (backdrop + title logo) via metahub - the same
+    // CDN the rest of the catalog UI already loads art from.
+    itemName: string | null,
+    metaId: string | null,
 };
+
+// metahub artwork for an IMDb id; other id spaces (kitsu etc.) have no CDN
+// here and fall back to the text title / plain gradient.
+const metahubBackground = (metaId: string | null): string | null =>
+    metaId !== null && /^tt\d+$/.test(metaId) ? `https://images.metahub.space/background/medium/${metaId}/img` : null;
+const metahubLogo = (metaId: string | null): string | null =>
+    metaId !== null && /^tt\d+$/.test(metaId) ? `https://images.metahub.space/logo/medium/${metaId}/img` : null;
 
 const useLibraryLinksByInfoHash = (): Record<string, LibraryLinks> => {
     const core = useCore();
@@ -111,10 +126,15 @@ const useLibraryLinksByInfoHash = (): Record<string, LibraryLinks> => {
                     const encoded = toPath(playerLink).split('/')[2];
                     if (typeof encoded !== 'string' || encoded.length === 0) return null;
                     const stream = await core.transport.decodeStream(decodeURIComponent(encoded)) as Stream | null;
+                    // '/metadetails/{type}/{id}/...' - segment 3 is the meta id.
+                    const rawId = typeof metaLink === 'string' ? toPath(metaLink).split('/')[3] : undefined;
+                    const itemName = (item as { name?: unknown }).name;
                     return stream !== null && typeof stream.infoHash === 'string' ?
                         [stream.infoHash, {
                             metaLink: typeof metaLink === 'string' ? metaLink : null,
                             playerLink,
+                            itemName: typeof itemName === 'string' ? itemName : null,
+                            metaId: typeof rawId === 'string' && rawId.length > 0 ? decodeURIComponent(rawId) : null,
                         }] as [string, LibraryLinks]
                         :
                         null;
@@ -130,6 +150,181 @@ const useLibraryLinksByInfoHash = (): Record<string, LibraryLinks> => {
         return () => { cancelled = true; };
     }, []);
     return links;
+};
+
+// Speed telemetry for the hero: samples the byte delta between cache polls
+// (~3s apart). A poll that brings no new bytes records an honest 0 so the
+// chart shows stalls instead of freezing on the last good bar.
+const HISTORY_LENGTH = 48;
+const useSpeedHistory = (entry: CacheEntry | null) => {
+    const [speeds, setSpeeds] = useState<number[]>([]);
+    const peakRef = useRef(0);
+    const lastRef = useRef<{ hash: string, t: number, bytes: number } | null>(null);
+    useEffect(() => {
+        if (entry === null) {
+            lastRef.current = null;
+            peakRef.current = 0;
+            setSpeeds([]);
+            return;
+        }
+        const now = performance.now();
+        const last = lastRef.current;
+        if (last === null || last.hash !== entry.infoHash) {
+            lastRef.current = { hash: entry.infoHash, t: now, bytes: entry.downloaded };
+            peakRef.current = 0;
+            setSpeeds([]);
+            return;
+        }
+        const dt = (now - last.t) / 1000;
+        // The poll interval is 3s; anything much faster is a state echo (a
+        // mutation re-poll), not a fresh sample worth charting.
+        if (dt < 1) return;
+        const speed = Math.max(0, (entry.downloaded - last.bytes) / dt);
+        lastRef.current = { hash: entry.infoHash, t: now, bytes: entry.downloaded };
+        peakRef.current = Math.max(peakRef.current, speed);
+        setSpeeds((h) => [...h, speed].slice(-HISTORY_LENGTH));
+    }, [entry]);
+    return { speeds, peak: peakRef.current, speed: speeds.length > 0 ? speeds[speeds.length - 1] : 0 };
+};
+
+const formatSpeed = (bytesPerSec: number): string => `${formatBytes(bytesPerSec)}/s`;
+
+const formatEta = (seconds: number): string => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return '-';
+    if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
+// Over-artwork glass (white-alpha family: these sit on the backdrop image, not
+// on a panel, so the house surface tokens would read muddy here).
+const GLASS_BTN = 'h-9 shrink-0 rounded-full border border-white/15 bg-white/10 px-4 text-[0.8rem] font-medium text-white backdrop-blur-md transition hover:bg-white/20';
+
+/**
+ * The download hero: the active download presented like a title, not a row -
+ * backdrop artwork under a gradient, the title logo (or clean name), the
+ * slot-machine percentage, a live speed chart and glass stats. The layout is
+ * hydralauncher/hydra's downloads hero (MIT) rebuilt on the house tokens, with
+ * metahub artwork standing in for their game art.
+ */
+const HeroDownload = ({ entry, links, onPlay, onMoreInfo, onSetPaused, onDelete }: {
+    entry: CacheEntry,
+    links: LibraryLinks | undefined,
+    onPlay: (entry: CacheEntry) => void,
+    onMoreInfo: (link: string) => void,
+    onSetPaused: (infoHash: string, paused: boolean) => void,
+    onDelete: (infoHash: string) => void,
+}) => {
+    const { speeds, peak, speed } = useSpeedHistory(entry);
+    const paused = entry.state === 'paused';
+    const progress = entry.total > 0 ? Math.min(1, entry.downloaded / entry.total) : 0;
+    const pct = Math.floor(progress * 100);
+    const etaSeconds = speed > 0 ? (entry.total - entry.downloaded) / speed : NaN;
+
+    const metaId = links?.metaId ?? null;
+    const title = links?.itemName ?? entry.name;
+    const backgroundUrl = metahubBackground(metaId);
+    const logoUrl = metahubLogo(metaId);
+    const [backgroundFailed, setBackgroundFailed] = useState(false);
+    const [logoFailed, setLogoFailed] = useState(false);
+    useEffect(() => { setBackgroundFailed(false); setLogoFailed(false); }, [metaId]);
+
+    return (
+        <div className="relative overflow-hidden">
+            {
+                backgroundUrl !== null && !backgroundFailed ?
+                    <img
+                        src={backgroundUrl}
+                        alt=""
+                        onError={() => setBackgroundFailed(true)}
+                        className="absolute inset-0 size-full object-cover object-[50%_20%]"
+                    />
+                    :
+                    null
+            }
+            {/* Melts the artwork into the list below; also carries the whole hero
+                when there is no artwork (non-IMDb ids). */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-bg/80 to-bg" />
+
+            <div className="relative flex flex-col gap-4 px-6 pb-5 pt-6">
+                <div className="flex min-h-14 items-center">
+                    {
+                        logoUrl !== null && !logoFailed ?
+                            <img
+                                src={logoUrl}
+                                alt={title}
+                                onError={() => setLogoFailed(true)}
+                                className="max-h-16 max-w-[55%] object-contain object-left drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+                            />
+                            :
+                            <div className="flex min-w-0 items-center gap-2.5">
+                                <div className="truncate text-2xl font-bold text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]" title={title}>{title}</div>
+                                <QualityBadges name={entry.name} />
+                            </div>
+                    }
+                </div>
+
+                <div className="flex items-end justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                        <div className="text-[0.68rem] font-semibold uppercase tracking-wider text-white/70">
+                            {paused ? 'Paused' : 'Downloading'}
+                        </div>
+                        <div className="text-[1.9rem] font-bold leading-none tracking-[-0.02em] text-white">
+                            <AnimatedPercentage text={`${pct}%`} />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" className={GLASS_BTN} onClick={() => onSetPaused(entry.infoHash, !paused)} title={paused ? 'Resume this download' : 'Pause this download'}>
+                            {paused ? 'Resume' : 'Pause'}
+                        </Button>
+                        {
+                            typeof entry.fileIdx === 'number' ?
+                                <IconButton onClick={() => onPlay(entry)} title="Play" className="size-9 text-accent hover:brightness-110">
+                                    <Play className="size-5" />
+                                </IconButton>
+                                :
+                                null
+                        }
+                        {
+                            typeof links?.metaLink === 'string' ?
+                                <IconButton onClick={() => onMoreInfo(links.metaLink as string)} title="More info" className="size-9 text-white/70 hover:text-white">
+                                    <Info className="size-5" />
+                                </IconButton>
+                                :
+                                null
+                        }
+                        <IconButton onClick={() => onDelete(entry.infoHash)} title="Delete from cache (frees disk space; can be re-downloaded)" className="size-9 text-white/70 hover:text-danger">
+                            <Trash2 className="size-5" />
+                        </IconButton>
+                    </div>
+                </div>
+
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.round(progress * 100)}%` }} />
+                </div>
+
+                <div className="flex flex-col gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
+                    <SpeedChart speeds={speeds} peakSpeed={peak} height={48} />
+                    <div className="flex items-baseline justify-between text-[0.8rem] tabular-nums">
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-white/50">Speed</span>
+                        <span className="font-semibold text-white/90">{formatSpeed(speed)}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between text-[0.8rem] tabular-nums">
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-white/50">Downloaded</span>
+                        <span className="font-semibold text-white/90">
+                            {formatBytes(entry.downloaded)}
+                            <span className="text-white/45">{` / ${formatBytes(entry.total)}`}</span>
+                        </span>
+                    </div>
+                    <div className="flex items-baseline justify-between text-[0.8rem] tabular-nums">
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-white/50">Time left</span>
+                        <span className="font-semibold text-white/90">{paused ? '-' : formatEta(etaSeconds)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const Row = ({ entry, metaLink, onPlay, onMoreInfo, onSetPaused, onDelete }: {
@@ -302,6 +497,16 @@ const Cached = ({ onClose }: Props) => {
         [entries],
     );
 
+    // The hero: the first ACTIVE download (live or paused mid-transfer - paused
+    // stays a hero so pausing does not bounce the layout). Initializing entries
+    // have no honest byte counts yet and errors are rows, not heroes.
+    const heroEntry = useMemo(
+        () => (entries ?? []).find((entry) =>
+            entry.total > 0 && entry.downloaded < entry.total &&
+            (entry.state === 'live' || entry.state === 'paused')) ?? null,
+        [entries],
+    );
+
     return (
         <ModalRoute
             open
@@ -349,19 +554,34 @@ const Cached = ({ onClose }: Props) => {
                                     Nothing cached yet. Streams are kept here while you watch, and the Download button on any source stores it for later.
                                 </div>
                                 :
-                                <div className="divide-y divide-surface">
-                                    {entries.map((entry) => (
-                                        <Row
-                                            key={entry.infoHash}
-                                            entry={entry}
-                                            metaLink={libraryLinks[entry.infoHash]?.metaLink ?? null}
-                                            onPlay={play}
-                                            onMoreInfo={openMetaDetails}
-                                            onSetPaused={setPaused}
-                                            onDelete={remove}
-                                        />
-                                    ))}
-                                </div>
+                                <>
+                                    {
+                                        heroEntry !== null ?
+                                            <HeroDownload
+                                                entry={heroEntry}
+                                                links={libraryLinks[heroEntry.infoHash]}
+                                                onPlay={play}
+                                                onMoreInfo={openMetaDetails}
+                                                onSetPaused={setPaused}
+                                                onDelete={remove}
+                                            />
+                                            :
+                                            null
+                                    }
+                                    <div className="divide-y divide-surface">
+                                        {entries.filter((entry) => entry.infoHash !== heroEntry?.infoHash).map((entry) => (
+                                            <Row
+                                                key={entry.infoHash}
+                                                entry={entry}
+                                                metaLink={libraryLinks[entry.infoHash]?.metaLink ?? null}
+                                                onPlay={play}
+                                                onMoreInfo={openMetaDetails}
+                                                onSetPaused={setPaused}
+                                                onDelete={remove}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
                 }
             </div>
         </ModalRoute>

@@ -89,6 +89,11 @@ pub enum Event {
     UserLoggedOut {
         uid: UID,
     },
+    /// The Stremio session ended (user disconnect or session expiry) with all
+    /// local data kept, retagged to the anonymous profile.
+    SessionDisconnected {
+        uid: UID,
+    },
     UserAccountDeleted {
         uid: UID,
     },

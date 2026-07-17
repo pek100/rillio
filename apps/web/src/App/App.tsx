@@ -27,6 +27,7 @@ import SyncModal from './SyncModal/SyncModal';
 import ModalHost from './ModalHost';
 import ModalUrlWatcher from './ModalUrlWatcher';
 import { ensureDisplayName } from 'rillio/common/useDisplayName';
+import useStremioSync from 'rillio/common/useStremioSync';
 import { openModal, type ModalName } from 'rillio/common/modalEvents';
 
 // The Google Cast SDK injects a global `chrome.cast` object at runtime; no
@@ -61,6 +62,10 @@ const App = () => {
     }, []);
     const [shortcutModalOpen,, closeShortcutsModal, toggleShortcutModal] = useBinaryState(false);
     const [gamepadModalOpen,, closeGamepadModal, toggleGamepadModal] = useBinaryState(false);
+
+    // Stremio autosync: translates core sync events into the activity log and,
+    // while connected, schedules the two-way sync (launch / focus / interval).
+    useStremioSync();
 
     const onShortcut = React.useCallback((name: string, combo: number, key: string) => {
         switch (name) {
@@ -176,27 +181,14 @@ const App = () => {
         }
     }, [profile.settings, shell.state.windowClosed]);
 
+    // Notifications refresh on boot + focus. Account sync (PullAddonsFromAPI /
+    // PullUserFromAPI / SyncLibraryWithAPI) used to be dispatched here too,
+    // unconditionally - even for anonymous users, whose runs just errored
+    // "User is not logged in" (invisible until the sync activity log existed).
+    // useStremioSync owns account sync now: gated on a connection, throttled,
+    // and every run logged.
     React.useEffect(() => {
         const onWindowFocus = () => {
-            core.transport.dispatch({
-                action: 'Ctx',
-                args: {
-                    action: 'PullAddonsFromAPI'
-                }
-            });
-            core.transport.dispatch({
-                action: 'Ctx',
-                args: {
-                    action: 'PullUserFromAPI',
-                    args: {}
-                }
-            });
-            core.transport.dispatch({
-                action: 'Ctx',
-                args: {
-                    action: 'SyncLibraryWithAPI'
-                }
-            });
             core.transport.dispatch({
                 action: 'Ctx',
                 args: {

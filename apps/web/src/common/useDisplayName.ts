@@ -1,8 +1,10 @@
 // A local, anonymous-first display name. Stremio has no username field (only an
 // account email), and anonymous users have no identity at all, so Rillio keeps
-// its own editable name in localStorage, no account, no server, no core change.
+// its own editable name in storage, no account, no server, no core change.
 // A random friendly handle is assigned on first run; the user can rename anytime.
+// Per profile (common/profileStorage): each local profile has its own name.
 import { useCallback, useEffect, useState } from 'react';
+import { getItem, setItem } from 'rillio/common/profileStorage';
 
 const KEY = 'rillio.displayName';
 const EVENT = 'rillio:display-name-changed';
@@ -26,10 +28,10 @@ export const randomDisplayName = (): string => {
 
 const read = (): string => {
     try {
-        let v = window.localStorage.getItem(KEY);
+        let v = getItem(KEY);
         if (!v || !v.trim()) {
             v = randomDisplayName();
-            window.localStorage.setItem(KEY, v);
+            setItem(KEY, v);
         }
         return v;
     } catch {
@@ -46,7 +48,7 @@ export const ensureDisplayName = (): void => { read(); };
 export const setDisplayName = (name: string): string => {
     const v = (name || '').trim() || randomDisplayName();
     try {
-        window.localStorage.setItem(KEY, v);
+        setItem(KEY, v);
     } catch {
         /* storage unavailable, keep in-memory only */
     }

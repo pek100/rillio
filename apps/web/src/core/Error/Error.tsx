@@ -11,7 +11,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Image from 'rillio/components/Image';
+import { removeItem } from 'rillio/common/profileStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from 'rillio/components/ui';
+
+// The active profile's buckets (crates/core/src/constants.rs) plus the web-side
+// per-profile keys. Clearing is scoped to the ACTIVE profile: a corrupt boot is
+// a per-profile problem, and localStorage.clear() would destroy every OTHER
+// profile on the device too.
+const PROFILE_KEYS = [
+    'schema_version', 'profile', 'library', 'library_recent', 'streams',
+    'search_history', 'streaming_server_urls', 'notifications', 'calendar',
+    'dismissed_events', 'rillio.displayName', 'rillio.syncLog',
+    'rillio.preloadPrompt.enabled',
+];
 
 type Props = {
     message: string,
@@ -26,7 +38,7 @@ const Error = ({ message }: Props) => {
     }, []);
 
     const clearData = React.useCallback(() => {
-        window.localStorage.clear();
+        PROFILE_KEYS.forEach(removeItem);
         window.location.reload();
     }, []);
 
@@ -64,7 +76,8 @@ const Error = ({ message }: Props) => {
                     <DialogHeader>
                         <DialogTitle>{t('CLEAR_DATA')}</DialogTitle>
                         <DialogDescription>
-                            This erases the profile, library and settings stored on this device. It cannot be undone.
+                            This erases the current profile&apos;s library and settings on this device (other
+                            profiles are untouched). It cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

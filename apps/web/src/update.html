@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Updating Rillio</title>
+    <!--
+        The custom update window (docs/update-window/decomposition.md): shown by
+        the detached `rillio-desktop --update-window` process while an update
+        downloads and installs, replacing the stock NSIS progress dialog.
+        Self-contained on purpose: no bundle, no framework - this page must
+        work while the main app is being replaced on disk. Driven from Rust via
+        window.__updateState({phase, downloaded, total, message}) evals.
+
+        Open update.html#demo in a browser for a simulated run (the same page,
+        self-driven) - the verification harness and a design preview in one.
+    -->
+    <style>
+        /* ONE container: the page is a full-bleed opaque surface and Windows 11
+           itself rounds the (frameless, non-transparent) window - drawing our
+           own rounded card inside a transparent window doubled the chrome with
+           two mismatched radii. */
+        html, body { margin: 0; background: #050608; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: default; }
+        #card {
+            position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; box-sizing: border-box; padding: 26px 30px;
+            font-family: 'Segoe UI', system-ui, sans-serif; color: rgba(255, 255, 255, 0.96);
+        }
+        #liquid { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .fg { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; }
+        #logo { width: 92px; height: 95px; filter: drop-shadow(0 8px 30px rgba(255, 160, 51, 0.22)); }
+        #logo-fallback { display: none; width: 92px; height: 95px; animation: pulse 1.6s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+        #title { margin-top: 18px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+        #pct { margin-top: 14px; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; min-height: 34px; }
+        #pct span { display: inline-block; animation: roll .3s ease-out; }
+        @keyframes roll { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+        #track { margin-top: 16px; width: 230px; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+        #fill { height: 100%; width: 0%; border-radius: inherit; background: #FFA033; transition: width .3s ease; }
+        #fill.indeterminate { width: 42%; animation: slide 1.15s ease-in-out infinite; }
+        @keyframes slide { 0% { margin-left: -42%; } 100% { margin-left: 100%; } }
+        #status { margin-top: 12px; font-size: 12.5px; color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
+        #status.error { color: #ff6b6b; }
+        #note { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 11.5px; color: rgba(255, 255, 255, 0.32); }
+        #drag { position: fixed; inset: 0; }
+        .fg, #note { pointer-events: none; }
+    </style>
+</head>
+
+<body>
+    <div id="card">
+        <canvas id="liquid"></canvas>
+        <div id="drag" data-tauri-drag-region></div>
+        <div class="fg">
+            <canvas id="logo" width="360" height="371"></canvas>
+            <svg id="logo-fallback" viewBox="0 0 201 207" aria-hidden="true"></svg>
+            <div id="title">Updating Rillio</div>
+            <div id="pct"></div>
+            <div id="track"><div id="fill" class="indeterminate"></div></div>
+            <div id="status">Preparing the update</div>
+        </div>
+        <div id="note">Rillio will start by itself when this is done.</div>
+    </div>
+
+    <script>
+        // ---- The Rillio mark paths (same constants as index.html) ----
+        var TRI = "M-4.47244 0.114875C-4.47224 -4.50358 0.527717 -7.39027 4.52756 -5.08141L186.948 100.24C190.948 102.549 190.948 108.323 186.948 110.632L4.52756 215.953C0.527617 218.262 -4.4724 215.375 -4.47244 210.756V0.114875Z";
+        var VEINS = ["M-24.615 96.8398C-26.8069 97.2 -28.7215 98.4158 -29.9244 100.282C-31.1281 102.144 -31.5214 104.503 -31.0313 106.779C-30.5411 109.055 -29.2113 111.043 -27.3478 112.244C-25.4835 113.449 -23.2381 113.769 -21.0923 113.195C-18.578 112.503 -16.0048 111.996 -13.364 111.67C5.65836 108.807 29.5394 118.936 53.1299 110.764C53.1328 110.763 53.1414 110.761 53.1443 110.76C74.8654 102.89 101.023 114.252 126.54 107.721C130.129 106.905 133.233 106.401 136.602 107.091C140.243 107.847 144.453 108.132 148.249 107.91C151.364 107.758 154.423 107.419 157.473 107.005C157.985 106.935 158.454 106.659 158.776 106.246C159.097 105.833 159.247 105.316 159.19 104.802C159.133 104.288 158.874 103.817 158.469 103.484C158.064 103.152 157.546 102.986 157.031 103.03C154.041 103.283 151.067 103.46 148.142 103.458C144.465 103.469 141.203 103.108 137.57 102.193C133.612 101.154 129.167 101.612 125.426 102.314C101.608 107.579 77.5268 94.6461 50.3994 101.763L50.4138 101.758C30.5217 107.59 10.7267 95.6953 -14.3768 95.8871C-17.7713 95.9465 -21.2071 96.2554 -24.615 96.8398Z","M7.49276 105.681C7.05545 106.998 7.17178 108.412 7.8527 109.621C8.53149 110.829 9.71918 111.734 11.118 112.126C12.5167 112.517 14.0015 112.361 15.209 111.681C16.4187 111.001 17.2522 109.853 17.5627 108.5C17.9416 106.824 18.3894 105.177 18.914 103.537C24.5213 85.7157 39.3317 71.1335 51.8589 55.4528L51.852 55.4606C60.414 45.0113 68.4687 33.8718 73.8655 21.4844C74.6142 19.7733 75.3131 18.043 75.9595 16.296C75.1526 17.975 74.2973 19.6278 73.3968 21.2527C66.8952 33.0141 58.0358 43.1011 48.6583 52.5863C48.657 52.5879 48.6527 52.5924 48.6514 52.594C34.9656 66.9469 18.3987 79.785 9.61747 100.035C8.82802 101.883 8.1212 103.76 7.49276 105.681Z","M19.677 106.317C19.4183 105.066 18.6744 103.993 17.5764 103.342C16.4802 102.69 15.1198 102.514 13.827 102.843C12.5342 103.173 11.4242 103.979 10.7737 105.076C10.1213 106.173 9.9819 107.471 10.3535 108.693C10.9106 110.553 11.5423 112.355 12.2679 114.152C20.3339 134.004 37.2448 145.433 50.0083 159.372C58.6585 168.568 66.1153 179.014 71.6746 190.536C72.4485 192.137 73.1863 193.758 73.8866 195.397C73.3365 193.702 72.7462 192.018 72.1167 190.346C67.5994 178.322 61.0045 167.019 52.9943 156.803C41.13 141.498 25.8509 128.277 20.8774 111.081C20.4001 109.503 20.0065 107.933 19.677 106.317Z","M70.4283 101.007C70.123 101.658 70.0939 102.397 70.359 103.065C70.6235 103.733 71.1604 104.276 71.8401 104.57C72.5199 104.864 73.2835 104.883 73.9514 104.618C74.62 104.354 75.1381 103.827 75.4034 103.158C75.9339 101.818 76.5176 100.499 77.1534 99.1995C83.8472 85.508 95.9696 74.8738 108.037 64.8546L108.01 64.8755C117.13 57.7886 124.877 49.0547 130.782 39.2764C131.565 37.9802 132.315 36.6657 133.031 35.3342C132.237 36.6205 131.411 37.886 130.555 39.1295C124.095 48.51 115.935 56.6386 106.643 63.0059C106.638 63.0101 106.621 63.0223 106.616 63.0267C93.9488 72.3663 80.8457 82.3181 72.601 96.7929C71.8241 98.1658 71.0988 99.5702 70.4283 101.007Z","M82.6608 104.405C82.4474 103.693 81.9606 103.103 81.2952 102.771C80.6304 102.438 79.8415 102.39 79.1144 102.632C78.3873 102.874 77.7852 103.386 77.453 104.051C77.1201 104.717 77.0843 105.48 77.3412 106.178C77.9057 107.724 78.5533 109.231 79.2698 110.696C87.2166 126.372 101.006 136.674 114.064 146.561C123.152 153.079 131.04 161.298 137.211 170.748C138.057 172.035 138.875 173.343 139.664 174.668C138.956 173.297 138.219 171.941 137.45 170.601C131.852 160.772 124.372 151.934 115.5 144.722L115.515 144.733C103.104 134.172 90.2985 122.968 84.12 108.493C83.5608 107.149 83.0714 105.785 82.6608 104.405Z","M125.707 105.888C125.514 105.394 125.133 105.004 124.64 104.807C124.148 104.61 123.584 104.622 123.081 104.838C122.578 105.053 122.18 105.453 121.984 105.945C121.786 106.438 121.807 106.983 122.031 107.464C122.511 108.5 123.033 109.509 123.594 110.496C129.702 121.132 139.539 128.232 149.088 134.712L149.064 134.694C155.389 139.291 161.043 144.916 165.307 151.573C165.892 152.483 166.452 153.41 166.986 154.353C166.511 153.379 166.008 152.418 165.478 151.47C161.621 144.54 156.242 138.464 150.083 133.384C150.078 133.38 150.063 133.369 150.058 133.365C140.947 126.362 131.865 118.728 126.951 108.715C126.496 107.787 126.081 106.846 125.707 105.888Z","M33.0804 69.4314C33.1237 69.9603 33.376 70.4438 33.791 70.7744C34.2055 71.1051 34.7488 71.2559 35.292 71.1946C35.8352 71.1333 36.3313 70.8653 36.6617 70.4506C36.9926 70.0358 37.1308 69.5083 37.0552 68.983C36.9037 67.9375 36.7904 66.8886 36.7147 65.8329C35.8702 54.6206 39.598 43.3092 45.0231 33.1558C48.8441 25.7483 50.905 17.4629 50.7078 9.2407C50.6828 8.13543 50.6181 7.03224 50.5135 5.93408C50.5516 7.03655 50.5494 8.1392 50.5078 9.2392C50.2072 17.4244 47.6759 25.3965 43.5528 32.3301L43.5589 32.3192C37.4531 42.2752 32.7595 53.7468 32.9177 65.9851C32.9304 67.1345 32.9844 68.2823 33.0804 69.4314Z","M38.7891 142.788C38.9246 142.275 38.8479 141.735 38.5667 141.285C38.2862 140.835 37.8241 140.512 37.2915 140.388C36.7588 140.265 36.2018 140.352 35.7521 140.633C35.3018 140.914 34.9958 141.365 34.8921 141.886C34.6655 143.013 34.4804 144.143 34.3349 145.279C32.7908 157.325 35.821 169.195 40.3933 179.884L40.3882 179.87C43.4714 187.344 44.9376 195.592 43.926 203.744C43.795 204.834 43.6235 205.92 43.4128 207C43.6885 205.935 43.9261 204.858 44.1238 203.773C45.6377 195.666 44.6765 187.142 41.9736 179.278C38.0978 168.485 35.9773 156.86 38.0884 145.872C38.286 144.833 38.5192 143.806 38.7891 142.788Z","M88.9657 76.5338C88.9016 77.0607 89.0515 77.5843 89.3931 77.9904C89.7341 78.3964 90.2388 78.6516 90.7856 78.699C91.3324 78.7463 91.8734 78.5817 92.2792 78.2404C92.6855 77.8991 92.9233 77.4091 92.9507 76.879C92.9982 75.9454 93.0753 75.0215 93.1843 74.0922C94.2772 64.1403 99.369 54.9014 105.52 46.6472L105.51 46.66C109.942 40.9294 113.239 34.2662 114.552 27.2082C114.733 26.2478 114.878 25.282 114.988 24.3134C114.812 25.2722 114.601 26.2234 114.356 27.1645C112.57 34.0826 108.895 40.3423 104.225 45.5994C104.223 45.602 104.217 45.6095 104.215 45.6121C97.4583 53.5059 91.3851 62.7359 89.4284 73.5149C89.2407 74.5175 89.0871 75.5187 88.9657 76.5338Z","M97.8997 129.986C97.905 129.455 97.6979 128.951 97.3133 128.586C96.9293 128.22 96.3993 128.023 95.8506 128.036C95.3018 128.05 94.7824 128.274 94.417 128.658C94.0511 129.042 93.8693 129.556 93.901 130.085C93.9595 131.097 94.0483 132.101 94.1674 133.105C95.4167 143.851 100.229 153.676 106.356 162.092L106.339 162.065C110.253 167.892 113.075 174.513 114.373 181.508C114.551 182.461 114.703 183.42 114.827 184.383C114.769 183.413 114.684 182.445 114.571 181.478C113.755 174.384 111.363 167.445 107.755 161.187C102.291 152.495 98.4129 142.759 97.9536 132.782C97.9074 131.848 97.8896 130.919 97.8997 129.986Z","M158.742 104.928C158.414 104.51 157.94 104.251 157.41 104.222C156.881 104.192 156.339 104.394 155.918 104.771C155.498 105.147 155.237 105.663 155.208 106.192C155.178 106.722 155.382 107.222 155.761 107.595C156.151 107.981 156.544 108.359 156.944 108.733C164.128 115.502 172.874 120.08 181.865 123.166C182.367 123.34 182.866 123.508 183.371 123.674C182.891 123.446 182.418 123.216 181.943 122.982C173.413 118.796 165.563 113.249 159.705 106.122C159.378 105.728 159.058 105.331 158.742 104.928Z","M125.707 104.665C125.513 105.159 125.133 105.549 124.64 105.746C124.148 105.943 123.584 105.931 123.081 105.715C122.578 105.5 122.18 105.1 121.984 104.608C121.786 104.115 121.806 103.57 122.031 103.089C122.511 102.053 123.033 101.044 123.594 100.057C129.702 89.4215 139.539 82.3212 149.088 75.841L149.064 75.8594C155.389 71.2624 161.043 65.6369 165.307 58.9796C165.892 58.0698 166.452 57.1427 166.986 56.1997C166.511 57.1737 166.008 58.1352 165.478 59.0826C161.621 66.0129 156.242 72.0887 150.083 77.1695C150.078 77.1731 150.063 77.1845 150.058 77.1879C140.947 84.191 131.865 91.8248 126.951 101.838C126.496 102.766 126.081 103.707 125.707 104.665Z","M158.742 105.625C158.414 106.043 157.94 106.302 157.41 106.331C156.881 106.361 156.339 106.159 155.918 105.782C155.498 105.406 155.237 104.89 155.208 104.361C155.178 103.831 155.382 103.331 155.761 102.958C156.151 102.572 156.544 102.194 156.944 101.82C164.128 95.051 172.874 90.4728 181.865 87.3867C182.367 87.2131 182.866 87.045 183.371 86.8792C182.891 87.1069 182.418 87.3366 181.943 87.5712C173.413 91.7571 165.563 97.3044 159.705 104.431C159.378 104.825 159.058 105.222 158.742 105.625Z"];
+
+        // ---- Fluid-fill mark (verbatim from index.html, minus hover mode) ----
+        function fluidLogo(canvas, onFallback) {
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce || !canvas || !window.WebGLRenderingContext) { onFallback(); return; }
+            var started = false;
+            // The setup is rAF-deferred (the bake must not block first paint),
+            // and rAF does not fire in an occluded window - so the safety only
+            // declares failure while VISIBLE (a hidden window just re-arms;
+            // this bit a headless verification run). 4s tolerates a cold
+            // WebView2 first paint.
+            function armSafety() {
+                setTimeout(function () {
+                    if (started) return;
+                    if (document.visibilityState === 'visible') onFallback();
+                    else armSafety();
+                }, 4000);
+            }
+            armSafety();
+            requestAnimationFrame(function () { try { setup(); } catch (e) { onFallback(); } });
+            function setup() {
+                var gl = canvas.getContext('webgl');
+                if (!gl) { onFallback(); return; }
+                var N = 176, INF = 1e9;
+                function raster(fn) { var cv = document.createElement('canvas'); cv.width = N; cv.height = N; var g = cv.getContext('2d'); g.setTransform(N / 201, 0, 0, N / 207, 0, 0); fn(g); return g.getImageData(0, 0, N, N).data; }
+                var obst = raster(function (g) { g.fillStyle = '#fff'; g.fill(new Path2D(TRI)); g.globalCompositeOperation = 'destination-out'; for (var i = 0; i < VEINS.length; i++) g.fill(new Path2D(VEINS[i])); });
+                var sq = raster(function (g) { g.fillStyle = '#fff'; var r = new Path2D(); r.roundRect(0, 0, 201, 207, 57); g.fill(r); });
+                var COST = new Float64Array(N * N);
+                for (var i = 0; i < N * N; i++) COST[i] = (sq[i * 4 + 3] > 128 && obst[i * 4 + 3] <= 128) ? 1.0 : 9.0;
+                var sx = Math.round(6 / 201 * N), sy = Math.round(104 / 207 * N), src = -1;
+                for (var r = 0; r < 60 && src < 0; r++) for (var dy = -r; dy <= r && src < 0; dy++) for (var dx = -r; dx <= r; dx++) { var x = sx + dx, y = sy + dy; if (x < 0 || y < 0 || x >= N || y >= N) continue; var ii = y * N + x; if (COST[ii] < 2) { src = ii; break; } }
+                var geo = new Float64Array(N * N); geo.fill(INF); if (src >= 0) geo[src] = 0;
+                function relax(i, x, y) { var d = geo[i], n;
+                    if (x > 0) { n = i - 1; d = Math.min(d, geo[n] + 0.5 * (COST[i] + COST[n])); }
+                    if (x < N - 1) { n = i + 1; d = Math.min(d, geo[n] + 0.5 * (COST[i] + COST[n])); }
+                    if (y > 0) { n = i - N; d = Math.min(d, geo[n] + 0.5 * (COST[i] + COST[n])); }
+                    if (y < N - 1) { n = i + N; d = Math.min(d, geo[n] + 0.5 * (COST[i] + COST[n])); }
+                    if (x > 0 && y > 0) { n = i - N - 1; d = Math.min(d, geo[n] + 0.707 * (COST[i] + COST[n])); }
+                    if (x < N - 1 && y > 0) { n = i - N + 1; d = Math.min(d, geo[n] + 0.707 * (COST[i] + COST[n])); }
+                    if (x > 0 && y < N - 1) { n = i + N - 1; d = Math.min(d, geo[n] + 0.707 * (COST[i] + COST[n])); }
+                    if (x < N - 1 && y < N - 1) { n = i + N + 1; d = Math.min(d, geo[n] + 0.707 * (COST[i] + COST[n])); }
+                    geo[i] = d; }
+                for (var p = 0; p < 12; p++) { if (p % 2 === 0) { for (var y2 = 0; y2 < N; y2++) for (var x2 = 0; x2 < N; x2++) relax(y2 * N + x2, x2, y2); } else { for (var y3 = N - 1; y3 >= 0; y3--) for (var x3 = N - 1; x3 >= 0; x3--) relax(y3 * N + x3, x3, y3); } }
+                var dmax = 1; for (var k = 0; k < N * N; k++) if (COST[k] < 2 && geo[k] < INF && geo[k] > dmax) dmax = geo[k];
+                var tex = new Uint8Array(N * N * 4);
+                for (var m = 0; m < N * N; m++) { tex[m * 4] = obst[m * 4 + 3]; tex[m * 4 + 1] = sq[m * 4 + 3]; tex[m * 4 + 2] = Math.min(255, Math.round((geo[m] >= INF ? dmax : geo[m]) / dmax * 255)); tex[m * 4 + 3] = 255; }
+                var vs = 'attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+                var fs = 'precision highp float;varying vec2 uv;uniform sampler2D M;uniform float T;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float nz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*nz(p);p*=2.03;a*=.5;}return v;}void main(){vec4 m=texture2D(M,uv);float obst=m.r,sq=m.g,dist=m.b;vec3 dark=vec3(.02,.024,.031),orange=vec3(1.,.627,.2),wet=vec3(1.,.79,.44),yellow=vec3(1.,.84,.42);vec2 q=vec2(fbm(uv*3.+T*.1),fbm(uv*3.+vec2(5.2,1.3)-T*.08));float n=fbm(uv*4.4+q*1.6);float front=(T/1.25)*1.12-dist+(n-.5)*.26;float fillable=sq*(1.-obst);float filled=smoothstep(-.02,.03,front)*fillable;float glow=smoothstep(-.09,.01,front)*fillable;float edge=smoothstep(-.008,.018,front)*(1.-smoothstep(.018,.09,front))*fillable;vec3 col=dark;col=mix(col,yellow,glow*.4);col=mix(col,orange,filled);col=mix(col,wet,edge*.5);gl_FragColor=vec4(col*sq,sq);}';
+                function sh(t, s) { var o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+                var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr)); gl.useProgram(pr);
+                var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+                var pl = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(pl); gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+                var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.uniform1i(gl.getUniformLocation(pr, 'M'), 0); var uT = gl.getUniformLocation(pr, 'T');
+                gl.clearColor(0, 0, 0, 0);
+                started = true;
+                var start = performance.now();
+                function frame(now) {
+                    if (!document.body.contains(canvas)) return;
+                    var e = (now - start) / 1000; if (e > 2.1) { start = now; e = 0; }
+                    gl.uniform1f(uT, e); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES, 0, 3);
+                    requestAnimationFrame(frame);
+                }
+                requestAnimationFrame(frame);
+            }
+        }
+
+        // ---- Ambient liquid: a slow fbm-warped flow in the accent, very dim,
+        // vignetted toward the card edges. The "more liquid" composition layer. ----
+        function ambientLiquid(canvas) {
+            try {
+                var gl = canvas.getContext('webgl');
+                if (!gl) return;
+                var dpr = Math.min(2, window.devicePixelRatio || 1);
+                function size() { canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr; gl.viewport(0, 0, canvas.width, canvas.height); }
+                size();
+                var vs = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+                var fs = 'precision highp float;varying vec2 uv;uniform float T;uniform vec2 R;' +
+                    'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}' +
+                    'float nz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}' +
+                    'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*nz(p);p*=2.03;a*=.5;}return v;}' +
+                    'void main(){vec2 p=uv;p.x*=R.x/R.y;' +
+                    'vec2 q=vec2(fbm(p*1.6+T*.03),fbm(p*1.6+vec2(4.7,2.1)-T*.025));' +
+                    'vec2 w=vec2(fbm(p*2.2+q*1.8+T*.04),fbm(p*2.2+q*1.8-T*.03));' +
+                    'float n=fbm(p*2.6+w*1.7);' +
+                    'float pool=smoothstep(.45,.95,n)*smoothstep(1.25,.55,uv.y+n*.35);' + // liquid pools toward the bottom
+                    'vec3 deep=vec3(.05,.028,.008),amber=vec3(1.,.627,.2);' +
+                    'vec3 col=mix(vec3(0.),deep,smoothstep(.25,.8,n));' +
+                    'col=mix(col,amber*.5,pool*.45);' +
+                    'float shimmer=smoothstep(.68,.72,fbm(p*3.1+w*2.2+T*.06))*pool;' +
+                    'col+=amber*shimmer*.22;' +
+                    'float vig=smoothstep(1.15,.45,length(uv-vec2(.5,.55)));' + // keep the center calm for the mark
+                    'float calm=1.-smoothstep(.42,.12,length(uv-vec2(.5,.34)));' +
+                    'gl_FragColor=vec4(col*vig*calm*.85,1.);}';
+                function sh(t, s) { var o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+                var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr)); gl.useProgram(pr);
+                var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+                var pl = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(pl); gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+                var uT = gl.getUniformLocation(pr, 'T'), uR = gl.getUniformLocation(pr, 'R');
+                window.addEventListener('resize', size);
+                var start = performance.now();
+                (function frame(now) {
+                    if (!document.body.contains(canvas)) return;
+                    gl.uniform1f(uT, (now - start) / 1000); gl.uniform2f(uR, canvas.width, canvas.height);
+                    gl.drawArrays(gl.TRIANGLES, 0, 3);
+                    requestAnimationFrame(frame);
+                })(performance.now());
+            } catch (e) { /* ambience only; the page works without it */ }
+        }
+
+        // ---- Progress state, driven from Rust via window.__updateState ----
+        var pctEl = document.getElementById('pct'), fillEl = document.getElementById('fill'),
+            statusEl = document.getElementById('status'), titleEl = document.getElementById('title');
+        var lastPctText = '';
+        function setPct(text) {
+            if (text === lastPctText) return;
+            var prev = lastPctText; lastPctText = text;
+            pctEl.innerHTML = '';
+            for (var i = 0; i < text.length; i++) {
+                var span = document.createElement('span');
+                span.textContent = text[i];
+                // Only CHANGED characters animate (the slot-machine effect); an
+                // unchanged char is recreated without the roll animation.
+                if (text[i] === prev[i]) span.style.animation = 'none';
+                pctEl.appendChild(span);
+            }
+        }
+        function fmtBytes(b) {
+            if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
+            if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+            return Math.max(0, Math.round(b / 1024)) + ' KB';
+        }
+        var lastSample = null, speed = 0;
+        window.__updateState = function (s) {
+            if (!s) return;
+            if (s.phase === 'error') {
+                titleEl.textContent = 'Update failed';
+                statusEl.textContent = s.message || 'Something went wrong. Rillio will keep the current version.';
+                statusEl.className = 'error';
+                fillEl.className = ''; fillEl.style.width = '0%';
+                return;
+            }
+            if (s.phase === 'installing') {
+                setPct('');
+                statusEl.textContent = 'Installing';
+                statusEl.className = '';
+                fillEl.className = 'indeterminate';
+                return;
+            }
+            if (s.phase === 'restarting') {
+                setPct('');
+                statusEl.textContent = 'Starting Rillio';
+                fillEl.className = 'indeterminate';
+                return;
+            }
+            // downloading
+            if (s.total > 0) {
+                var pct = Math.max(0, Math.min(100, Math.floor(s.downloaded / s.total * 100)));
+                setPct(pct + '%');
+                fillEl.className = ''; fillEl.style.width = pct + '%';
+                var now = performance.now();
+                if (lastSample && now - lastSample.t >= 400 && s.downloaded > lastSample.b) {
+                    speed = (s.downloaded - lastSample.b) / ((now - lastSample.t) / 1000);
+                    lastSample = { t: now, b: s.downloaded };
+                } else if (!lastSample) {
+                    lastSample = { t: now, b: s.downloaded };
+                }
+                statusEl.textContent = (speed > 0 ? fmtBytes(speed) + '/s · ' : '') + fmtBytes(s.downloaded) + ' / ' + fmtBytes(s.total);
+            } else {
+                statusEl.textContent = 'Downloading the update';
+                fillEl.className = 'indeterminate';
+            }
+        };
+
+        // ---- Boot ----
+        ambientLiquid(document.getElementById('liquid'));
+        fluidLogo(document.getElementById('logo'), function () {
+            document.getElementById('logo').style.display = 'none';
+            var fb = document.getElementById('logo-fallback');
+            fb.style.display = 'block';
+            fb.innerHTML = '<defs><clipPath id="ufbsq"><rect width="201" height="207" rx="57"/></clipPath></defs><g clip-path="url(#ufbsq)"><rect width="201" height="207" rx="57" fill="#FFA033"/><path fill="#050608" d="' + TRI + '"/>' + VEINS.map(function (d) { return '<path fill="#FFA033" d="' + d + '"/>'; }).join('') + '</g>';
+        });
+
+        // ---- #demo: self-driven simulated run (design preview + verification) ----
+        if (location.hash === '#demo') {
+            (function () {
+                var total = 48 * 1048576, downloaded = 0, sp = 2.4e6;
+                var iv = setInterval(function () {
+                    sp = Math.max(0.5e6, Math.min(6e6, sp + (Math.random() - 0.48) * 1.1e6));
+                    downloaded = Math.min(total, downloaded + sp * 0.3);
+                    window.__updateState({ phase: 'downloading', downloaded: downloaded, total: total });
+                    if (downloaded >= total) {
+                        clearInterval(iv);
+                        setTimeout(function () { window.__updateState({ phase: 'installing' }); }, 600);
+                        setTimeout(function () { window.__updateState({ phase: 'restarting' }); }, 5000);
+                    }
+                }, 300);
+            })();
+        }
+    </script>
+</body>
+
+</html>

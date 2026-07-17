@@ -1,8 +1,10 @@
 // Export / import the whole local account as one compact code. Everything the
-// core persists lives in window.localStorage (crates/core/src/constants.rs), so a
-// backup is just those keys (plus our local display name) bundled, gzip'd, and
-// base64'd. Import writes them back and the caller reloads so the core re-reads.
+// core persists lives in localStorage under the ACTIVE profile's namespace
+// (crates/core/src/constants.rs keys via common/profileStorage), so a backup is
+// just those keys (plus our local display name) bundled, gzip'd, and base64'd.
+// Import writes them back and the caller reloads so the core re-reads.
 import { gzipSync, gunzipSync, strToU8, strFromU8 } from 'fflate';
+import { getItem, setItem, removeItem } from 'rillio/common/profileStorage';
 
 // Binary <-> base64 without Buffer (chunked so large arrays don't blow the stack).
 const bytesToBase64 = (bytes: Uint8Array): string => {
@@ -45,7 +47,7 @@ const ALL_KEYS = [...CORE_KEYS, NAME_KEY];
 export const exportLocalData = (): string => {
     const data: Record<string, string> = {};
     for (const k of ALL_KEYS) {
-        const v = window.localStorage.getItem(k);
+        const v = getItem(k);
         if (v !== null) data[k] = v;
     }
     if (typeof data['profile'] === 'string') {
@@ -108,7 +110,7 @@ export const importLocalData = (code: string): { ok: boolean; error?: string; ke
         if (!Number.isFinite(incomingSchema)) {
             return { ok: false, error: 'The schema version in this code is unreadable, refusing to import.' };
         }
-        const localRaw = window.localStorage.getItem('schema_version');
+        const localRaw = getItem('schema_version');
         const localSchema = localRaw === null ? NaN : Number(localRaw);
         if (!Number.isFinite(localSchema)) {
             return { ok: false, error: 'Could not read this device\'s schema version to check compatibility, refusing to import.' };
@@ -121,15 +123,15 @@ export const importLocalData = (code: string): { ok: boolean; error?: string; ke
     // any failure restore all of them. A failed write is a failed import, never a
     // partial success.
     const backup: Record<string, string | null> = {};
-    for (const k of keys) backup[k] = window.localStorage.getItem(k);
+    for (const k of keys) backup[k] = getItem(k);
     try {
-        for (const k of keys) window.localStorage.setItem(k, incoming[k]);
+        for (const k of keys) setItem(k, incoming[k]);
     } catch (e) {
         const rollbackFailures: string[] = [];
         for (const k of keys) {
             try {
-                if (backup[k] === null) window.localStorage.removeItem(k);
-                else window.localStorage.setItem(k, backup[k] as string);
+                if (backup[k] === null) removeItem(k);
+                else setItem(k, backup[k] as string);
             } catch {
                 rollbackFailures.push(k);
             }
@@ -143,18 +145,6 @@ export const importLocalData = (code: string): { ok: boolean; error?: string; ke
     return { ok: true, keys: keys.length };
 };
 
-// Rewrite a persisted bucket's owner id to anonymous (null). Used after a one-time
-// Stremio import so the pulled library/notifications load under the local guest.
-export const anonymizeBucket = (key: string): void => {
-    try {
-        const raw = window.localStorage.getItem(key);
-        if (raw === null) return;
-        const obj = JSON.parse(raw);
-        if (obj && typeof obj === 'object' && 'uid' in obj) {
-            obj.uid = null;
-            window.localStorage.setItem(key, JSON.stringify(obj));
-        }
-    } catch {
-        /* leave the bucket as-is if it isn't the shape we expect */
-    }
-};
+// (anonymizeBucket is gone: the one-time-import flow that needed it was replaced
+// by the persistent connection - the core's Ctx.Disconnect now does the
+// keep-data owner retag natively, in every bucket.)

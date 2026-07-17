@@ -35,6 +35,9 @@ use crate::{
 pub enum ActionCtx {
     Authenticate(AuthRequest),
     Logout,
+    /// End the Stremio session but keep all local data (library, addons,
+    /// settings), retagged to the anonymous profile. See `Internal::Disconnect`.
+    Disconnect,
     DeleteAccount(Password),
     InstallAddon(Descriptor),
     InstallTraktAddon,

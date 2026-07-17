@@ -6,10 +6,6 @@ type RouteDefinition = {
 };
 
 const routesRegexp: Record<string, RouteDefinition> = {
-    intro: {
-        regexp: /^\/intro$/,
-        urlParamsNames: []
-    },
     board: {
         regexp: /^\/?(?:board)?$/,
         urlParamsNames: []

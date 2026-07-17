@@ -197,6 +197,11 @@ module.exports = (env, argv) => ({
                 { from: 'assets/favicons', to: 'favicons' },
                 { from: 'assets/images', to: 'images' },
                 { from: 'manifest.json', to: 'manifest.json' },
+                // The custom update window's page (docs/update-window): served
+                // from the baked bundle by the `--update-window` shell process.
+                // Deliberately a plain copy, not an HtmlWebpackPlugin entry: the
+                // page is self-contained and must not depend on the app bundle.
+                { from: 'src/update.html', to: 'update.html' },
             ]
         }),
         new MiniCssExtractPlugin({

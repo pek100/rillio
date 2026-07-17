@@ -10,11 +10,8 @@ type RouterPathDef = {
 };
 
 const routerPaths: RouterPathDef[] = [
-    {
-        path: '/intro',
-        view: 1,
-        element: <routes.Intro />,
-    },
+    // No /intro route: the app is local-first with no signup surface; connecting
+    // a Stremio account (a sync service) lives in the Sync modal.
     {
         path: '/discover/:transportUrl?/:type?/:catalogId?',
         view: 1,

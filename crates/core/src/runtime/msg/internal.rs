@@ -66,6 +66,12 @@ pub enum Internal {
     LibraryPullResult(DatastoreRequest, Result<Vec<LibraryItem>, CtxError>),
     /// Dispatched when the user session needs to be cleared with a flag if the session was already deleted server-side
     Logout(bool),
+    /// Dispatched when the Stremio session should end but ALL local data stays:
+    /// the session is closed server-side (best effort) and every bucket keeps
+    /// its items, only dropping the owner tag (uid -> None) so the data
+    /// continues as the local anonymous profile. This is the only way to leave
+    /// an account without losing data; `Logout` resets every bucket.
+    Disconnect,
     /// Internal event dispatched on user action or login
     /// to install the addon if it's not present
     InstallTraktAddon,

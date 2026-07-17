@@ -8,9 +8,13 @@ self.init = async () => {
     self.document = {
         baseURI: self.location.href
     };
-    self.local_storage_get_item = async (key) => bridge.call(['localStorage', 'getItem'], [key]);
-    self.local_storage_set_item = async (key, value) => bridge.call(['localStorage', 'setItem'], [key, value]);
-    self.local_storage_remove_item = async (key) => bridge.call(['localStorage', 'removeItem'], [key]);
+    // Storage goes through window.rillioStorage (apps/web common/profileStorage
+    // via core/createTransport), which namespaces every key under the ACTIVE
+    // profile. Never call window.localStorage directly from here: a raw key
+    // would read/write the default profile regardless of which one is active.
+    self.local_storage_get_item = async (key) => bridge.call(['rillioStorage', 'getItem'], [key]);
+    self.local_storage_set_item = async (key, value) => bridge.call(['rillioStorage', 'setItem'], [key, value]);
+    self.local_storage_remove_item = async (key) => bridge.call(['rillioStorage', 'removeItem'], [key]);
     const { default: initialize_api, initialize_runtime, get_state, get_debug_state, dispatch, decode_stream, encode_stream } = require('./rillio_core_web.js');
     self.getState = get_state;
     self.getDebugState = get_debug_state;

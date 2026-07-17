@@ -1,62 +1,59 @@
-// Copyright (C) 2017-2025 Smart code 203358507
+// Copyright (C) 2017-2023 Smart code 203358507
 
 import { useCallback, useEffect, useRef } from 'react';
-import { usePlatform } from 'rillio/common';
 import hat from 'hat';
+// Direct path, not 'rillio/common': this file lives IN common now (moved from
+// routes/Intro when the signup route was removed) and the barrel would cycle.
+import { usePlatform } from 'rillio/common/Platform';
 
-type AppleLoginResponse = {
-    token: string;
-    sub: string;
+type FacebookLoginResponse = {
     email: string;
-    name: string;
+    password: string;
 };
 
 const STREMIO_URL = 'https://www.strem.io';
 const MAX_TRIES = 25;
 
-const getCredentials = async (state: string): Promise<AppleLoginResponse> => {
+const getCredentials = async (state: string): Promise<FacebookLoginResponse> => {
     try {
-        const response = await fetch(`${STREMIO_URL}/login-apple-get-acc/${state}`);
+        const response = await fetch(`${STREMIO_URL}/login-fb-get-acc/${state}`);
         const { user } = await response.json();
 
         return Promise.resolve({
-            token: user.token,
-            sub: user.sub,
             email: user.email,
-            // We might not receive a name from Apple, so we use an empty string as a fallback
-            name: user.name ?? '',
+            password: user.fbLoginToken,
         });
     } catch (e) {
-        console.error('Failed to get credentials from Apple auth', e);
+        console.error('Failed to get credentials from facebook auth', e);
         return Promise.reject(e);
     }
 };
 
-const useAppleLogin = (): [() => Promise<AppleLoginResponse>, () => void] => {
+const useFacebookLogin = (): [() => Promise<FacebookLoginResponse>, () => void] => {
     const platform = usePlatform();
     const started = useRef(false);
     const timeout = useRef<NodeJS.Timeout | null>(null);
 
-    const start = useCallback(() => new Promise<AppleLoginResponse>((resolve, reject) => {
+    const start = useCallback(() => new Promise<FacebookLoginResponse>((resolve, reject) => {
         started.current = true;
         const state = hat(128);
         let tries = 0;
 
-        platform.openExternal(`${STREMIO_URL}/login-apple/${state}`);
+        platform.openExternal(`${STREMIO_URL}/login-fb/${state}`);
 
         const waitForCredentials = () => {
             if (started.current) {
                 timeout.current && clearTimeout(timeout.current);
                 timeout.current = setTimeout(() => {
                     if (tries >= MAX_TRIES)
-                        return reject(new Error('Failed to authenticate with Apple', { cause: 'Number of allowed tries exceeded!' }));
+                        return reject(new Error('Failed to authenticate with facebook', { cause: 'Number of allowed tries exceeded!' }));
 
                     tries++;
 
                     getCredentials(state)
                         .then(resolve)
                         .catch(waitForCredentials);
-                }, 2000);
+                }, 1000);
             }
         };
 
@@ -78,4 +75,4 @@ const useAppleLogin = (): [() => Promise<AppleLoginResponse>, () => void] => {
     ];
 };
 
-export default useAppleLogin;
+export default useFacebookLogin;

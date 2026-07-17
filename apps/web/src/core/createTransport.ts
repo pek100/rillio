@@ -1,4 +1,11 @@
 import Bridge from '@rillio/core-web/bridge';
+import { getItem, setItem, removeItem } from 'rillio/common/profileStorage';
+
+// The wasm core's storage RPC resolves ['rillioStorage', ...] on window (see
+// crates/core-web/src/worker.js): every core bucket read/write lands in the
+// ACTIVE profile's namespace. Must exist before the worker's first storage
+// call; defining it before the Bridge is constructed guarantees that.
+(window as any).rillioStorage = { getItem, setItem, removeItem };
 
 const worker = new Worker(`${process.env.COMMIT_HASH}/scripts/worker.js`);
 const bridge = new Bridge(window, worker);

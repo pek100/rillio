@@ -24,6 +24,8 @@ pub fn update_trakt_addon<E: Env + 'static>(
 ) -> Effects {
     match msg {
         Msg::Internal(Internal::Logout(_)) => eq_update(trakt_addon, None),
+        // Trakt is tied to the Stremio account; disconnecting drops it too.
+        Msg::Internal(Internal::Disconnect) => eq_update(trakt_addon, None),
         Msg::Action(Action::Ctx(ActionCtx::InstallTraktAddon)) => {
             Effects::msg(Msg::Internal(Internal::InstallTraktAddon))
         }
