@@ -21,10 +21,13 @@ $ErrorActionPreference = "Stop"
 
 $version = "v1.0.0"
 $url = "https://github.com/jarnedemeulemeester/libmpv-android/releases/download/$version/libmpv-release.aar"
-# arm64-v8a for real devices; x86_64 for the emulator (native, no arm64
-# translation - the arm64 build's GLES calls cross the emulator's translation
-# bridge and gpu-next fails to render, so emulator video needs the x86_64 ABI).
-$abis = @("arm64-v8a", "x86_64")
+# Every ABI the APK packages (CI builds a UNIVERSAL apk): arm64-v8a for modern
+# devices, armeabi-v7a for 32-bit ones (an arm64-only APK is refused at install
+# with "this phone doesn't support this app"), x86_64 for the emulator (native,
+# no arm64 translation - the arm64 build's GLES calls cross the emulator's
+# translation bridge and gpu-next fails to render). Keep this list in step with
+# the --target list in .github/workflows/build-android.yml.
+$abis = @("arm64-v8a", "armeabi-v7a", "x86_64")
 $libs = @(
     "libmpv.so", "libavcodec.so", "libavdevice.so", "libavfilter.so",
     "libavformat.so", "libavutil.so", "libswresample.so", "libswscale.so",

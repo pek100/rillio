@@ -22,7 +22,6 @@ import ShortcutsModal from './ShortcutsModal';
 import GamepadModal from './GamepadModal';
 import WindowControls from 'rillio/components/WindowControls/WindowControls';
 import ErrorBoundary from 'rillio/components/ErrorBoundary/ErrorBoundary';
-import UpdatingOverlay from './UpdatingOverlay/UpdatingOverlay';
 import SyncModal from './SyncModal/SyncModal';
 import ModalHost from './ModalHost';
 import ModalUrlWatcher from './ModalUrlWatcher';
@@ -214,7 +213,6 @@ const App = () => {
                             <FullscreenProvider>
                                 <DiscordProvider>
                                     <WindowControls />
-                                    <UpdatingOverlay />
                                     {/* Modal layer and routes get their own boundaries, so a crash
                                         in either one cannot white-screen the whole shell. */}
                                     <ErrorBoundary>

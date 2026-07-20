@@ -1,32 +1,33 @@
-# Build the Android TV APK and publish it as a GitHub PRERELEASE (beta).
+# Reusable: build + sign the Android TV APK and hand it back as a run artifact.
 #
-# Separate from release.yml (the Windows desktop pipeline) on purpose: this ships
-# ONLY to GitHub as a prerelease, never touches the website or the desktop
-# updater feed (latest.json), and uses a distinct tag namespace so it can never be
-# resolved as `releases/latest`.
+# Called by ci.yml (every push to main) and release.yml (tag v*). It never
+# publishes anything itself, so there is exactly ONE Android build definition and
+# CI cannot drift from what a release ships.
 #
-# Trigger: push a tag like `android-v0.1.0-beta.1`, or run manually
-# (workflow_dispatch, which builds + uploads the APK as a run artifact only).
+# ABIs: UNIVERSAL (arm64-v8a + armeabi-v7a + x86_64). An arm64-only APK is
+# rejected at install time on any other device with "this phone doesn't support
+# this app" - the beta shipped arm64-only and hit exactly that. The libmpv
+# prebuilt AAR carries all of these, so the coverage is free apart from build
+# time.
 #
-# Signing: this builds the DEBUG apk, which is self-signed with the Android debug
-# key and installs via sideload - fine for a beta testers pull from a Release.
-# A Play-ready, release-signed build (upload keystore in repo secrets) is the
-# follow-up for a stable channel.
-#
-# The player needs libmpv.so + its ffmpeg set at runtime; they are gitignored, so
-# the "Fetch libmpv (Android)" step stages them from the pinned prebuilt.
+# Signing: a throwaway debug keystore, so the APK sideloads. NOTE: the key is
+# regenerated per run, so an installed copy must be UNINSTALLED before a newer
+# APK installs over it (Android refuses a signature change). A persistent
+# upload keystore in repo secrets is the fix when there is a stable channel.
 
-name: android-beta
+name: build-android
 
 on:
-  push:
-    tags: ['android-v*']
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Name of the uploaded APK artifact.
+        required: false
+        default: android-apk
+        type: string
 
 jobs:
   android:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -43,18 +44,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # aarch64-linux-android: the Rust cdylib target for the APK. wasm32: the core.
+      # One Rust target per packaged ABI, plus wasm32 for the core.
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown, aarch64-linux-android
+          targets: wasm32-unknown-unknown, aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android
 
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           workspaces: |
             .
             apps/desktop/src-tauri
-          # The Android cdylib is a different target triple than the desktop cache.
+          # The Android cdylibs are different target triples than the desktop cache.
           key: android
 
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
@@ -90,23 +91,28 @@ jobs:
       - name: Build web app
         run: pnpm --filter rillio run build
 
+      # libmpv.so + its ffmpeg set are gitignored, so stage them (all packaged
+      # ABIs) before the APK build.
       - name: Fetch libmpv (Android)
         run: bash scripts/fetch-libmpv-android.sh
 
-      # Release APK (--target aarch64 = real-device ABI). Release strips the
-      # ~278MB cdylib debuginfo -> ~54MB vs ~309MB debug.
+      # Multiple --target values make Tauri emit ONE universal APK carrying every
+      # ABI. Release (not debug) strips the ~278MB cdylib debuginfo.
       - name: Build Android APK
         working-directory: apps/desktop/src-tauri
-        run: cargo tauri android build --apk --target aarch64
+        run: cargo tauri android build --apk --target aarch64 armv7 x86_64
 
-      # The release APK is unsigned; zipalign + sign it with a throwaway debug
-      # keystore so it sideloads. (A real upload keystore in repo secrets is the
-      # follow-up for a Play/stable channel - swap the keytool line for a secret.)
+      # The release APK is unsigned; zipalign + sign so it sideloads.
       - name: Sign APK
         id: apk
         run: |
+          set -euo pipefail
           bt="$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -n1)"
-          unsigned="$(find apps/desktop/src-tauri/gen/android/app/build/outputs/apk -name '*-release-unsigned.apk' | head -n1)"
+          # Prefer the universal APK; a single-ABI build would name it per-ABI.
+          unsigned="$(find apps/desktop/src-tauri/gen/android/app/build/outputs/apk -name '*universal*-release-unsigned.apk' | head -n1)"
+          if [ -z "$unsigned" ]; then
+            unsigned="$(find apps/desktop/src-tauri/gen/android/app/build/outputs/apk -name '*-release-unsigned.apk' | head -n1)"
+          fi
           if [ -z "$unsigned" ]; then echo "no release APK produced" >&2; exit 1; fi
           ks="$RUNNER_TEMP/debug.keystore"
           keytool -genkeypair -keystore "$ks" -storepass android -keypass android \
@@ -114,34 +120,24 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US"
           aligned="$RUNNER_TEMP/aligned.apk"
           "$bt/zipalign" -f -p 4 "$unsigned" "$aligned"
-          out="Rillio-AndroidTV-${GITHUB_REF_NAME}.apk"
+          out="Rillio-AndroidTV.apk"
           "$bt/apksigner" sign --ks "$ks" --ks-pass pass:android --key-pass pass:android \
             --ks-key-alias androiddebugkey --out "$out" "$aligned"
           "$bt/apksigner" verify "$out"
+          # Fail loud if the ABI set regressed: an arm64-only APK is the bug this
+          # universal build exists to prevent, and it is invisible until a user
+          # cannot install it.
+          abis="$(unzip -l "$out" | grep -o 'lib/[^/]*' | sort -u | cut -d/ -f2 | paste -sd, -)"
+          echo "packaged ABIs: $abis"
+          for required in arm64-v8a armeabi-v7a x86_64; do
+            case ",$abis," in *",$required,"*) ;; *) echo "missing ABI $required" >&2; exit 1;; esac
+          done
           echo "path=$out" >> "$GITHUB_OUTPUT"
           ls -lh "$out"
 
-      # workflow_dispatch (no tag): keep the APK as a run artifact for manual test.
-      - name: Upload artifact
-        if: github.event_name == 'workflow_dispatch'
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: ${{ inputs.artifact-name }}
           path: ${{ steps.apk.outputs.path }}
-
-      # tag push: publish a GitHub PRERELEASE (never marked latest).
-      - name: Publish prerelease
-        if: startsWith(github.ref, 'refs/tags/android-v')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: 'Rillio Android TV ${{ github.ref_name }}'
-          body: |
-            Beta APK for Android TV (arm64). Sideload with `adb install`.
-
-            Early build: the shared UI, streaming server, and downloads run
-            on-device; native mpv/libplacebo playback is in testing (SDR/HDR10
-            via hardware decode; 4K Dolby Vision needs a capable SoC). Not on the
-            website and not an auto-update - beta testers only.
-          prerelease: true
-          files: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error

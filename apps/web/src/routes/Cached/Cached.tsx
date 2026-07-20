@@ -427,7 +427,15 @@ const Row = ({ entry, metaLink, streamingMode, onPlay, onMoreInfo, onSetPaused, 
                     }
                     <span className="text-fg-subtle">{' · '}</span>
                     {stateLabel(entry)}
-                    {entry.fileCount > 1 ? <><span className="text-fg-subtle">{' · '}</span>{`${entry.fileCount} files`}</> : null}
+                    {
+                        // Only for a genuine pack. A movie shipping a .nfo beside it
+                        // resolves to one playable video, and calling that "2 files"
+                        // read as "this is a season pack" when it is not.
+                        entry.fileCount > 1 && typeof entry.fileIdx !== 'number' ?
+                            <><span className="text-fg-subtle">{' · '}</span>{`${entry.fileCount} files`}</>
+                            :
+                            null
+                    }
                     {
                         // Honest about the pending cleanup: with streaming mode on, a
                         // watched un-kept stream is on the sweeper's list.

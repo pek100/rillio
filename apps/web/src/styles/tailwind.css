@@ -615,13 +615,6 @@ html body {
 @keyframes gamepad-draw-line { from { stroke-dashoffset: 800; } to { stroke-dashoffset: 0; } }
 @keyframes gamepad-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* Updating overlay (ported from App/UpdatingOverlay/styles.less; classes moved onto
- * UpdatingOverlay.tsx). The looping fluid-fill brand mark is canvas/WebGL-driven
- * (window.__rillioFluidLogo); these keyframes only drive the static-logo fallback
- * pulse and the indeterminate progress-bar slide. */
-@keyframes updating-pulse { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.06); opacity: 1; } }
-@keyframes updating-slide { 0% { transform: translateX(-130%); } 100% { transform: translateX(340%); } }
-
 /* Episode selected-flash (ported from components/Video/styles.less; applied on the
  * Video row as animate-[video-selected-border_...]). Fades the row border from the
  * accent to transparent over 3s. */

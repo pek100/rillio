@@ -24,8 +24,8 @@ use crate::torrent::is_valid_infohash;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CacheEntry {
     pub info_hash: String,
-    /// The single selected file's name when exactly one file is selected
-    /// (e.g. the episode filename), otherwise the torrent name.
+    /// The playable file's name when the selection resolves to exactly one
+    /// video (e.g. the episode filename), otherwise the torrent name.
     pub name: String,
     /// Bytes actually downloaded of the selected files (≈ on-disk weight).
     pub downloaded: u64,
@@ -41,11 +41,29 @@ pub(crate) struct CacheEntry {
     pub watched: bool,
     /// Number of selected files.
     pub file_count: usize,
-    /// The single selected file's index in the torrent when exactly one file
-    /// is selected (a playable stream is one file), omitted otherwise. Lets
-    /// the Cached page build a player deep link for the entry.
+    /// The playable file's index in the torrent, when the selection contains
+    /// exactly ONE video file; omitted for a season pack (ambiguous) or a
+    /// selection with no video at all. Lets the Cached page build a player
+    /// deep link for the entry.
+    ///
+    /// Deliberately NOT "exactly one selected file": scene releases routinely
+    /// ship an .nfo/.txt/.jpg next to the video, and requiring a lone file made
+    /// every one of those look unplayable (no Play button on a finished movie).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_idx: Option<usize>,
+}
+
+/// Extensions we treat as playable video. Matches the container formats the
+/// player (libmpv) handles; anything else in a torrent (.nfo, .txt, .jpg,
+/// .srt, sample scripts) is packaging, not the thing the user wants to watch.
+const VIDEO_EXTENSIONS: &[&str] = &[
+    "mkv", "mp4", "avi", "mov", "m4v", "webm", "ts", "m2ts", "mts", "wmv", "flv", "mpg", "mpeg",
+    "ogv", "ogm", "divx", "vob", "rmvb", "3gp",
+];
+
+fn is_video(name: &str) -> bool {
+    name.rsplit_once('.')
+        .is_some_and(|(_, ext)| VIDEO_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
 }
 
 /// `GET /cache/list` - every torrent the engine manages (the session persists
@@ -96,10 +114,18 @@ pub(crate) async fn list(State(engine): State<Engine>) -> Json<Vec<CacheEntry>> 
                     }
                 }
             };
-            let name = if selected.len() == 1 {
-                files[selected[0]].name.clone()
-            } else {
-                handle.name().unwrap_or_default()
+            // The playable file: the lone video among the selected files. A
+            // season pack (many videos) stays ambiguous, and a selection with
+            // no video at all is not playable.
+            let videos: Vec<usize> = selected
+                .iter()
+                .copied()
+                .filter(|&i| is_video(&files[i].name))
+                .collect();
+            let playable = if videos.len() == 1 { Some(videos[0]) } else { None };
+            let name = match playable {
+                Some(idx) => files[idx].name.clone(),
+                None => handle.name().unwrap_or_default(),
             };
             CacheEntry {
                 pinned: engine.is_pinned(&info_hash),
@@ -111,11 +137,7 @@ pub(crate) async fn list(State(engine): State<Engine>) -> Json<Vec<CacheEntry>> 
                 state: format!("{:?}", stats.state).to_lowercase(),
                 error: stats.error.clone(),
                 file_count: selected.len(),
-                file_idx: if selected.len() == 1 {
-                    Some(selected[0])
-                } else {
-                    None
-                },
+                file_idx: playable,
             }
         })
         .collect();

@@ -1,24 +1,26 @@
-# Build, sign, and publish a Rillio desktop release + the updater manifest.
+# Build, sign, and publish a Rillio release: the Windows desktop installer AND
+# the Android TV APK, in ONE GitHub Release, plus the desktop updater manifest.
 #
-# Trigger: push a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`),
-# or run manually. Do NOT trigger on every push, that would ship an update per
-# commit.
+# Trigger: push a version tag (`git tag v0.2.0 && git push origin v0.2.0`), or
+# run manually. NOT on every push - that would ship an update per commit. Every
+# push is built (never released) by ci.yml.
+#
+# Shape: `desktop` and `android` build in parallel; `publish` waits for both,
+# attaches the APK + checksums, and only then flips the draft to published. So
+# `releases/latest` never exists in a half-populated state, and a failure on
+# either platform leaves a draft rather than a broken public release.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
 #   TAURI_SIGNING_PRIVATE_KEY           output of `tauri signer generate` (private key)
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  the password you set for it (empty string if none)
-# and, in apps/desktop/src-tauri/tauri.conf.json, replace:
-#   plugins.updater.pubkey   -> the PUBLIC key from `tauri signer generate`
-#   plugins.updater.endpoints -> https://github.com/pek100/rillio/releases/latest/download/latest.json
 #
-# tauri-action builds the installer, signs it + the update artifact, uploads them
-# and a generated `latest.json` to a GitHub Release (created as a draft so you can
-# review before publishing, the updater resolves `releases/latest/...` only once
-# the release is published).
+# Before tagging: bump `version` in apps/desktop/src-tauri/tauri.conf.json (it is
+# the source of truth for BOTH the installer and the APK's versionName).
 #
-# NOTE: playback needs libmpv-2.dll at runtime. It is gitignored; the "Fetch and
-# bundle libmpv" step below downloads a pinned, sha256-verified build and injects
-# it as a bundle resource.
+# latest.json note: bundle.targets is ["nsis"], so tauri-action's manifest points
+# windows-x86_64 at the NSIS -setup.exe on its own. That is the ROOT FIX for the
+# MSI-vs-NSIS patch that had to be applied by hand on every release through
+# v0.1.24 - do not put "all"/"msi" back without restoring that manual step.
 
 name: release
 
@@ -28,16 +30,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  desktop:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-    runs-on: ${{ matrix.platform }}
-
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -85,40 +81,11 @@ jobs:
       - name: Build web app
         run: pnpm --filter rillio run build
 
-      # Playback needs libmpv-2.dll next to the exe (loaded at runtime via
-      # libloading; see mpv.rs default_dll_path). Fetch an official shared build
-      # and inject it as a bundle resource here rather than in the committed
-      # config, so a normal `cargo build` (no DLL on disk) still works locally.
-      # NOTE: these builds are GPL; shipping the DLL carries the usual GPL source
-      # obligations.
       - name: Fetch and bundle libmpv
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Bumping mpv: update these three values together. The sha256 is the
-          # asset's `digest` field on
-          # api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/tags/<tag>
-          MPV_RELEASE_TAG: '20260610'
-          MPV_ASSET_NAME: 'mpv-dev-x86_64-20260610-git-304426c.7z'
-          MPV_SHA256: '8cbb25ea784f01afbb3f904217cab1317430a8bcfd5680fd827a866367f71cc9'
-        run: |
-          $rel = Invoke-RestMethod "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/tags/$($env:MPV_RELEASE_TAG)" -Headers @{ Authorization = "Bearer $env:GITHUB_TOKEN"; 'User-Agent' = 'rillio-ci' }
-          $asset = $rel.assets | Where-Object { $_.name -eq $env:MPV_ASSET_NAME } | Select-Object -First 1
-          if (-not $asset) { throw "asset $($env:MPV_ASSET_NAME) not found in shinchiro release $($env:MPV_RELEASE_TAG)" }
-          Write-Host "downloading $($asset.name)"
-          Invoke-WebRequest $asset.browser_download_url -OutFile mpv-dev.7z
-          $actual = (Get-FileHash mpv-dev.7z -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne $env:MPV_SHA256) {
-            Write-Host "SHA256 mismatch for $($env:MPV_ASSET_NAME): expected $($env:MPV_SHA256), got $actual"
-            exit 1
-          }
-          7z e mpv-dev.7z libmpv-2.dll -o"apps/desktop/src-tauri" -y
-          if (-not (Test-Path apps/desktop/src-tauri/libmpv-2.dll)) { throw "libmpv-2.dll not extracted" }
-          $cfgPath = "apps/desktop/src-tauri/tauri.conf.json"
-          $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
-          $cfg.bundle | Add-Member -NotePropertyName resources -NotePropertyValue @('libmpv-2.dll') -Force
-          $cfg | ConvertTo-Json -Depth 30 | Set-Content $cfgPath -Encoding utf8
-          Write-Host "injected libmpv-2.dll into bundle.resources"
+        run: ./scripts/fetch-libmpv-windows.ps1
 
       - uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0 (latest; older pins fail release creation with "Resource not accessible")
         env:
@@ -129,14 +96,18 @@ jobs:
           projectPath: apps/desktop/src-tauri
           tagName: ${{ github.ref_name }}
           releaseName: 'Rillio ${{ github.ref_name }}'
-          releaseBody: 'Download the installer below. Existing installs update automatically.'
+          releaseBody: |
+            **Windows:** download `RillioSetup.exe` below. Existing installs update automatically.
+
+            **Android TV:** sideload `Rillio-AndroidTV.apk` (universal: arm64, arm32, x86_64).
+            Not an auto-update channel; uninstall any previous build first, the beta signing key is per-build.
+          # Stays a draft until the Android build lands too - `publish` flips it.
           releaseDraft: true
           prerelease: false
 
       # Publish the installer under clean names: RillioSetup-<version>.exe (the
       # human-facing versioned file) and RillioSetup.exe (a version-stable copy so
-      # the website can link to releases/latest/download/RillioSetup.exe). Works
-      # once the draft above is published.
+      # the website can link to releases/latest/download/RillioSetup.exe).
       - name: Publish named installers
         shell: pwsh
         env:
@@ -150,20 +121,78 @@ jobs:
           Copy-Item $exe.FullName "RillioSetup.exe"
           gh release upload $env:TAG_NAME "RillioSetup-$ver.exe" "RillioSetup.exe" --clobber --repo ${{ github.repository }}
 
-      # First-install integrity: the updater verifies signatures on updates, but
-      # the initial download from the website has no check without this file.
-      - name: Publish SHA256SUMS
-        shell: pwsh
+  android:
+    uses: ./.github/workflows/build-android.yml
+    secrets: inherit
+
+  publish:
+    needs: [desktop, android]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+
+      # Version-stable name for the website + a versioned copy, mirroring the
+      # installer's two names.
+      - name: Attach the APK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          $ver = ($env:TAG_NAME).TrimStart('v')
-          $lines = foreach ($f in @("RillioSetup-$ver.exe", 'RillioSetup.exe')) {
-            if (-not (Test-Path $f)) { throw "$f not found, cannot hash" }
-            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $f"
-          }
-          [IO.File]::WriteAllText((Join-Path $PWD 'SHA256SUMS.txt'), (($lines -join "`n") + "`n"))
-          Get-Content SHA256SUMS.txt
-          gh release upload $env:TAG_NAME SHA256SUMS.txt --clobber --repo ${{ github.repository }}
+          set -euo pipefail
+          ver="${TAG_NAME#v}"
+          cp Rillio-AndroidTV.apk "Rillio-AndroidTV-$ver.apk"
+          gh release upload "$TAG_NAME" "Rillio-AndroidTV.apk" "Rillio-AndroidTV-$ver.apk" \
+            --clobber --repo "${{ github.repository }}"
+
+      # First-install integrity: the updater verifies signatures on updates, but
+      # a download from the website has no check without this file. Covers both
+      # platforms, so it runs here rather than in either build job.
+      - name: Publish SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ver="${TAG_NAME#v}"
+          gh release download "$TAG_NAME" --repo "${{ github.repository }}" \
+            --pattern 'RillioSetup*.exe' --dir . --clobber
+          : > SHA256SUMS.txt
+          for f in "RillioSetup-$ver.exe" RillioSetup.exe "Rillio-AndroidTV-$ver.apk" Rillio-AndroidTV.apk; do
+            [ -f "$f" ] || { echo "$f not found, cannot hash" >&2; exit 1; }
+            sha256sum "$f" >> SHA256SUMS.txt
+          done
+          cat SHA256SUMS.txt
+          gh release upload "$TAG_NAME" SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
+
+      # Everything is attached: make it public and resolvable as
+      # releases/latest (what the updater feed and the website links read).
+      - name: Publish the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: gh release edit "$TAG_NAME" --draft=false --latest --repo "${{ github.repository }}"
+
+      # The updater feed is the one asset a mistake here breaks silently, so
+      # assert on the PUBLISHED release: 0.x.y matching the tag, and a Windows
+      # entry pointing at the NSIS installer (never the MSI).
+      - name: Verify the updater feed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ver="${TAG_NAME#v}"
+          gh release download "$TAG_NAME" --repo "${{ github.repository }}" \
+            --pattern latest.json --dir feed --clobber
+          got_ver="$(jq -r .version feed/latest.json)"
+          got_url="$(jq -r '.platforms["windows-x86_64"].url' feed/latest.json)"
+          echo "latest.json: version=$got_ver url=$got_url"
+          [ "$got_ver" = "$ver" ] || { echo "version mismatch: $got_ver != $ver" >&2; exit 1; }
+          case "$got_url" in
+            *-setup.exe) ;;
+            *) echo "windows-x86_64 must point at the NSIS -setup.exe, got $got_url" >&2; exit 1;;
+          esac

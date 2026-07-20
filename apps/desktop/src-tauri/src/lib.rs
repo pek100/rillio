@@ -673,7 +673,6 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     }
     #[cfg(desktop)]
     {
-    use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
     let update = app
@@ -688,8 +687,8 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     // shows the liquid progress page through download AND install (this process
     // exits at install handoff, so an in-process window could not). The main
     // window hides immediately - the small window IS the update experience.
-    // Presentation only: if the splash fails to spawn, the update proceeds and
-    // the in-app overlay (still fed by `update-progress` below) covers it.
+    // Presentation only: if the splash fails to spawn, the update still
+    // proceeds (headless) and ends in the relaunch either way.
     update_window::write_progress(&update_window::UpdateProgress {
         phase: "downloading".into(),
         downloaded: 0,
@@ -701,21 +700,16 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
         let _ = window.hide();
     }
 
-    // Stream download progress to the web UI's updating overlay
-    // (apps/web App/UpdatingOverlay) and to the update window's progress file
-    // (throttled; the file poller runs at 150ms). `content_len` is the total
-    // size when known.
-    let app_cb = app.clone();
+    // Stream download progress to the update window's progress file (throttled;
+    // the file poller runs at 150ms). The update window is the ONLY progress
+    // surface - the main window is hidden and the web UI's overlay is gone.
+    // `content_len` is the total size when known.
     let mut downloaded: u64 = 0;
     let mut last_file_write = std::time::Instant::now() - std::time::Duration::from_secs(1);
     let download_result = update
         .download(
             move |chunk_len, content_len| {
                 downloaded += chunk_len as u64;
-                let _ = app_cb.emit(
-                    "update-progress",
-                    serde_json::json!({ "downloaded": downloaded, "total": content_len }),
-                );
                 if last_file_write.elapsed() >= std::time::Duration::from_millis(100) {
                     last_file_write = std::time::Instant::now();
                     update_window::write_progress(&update_window::UpdateProgress {
